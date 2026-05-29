@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-27T22:10:43.350Z
-> Files: 131 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T20:27:56.706Z
+> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -16,8 +16,12 @@
 - `.npmrc` (~6 tok)
 - `check_enum_temp.php` (~212 tok)
 - `drop_pvav.php` (~74 tok)
+- `nixpacks.toml` (~88 tok)
+- `package.json` — Node.js package manifest (~174 tok)
 - `phpunit.xml` (~378 tok)
 - `pint.json` (~8 tok)
+- `Procfile` (~14 tok)
+- `railway.json` (~100 tok)
 - `tailwind.config.js` (~161 tok)
 
 ## .claude/

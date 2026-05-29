@@ -563,3 +563,11 @@
 | 23:10 | Edited app/Livewire/Stores/Settings/WhatsappSettings.php | 2→1 lines | ~6 |
 | 23:10 | Extended WhatsappSettings with stats + message history (no new component — enhanced existing) | WhatsappSettings.php, whatsapp-settings.blade.php | done | ~300 |
 | 23:11 | Session end: 12 writes across 6 files (MetaMessageService.php, SendWhatsAppConfirmation.php, OrderSyncService.php, WhatsAppWebhookHandler.php, WhatsappSettings.php) | 10 reads | ~11564 tok |
+| 21:27 | Edited package.json | removed 7 lines | ~1 |
+| 21:27 | Created railway.json | — | ~100 |
+| 21:27 | Created Procfile | — | ~14 |
+| 21:27 | Created nixpacks.toml | — | ~88 |
+| 21:27 | Edited package.json | 6→6 lines | ~54 |
+| 21:28 | Fixed Railway deployment: removed Tailwind v3/v4 devDependency conflict, replaced heroku-php-apache2 with php artisan serve, created nixpacks.toml | package.json, railway.json, Procfile, nixpacks.toml, .env.example | done | ~150 |
+| 21:28 | Session end: 17 writes across 10 files (MetaMessageService.php, SendWhatsAppConfirmation.php, OrderSyncService.php, WhatsAppWebhookHandler.php, WhatsappSettings.php) | 16 reads | ~12002 tok |
+| 21:29 | Session end: 17 writes across 10 files (MetaMessageService.php, SendWhatsAppConfirmation.php, OrderSyncService.php, WhatsAppWebhookHandler.php, WhatsappSettings.php) | 16 reads | ~12002 tok |
