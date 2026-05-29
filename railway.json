@@ -3,6 +3,8 @@
       "builder": "heroku"
     },
     "deploy": {
-      "startCommand": "vendor/bin/heroku-php-apache2 public/"
+      "startCommand": "vendor/bin/heroku-php-apache2 public/",
+      "numReplicas": 1,
+      "restartPolicyType": "on_failure"
     }
   }
