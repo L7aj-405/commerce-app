@@ -1,0 +1,10 @@
+*.sqlite*
+echo "vendor/" >> .gitignore
+echo ".env" >> .gitignore
+echo "node_modules/" >> .gitignore
+.env
+vendor/
+node_modules/
+storage/logs/
+bootstrap/cache/
+.DS_Store

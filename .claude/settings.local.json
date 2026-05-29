@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "PowerShell(cd \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\"; php artisan tinker --execute=\"use App\\\\Models\\\\User; use App\\\\Enums\\\\UserStatus; use Illuminate\\\\Auth\\\\Events\\\\Registered; User::where\\('email','test@example.com'\\)->delete\\(\\); \\\\$u = User::create\\(['name'=>'Test User','email'=>'test@example.com','password'=>bcrypt\\('Password1'\\),'status'=>UserStatus::Active,'settings'=>['language'=>'en'],'metadata'=>['source'=>'direct']]\\); event\\(new Registered\\(\\\\$u\\)\\); echo 'OK:'.\\\\$u->id;\" 2>&1)",
+      "PowerShell(cd \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\"; Select-String -Path \"storage\\\\logs\\\\laravel.log\" -Pattern \"verify|Verify|verification|Subject|From|To|Hello Test\" -Context 0,0 | Select-Object -Last 40 | ForEach-Object { $_.Line })",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(dir /b \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\\\\app\\\\Models\" -File)",
+      "Bash(Select-Object Name)",
+      "PowerShell(cd \"C:\\\\Users\\\\toshiba\\\\Desktop\\\\Work Laravel\\\\claude\\\\saas-commerce\"; php -r \"require 'vendor/autoload.php'; \\\\$app = require 'bootstrap/app.php'; \\\\$app->make\\(\\\\Illuminate\\\\Contracts\\\\Http\\\\Kernel::class\\); \\\\$routes = app\\('router'\\)->getRoutes\\(\\); foreach\\(\\\\$routes as \\\\$r\\) { if\\(str_contains\\(\\\\$r->getName\\(\\) ?? '', 'stores'\\)\\) echo \\\\$r->methods\\(\\)[0] . ' ' . \\\\$r->uri\\(\\) . ' -> ' . \\\\$r->getName\\(\\) . PHP_EOL; }\" 2>&1)"
+    ]
+  },
+  "enabledPlugins": {
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
+  }
+}

@@ -1,0 +1,719 @@
+{
+  "version": 1,
+  "bugs": [
+    {
+      "id": "bug-001",
+      "timestamp": "2026-05-25T15:38:17.023Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 51→63 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:38:17.024Z"
+    },
+    {
+      "id": "bug-002",
+      "timestamp": "2026-05-25T15:39:14.031Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:39:14.031Z"
+    },
+    {
+      "id": "bug-003",
+      "timestamp": "2026-05-25T15:39:28.540Z",
+      "error_message": "Missing error handling in syncParentProductAttributes",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:39:28.540Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-05-25T15:46:26.856Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * @param  string|null  $productExternalId  Platform-specific; * @param  string|null  $variantExternalId  Platform-specific | Also: public function deleteVariant(ProductVariant $variant, ?stri; $product  = $variant->product;",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-05-25T15:47:24.756Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-05-25T15:48:16.429Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/YouCanConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:48:16.429Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-05-25T15:51:17.746Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "check_enum_temp.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:51:17.746Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-05-25T15:30:00.000Z",
+      "error_message": "Variants created locally but NOT pushed to Shopify and YouCan (only WooCommerce gets variants)",
+      "file": "app/Services/Sync/VariantPushService.php",
+      "root_cause": "VariantPushService::createVariant used `$product->platform` (= 'woocommerce' from first push) to filter platform connections. This meant only WooCommerce connections were ever queried — Shopify and YouCan were silently skipped.",
+      "fix": "Removed $product->platform filter from getConnections() call. Now iterates ALL active connections. Added getProductExternalId() and getVariantExternalId() helpers that look up per-platform external_ids from SyncLog.",
+      "tags": [
+        "variant-push",
+        "multi-platform",
+        "filter-bug",
+        "woocommerce",
+        "shopify",
+        "youcan"
+      ],
+      "related_bugs": [
+        "bug-068",
+        "bug-069"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:30:00.000Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-05-25T15:30:00.000Z",
+      "error_message": "SQLSTATE[01000]: Warning: 1265 Data truncated for column 'action' at row 1 — variant_create not in ENUM",
+      "file": "database/migrations/2026_05_25_200000_extend_sync_logs_action_enum.php",
+      "root_cause": "sync_logs.action ENUM only had ('product','variant','stock','order','customer'). VariantPushService used 'variant_create' and 'variant_delete' which are not valid ENUM values.",
+      "fix": "Created migration 2026_05_25_200000 to extend ENUM to include variant_create and variant_delete via ALTER TABLE MODIFY COLUMN.",
+      "tags": [
+        "sync-logs",
+        "enum",
+        "mysql-truncation",
+        "migration"
+      ],
+      "related_bugs": [
+        "bug-067"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:30:00.000Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-05-25T15:30:00.000Z",
+      "error_message": "Shopify variant created without option values (L/Red attributes not appearing)",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "ShopifyConnector::createVariant sent sku/price/inventory_management but NOT option1/option2/option3. Shopify variants require positional option slots to be set, otherwise they appear with empty attribute values.",
+      "fix": "Added getOrSyncProductOptions() helper that ensures product has options defined and returns name→position map. createVariant and pushProductVariant now map attributes to option1/option2/option3 based on this map.",
+      "tags": [
+        "shopify",
+        "variant-options",
+        "option1",
+        "option2",
+        "option3"
+      ],
+      "related_bugs": [
+        "bug-067"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:30:00.000Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-05-25T15:30:00.000Z",
+      "error_message": "WooCommerce variation attributes silently ignored — size/color not appearing on variation",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "WooCommerce requires the parent product to have variation attributes defined (variation:true) before a variation can be linked to them. Creating a variation with attributes the parent doesn't know about is silently accepted but the attributes are discarded.",
+      "fix": "Added syncParentProductAttributes() helper that GETs the product, checks for missing/incomplete attribute definitions, and PUTs the updated attributes back before creating/updating the variation.",
+      "tags": [
+        "woocommerce",
+        "variation-attributes",
+        "parent-product"
+      ],
+      "related_bugs": [
+        "bug-067"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T15:30:00.000Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-05-25T16:33:24.440Z",
+      "error_message": "Missing error handling in createVariableProduct",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T16:33:24.440Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-05-25T16:33:44.737Z",
+      "error_message": "Missing error handling in createVariableProduct",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T16:33:44.737Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-05-25T16:34:07.455Z",
+      "error_message": "Missing error handling in createVariableProduct",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T16:34:07.455Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-05-25T16:34:22.255Z",
+      "error_message": "Missing error handling in createVariableProduct",
+      "file": "app/Connectors/YouCanConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T16:34:22.255Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-05-25T16:34:37.559Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Livewire/Products/ProductEdit.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 33→44 lines (3 removed) | Also: $message = $synced->isNotEmpty(); ? \"{$verb} {$count} platform\" . ($count !== 1 ? 's",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-25T16:34:51.367Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-05-25T00:00:00.000Z",
+      "error_message": "Variable product pushed as empty shell — variants and attributes not created on platform",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "createProduct() used a single simple-product path for all product types. Variable products got just the product stub with no attribute definitions and no variations.",
+      "fix": "createProduct() now delegates to createVariableProduct() for variable products. gatherVariableProductData() collects all attributes+variants. Each connector implements createVariableProduct(): WooCommerce POSTs product with attributes then POSTs each variation; Shopify embeds options+variants in one product POST; YouCan POSTs product then POSTs each variant. ProductEdit guards against pushing variable products with no variants.",
+      "tags": [
+        "variable-product",
+        "variants",
+        "attributes",
+        "woocommerce",
+        "shopify",
+        "youcan",
+        "product-push"
+      ],
+      "related_bugs": [
+        "bug-067",
+        "bug-070"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T00:00:00.000Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-05-25T18:46:48.502Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Livewire/Products/ProductVariants.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T18:46:48.502Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-05-25T18:46:54.876Z",
+      "error_message": "Wrong reference: $storeAttributes should be $productAttributes",
+      "file": "resources/views/livewire/products/product-variants.blade.php",
+      "root_cause": "Used \"$storeAttributes\" instead of \"$productAttributes\"",
+      "fix": "Changed $storeAttributes → $productAttributes",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T18:46:54.876Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-05-25T18:47:01.479Z",
+      "error_message": "Wrong reference: $storeAttributes should be $productAttributes",
+      "file": "resources/views/livewire/products/variant-form-modal.blade.php",
+      "root_cause": "Used \"$storeAttributes\" instead of \"$productAttributes\"",
+      "fix": "Changed $storeAttributes → $productAttributes",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T18:47:01.479Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-05-25T18:47:56.004Z",
+      "error_message": "Missing error handling in syncVariantAttributesToPerProduct",
+      "file": "app/Services/Sync/ProductSyncService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T18:47:56.004Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-05-25T21:45:57.678Z",
+      "error_message": "Wrong reference: ProductCreate should be ProductCreationWizard",
+      "file": "routes/web.php",
+      "root_cause": "Used \"ProductCreate\" instead of \"ProductCreationWizard\"",
+      "fix": "Changed ProductCreate → ProductCreationWizard",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-25T21:46:05.986Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-05-25T22:12:37.583Z",
+      "error_message": "Wrong reference: $attributes should be $productAttributes",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "Used \"$attributes\" instead of \"$productAttributes\"",
+      "fix": "Changed $attributes → $productAttributes",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-05-25T22:20:43.331Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-05-25T22:13:08.031Z",
+      "error_message": "Wrong condition in logic",
+      "file": "resources/views/livewire/products/product-creation-wizard.blade.php",
+      "root_cause": "Condition was: if (!empty($attributes)",
+      "fix": "Changed to: if (!empty($productAttributes)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-25T22:13:37.408Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-05-25T22:13:24.385Z",
+      "error_message": "Wrong reference: $attributes should be $productAttributes",
+      "file": "resources/views/livewire/products/product-creation-wizard.blade.php",
+      "root_cause": "Used \"$attributes\" instead of \"$productAttributes\"",
+      "fix": "Changed $attributes → $productAttributes",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-25T22:13:30.657Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-05-25T00:00:00.000Z",
+      "error_message": "Type of App\\Livewire\\Products\\ProductCreationWizard::$attributes must be Livewire\\Features\\SupportAttributes\\AttributeCollection (as in class Livewire\\Component)",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "Named a public Livewire property '$attributes' which conflicts with Livewire\\Component's internal $attributes property typed as AttributeCollection",
+      "fix": "Renamed public array $attributes to $productAttributes in both ProductCreationWizard.php and product-creation-wizard.blade.php",
+      "tags": [
+        "livewire",
+        "property-conflict",
+        "type-error",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T00:00:00.000Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-05-25T22:17:37.459Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "Condition was: if ($this->totalSelectedVariants === 0)",
+      "fix": "Changed to: if ($this->totalSelectedVariants()",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T22:17:37.459Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-05-25T22:20:07.602Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→34 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T22:20:07.602Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-05-25T22:20:49.179Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-25T22:20:49.179Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-05-26T10:37:39.067Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 29→59 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:37:39.067Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-05-26T10:45:17.268Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "Had 'active'",
+      "fix": "Changed to 'published'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:45:17.268Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-05-26T10:45:23.662Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Had 'publish'",
+      "fix": "Changed to 'published'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:45:23.662Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-05-26T10:45:40.837Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Had 'active'",
+      "fix": "Changed to 'published'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:45:40.837Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-05-26T10:57:02.666Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/views/livewire/products/product-creation-wizard.blade.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 21→28 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:57:02.666Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-05-26T10:59:59.841Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "Had 'published'",
+      "fix": "Changed to 'active'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T10:59:59.841Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-05-26T11:00:05.407Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Had 'published'",
+      "fix": "Changed to 'publish'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T11:00:05.407Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-05-26T11:00:10.532Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Had 'published'",
+      "fix": "Changed to 'active'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T11:00:10.532Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-05-26T11:26:07.632Z",
+      "error_message": "Wrong reference: ProductEdit should be ProductEditWizard",
+      "file": "routes/web.php",
+      "root_cause": "Used \"ProductEdit\" instead of \"ProductEditWizard\"",
+      "fix": "Changed ProductEdit → ProductEditWizard",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-05-26T11:26:20.758Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-05-26T14:00:00.000Z",
+      "error_message": "SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 'TEST-9-QF...' for key 'product_variants_sku_unique'",
+      "file": "app/Livewire/Products/ProductCreationWizard.php",
+      "root_cause": "finalize() is called twice in one wizard session: openPushModal() calls finalize('draft'), then confirmPush() calls finalize('active'). The first call soft-deletes existing variants then creates new ones with SKUs like TEST-9-QF. The second call soft-deletes those variants (deleted_at set) but MySQL unique index still sees the soft-deleted rows — INSERT of the same SKU on re-creation throws 1062. Additionally, product_variants.sku had a global UNIQUE constraint instead of per-product (product_id, sku), which is the wrong business rule.",
+      "fix": "1. Removed finalize('draft') from openPushModal() — replaced with autosave() so variants are only persisted once by confirmPush()->finalize('active'). 2. Changed finalize() variant deletion from deleteWithStock() (soft-delete) to forceDelete() after deleting StockMovements and Stocks manually, freeing the unique index slots. 3. Added migration 2026_05_26_000001 to change unique(sku) to unique(product_id, sku) — variant SKUs are unique per-product, not globally.",
+      "tags": [
+        "duplicate-sku",
+        "unique-constraint",
+        "soft-delete",
+        "finalize",
+        "variable-product",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-26T14:00:00.000Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-05-27T21:54:21.512Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Meta/MetaMessageService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T21:54:21.512Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-05-27T22:03:38.287Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/WhatsAppWebhookHandler.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 35→46 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T22:03:38.287Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-05-27T22:04:23.873Z",
+      "error_message": "Missing error handling in processReply",
+      "file": "app/Services/WhatsAppWebhookHandler.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T22:04:23.873Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-05-27T22:10:02.334Z",
+      "error_message": "Wrong return value",
+      "file": "app/Livewire/Stores/Settings/WhatsappSettings.php",
+      "root_cause": "Was returning: view('livewire.stores.settings.whatsapp-settings')",
+      "fix": "Now returns: [",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T22:10:02.334Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-05-27T22:10:28.006Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/views/livewire/stores/settings/whatsapp-settings.blade.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-05-27T22:10:28.006Z"
+    }
+  ]
+}
