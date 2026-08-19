@@ -1,23 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Store as StoreIcon, ChevronsUpDown, Check } from 'lucide-react';
-
-const TYPE_BADGE = {
-    merchant: 'bg-slate-500/15 text-slate-600 dark:text-slate-300',
-    agency:   'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300',
-    client:   'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-};
-
-/** Small "merchant / agency / client" pill — falls back to nothing when organization data isn't loaded. */
-function OrgBadge({ organization }) {
-    if (! organization?.type) return null;
-
-    return (
-        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide ${TYPE_BADGE[organization.type] ?? 'bg-content/10 text-content-muted'}`}>
-            {organization.type}
-        </span>
-    );
-}
+import TypeBadge from '@/Components/TypeBadge';
 
 export default function StoreSwitcher({ collapsed = false }) {
     const { auth } = usePage().props;
@@ -72,7 +56,7 @@ export default function StoreSwitcher({ collapsed = false }) {
                             <div className="text-[10px] uppercase tracking-wider text-content-muted">Store</div>
                             <div className="flex items-center gap-1.5 min-w-0">
                                 <div className="text-sm font-semibold text-content truncate">{activeStore?.name ?? 'Select store'}</div>
-                                <OrgBadge organization={activeOrganization} />
+                                <TypeBadge kind="organization" value={activeOrganization?.type} />
                             </div>
                             {activeOrganization?.name && (
                                 <div className="text-[11px] text-content-muted truncate">{activeOrganization.name}</div>
@@ -109,7 +93,7 @@ export default function StoreSwitcher({ collapsed = false }) {
                                     <span className="flex-1 min-w-0 text-left">
                                         <span className="flex items-center gap-1.5">
                                             <span className="truncate">{s.name}</span>
-                                            <OrgBadge organization={s.organization} />
+                                            <TypeBadge kind="organization" value={s.organization?.type} />
                                         </span>
                                         {s.organization?.name && (
                                             <span className="block text-[11px] text-content-muted truncate">{s.organization.name}</span>

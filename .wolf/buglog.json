@@ -2,6 +2,25 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-settings-profile-rules-ulid-typeerror",
+      "timestamp": "2026-08-18T00:00:00.000Z",
+      "error_message": "TypeError: App\\Http\\Controllers\\Settings\\SettingsController::profileRules(): Argument #1 ($userId) must be of type ?int, string given — 500 on PATCH /settings/profile",
+      "file": "app/Concerns/ProfileValidationRules.php",
+      "root_cause": "profileRules()/emailRules() were typed '?int $userId' (auto-increment assumption), but this app uses ULID string primary keys everywhere. The bug was latent and never exercised because the old Volt settings pages 500'd earlier (broken <x-pages::settings.layout> component) before validation ever ran — the new SettingsController (Option B1 migration) was the first real caller to pass $user->id (a ULID string) through.",
+      "fix": "Widened profileRules()/emailRules() signatures to 'string|int|null $userId = null' in app/Concerns/ProfileValidationRules.php. No caller changes needed.",
+      "tags": [
+        "settings",
+        "ulid",
+        "validation",
+        "inertia",
+        "type-error",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-18T00:00:00.000Z"
+    },
+    {
       "id": "bug-dashboard-stock-adjust-variant-blind",
       "timestamp": "2026-07-26T00:00:00.000Z",
       "error_message": "Dashboard stock adjustment for a variable product doesn't let you pick which variant gets the stock; increments land on the parent product row and don't sync to the correct variant in the POS",
@@ -4550,6 +4569,118 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-19T13:27:43.911Z"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-08-19T14:07:08.518Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Components/Departments/OperationsTable.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:07:08.518Z"
+    },
+    {
+      "id": "bug-276",
+      "timestamp": "2026-08-19T14:07:21.176Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Components/StoreSwitcher.jsx",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 22→6 lines (14 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:07:21.176Z"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-08-19T14:07:29.361Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/StoreSwitcher.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <TypeBadge kind=\"organization\" value={s.organization?.type} ",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T14:07:33.712Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-08-19T14:07:55.935Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Stores/Index.jsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:07:55.935Z"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-08-19T14:23:57.487Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Settings/SettingsController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 8→18 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:23:57.487Z"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-08-19T14:27:02.063Z",
+      "error_message": "Wrong reference: Features should be Fortify",
+      "file": "app/Http/Controllers/Settings/SettingsController.php",
+      "root_cause": "Used \"Features\" instead of \"Fortify\"",
+      "fix": "Changed Features → Fortify",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:27:02.063Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-08-19T14:32:16.155Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/_SmokeCheck.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→4 lines (3 removed) | Also: use App\\Models\\Store;; it('smoke: all three settings pages render end to ",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T14:32:36.762Z"
     }
   ]
 }

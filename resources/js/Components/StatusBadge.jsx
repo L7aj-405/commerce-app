@@ -21,9 +21,14 @@ const TYPE_MAPS = {
     delivery: { pending: 'amber', preparing: 'indigo', ready: 'cyan', shipped: 'blue', delivered: 'emerald', cancelled: 'slate' },
     order:    { completed: 'emerald', pending_delivery: 'amber', cancelled: 'red' },
     // Mirrors App\Enums\FulfillmentStatus. Returns states share the orange/amber
-    // end of the scale so the reverse flow reads as one group.
+    // end of the scale so the reverse flow reads as one group. waiting_for_stock/
+    // ready_for_picking/picking/packing (Step 6/7) share the fulfillment
+    // in-progress vocabulary — indigo while warehouse work is happening, amber
+    // while blocked on stock.
     fulfillment: {
         pending: 'amber', confirmed: 'blue', in_progress: 'indigo',
+        waiting_for_stock: 'amber', ready_for_picking: 'indigo',
+        picking: 'indigo', packing: 'indigo', dispatched: 'blue',
         ready_for_delivery: 'cyan', delivered: 'blue',
         completed: 'emerald', cancelled: 'slate',
         returned: 'red', under_inspection: 'amber', return_completed: 'slate',

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T13:29:42.768Z
-> Files: 108 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T14:32:41.152Z
+> Files: 127 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -11,7 +11,7 @@
 
 ## ../../../../.claude/plans/
 
-- `tidy-frolicking-moler.md` — Phase 1 / Step 8 — Onboarding UI (~4260 tok)
+- `tidy-frolicking-moler.md` — Option B1 — Migrate Settings (Profile/Appearance/Security) to React/Inertia (~2224 tok)
 
 ## ../../../../AppData/Local/Temp/
 
@@ -42,6 +42,7 @@
 
 ## app/Concerns/
 
+- `ProfileValidationRules.php` — Get the validation rules used to validate user profiles. (~342 tok)
 
 ## app/Connectors/
 
@@ -96,6 +97,10 @@
 
 - `CheckoutController.php` — store (~1233 tok)
 - `PosController.php` — Eager loads needed to present a product with its variants in one query set: (~1924 tok)
+
+## app/Http/Controllers/Settings/
+
+- `SettingsController.php` — Account-level settings (Profile/Appearance/Security) — replaces the (~1116 tok)
 
 ## app/Http/Middleware/
 
@@ -253,7 +258,11 @@
 
 ## resources/js/Components/
 
-- `StoreSwitcher.jsx` — Small "merchant / agency / client" pill — falls back to nothing when organization data isn't loaded. (~1921 tok)
+- `Button.jsx` — Codifies the button classes already used consistently across (~340 tok)
+- `Card.jsx` — Thin wrapper for the `bg-surface-2 border border-line rounded-xl` pattern (~396 tok)
+- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~801 tok)
+- `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
+- `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
 
 ## resources/js/Components/Dashboard/
 
@@ -263,7 +272,7 @@
 
 - `OperationsFilterBar.jsx` — Warehouse / city / assignee / client-org select filters for an operations queue. (~377 tok)
 - `OperationsNav.jsx` — Switcher across the five single-station operations queues. (~955 tok)
-- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1294 tok)
+- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1264 tok)
 
 ## resources/js/Components/Filters/
 
@@ -275,6 +284,10 @@
 - `Select.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~404 tok)
 - `WizardFooter.jsx` — Back / Skip / Continue row shared by every onboarding step. (~552 tok)
 
+## resources/js/Components/Settings/
+
+- `SettingsNav.jsx` — Same "switcher across N related pages" pattern as DepartmentNav/OperationsNav. (~462 tok)
+
 ## resources/js/Hooks/
 
 - `useCart.js` — initialState: reducer, clampPercent, lineSubtotal + 5 more (~2931 tok)
@@ -283,6 +296,7 @@
 
 ## resources/js/Layouts/
 
+- `AgencyLayout.jsx` — Lightweight shell for the agency workspace — deliberately not a second (~1087 tok)
 - `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
 - `SaasLayout.jsx` — NAV_SECTIONS (~4582 tok)
 
@@ -291,6 +305,12 @@
 
 ## resources/js/Pages/Admin/
 
+
+## resources/js/Pages/Agency/
+
+- `Clients.jsx` — Clients — renders form (~1181 tok)
+- `ClientShow.jsx` — SERVICE_LABELS (~1460 tok)
+- `Warehouses.jsx` — Warehouses — renders form (~1420 tok)
 
 ## resources/js/Pages/Auth/
 
@@ -358,7 +378,7 @@
 
 - `Create.jsx` — Organization-first "Add Store": the workspace is never invented here — it (~2696 tok)
 - `Edit.jsx` — Edit — renders form (~1753 tok)
-- `Index.jsx` — TYPE_LABELS (~1932 tok)
+- `Index.jsx` — TYPE_LABELS (~1862 tok)
 
 ## resources/js/Pages/Dashboard/Warehouses/
 
@@ -384,6 +404,12 @@
 - `CheckoutPreviewModal.jsx` — Final confirmation before the sale is committed. Shows a clean summary of (~3024 tok)
 - `ProductCard.jsx` — Pull the first image out of an array, JSON string, or plain string. (~1726 tok)
 - `VariantModal.jsx` — Variant picker for a variable product. The cashier chooses one value per (~4036 tok)
+
+## resources/js/Pages/Settings/
+
+- `Appearance.jsx` — Purely a client-side preference (localStorage + prefers-color-scheme, (~717 tok)
+- `Profile.jsx` — Profile — renders form (~1477 tok)
+- `Security.jsx` — Security — renders form (~1257 tok)
 
 ## resources/views/
 
@@ -462,6 +488,7 @@
 
 - `auth.php` (~1236 tok)
 - `dashboard.php` (~4457 tok)
+- `settings.php` (~380 tok)
 
 ## storage/app/
 
@@ -498,6 +525,7 @@
 
 ## tests/Feature/
 
+- `_SmokeCheck.php` (~216 tok)
 
 ## tests/Feature/Api/
 
@@ -512,6 +540,7 @@
 
 ## tests/Feature/Foundation/
 
+- `SettingsPageMigrationTest.php` (~381 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
 
 ## tests/Feature/Invoicing/
@@ -534,6 +563,8 @@
 
 ## tests/Feature/Settings/
 
+- `ProfileUpdateTest.php` (~483 tok)
+- `SecurityTest.php` (~823 tok)
 
 ## tests/Feature/Stocks/
 
