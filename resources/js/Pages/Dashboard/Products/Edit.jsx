@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Loader2, Save, Trash2, Plus, Layers, Package, Settings, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, Plus, Layers, Package, Settings, CheckCircle, Upload } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
+import Card from '@/Components/Card';
+import StatusBadge from '@/Components/StatusBadge';
 
-export default function Edit({ product }) {
+export default function Edit({ product, connections = [] }) {
     
     // 1. دالة بناء الـ Attributes من الـ Variants كيفما كان كيدير الـ Livewire بالظبط
     const buildAttributesFromProduct = (variants) => {
@@ -43,8 +45,9 @@ export default function Edit({ product }) {
                 sku: variant.sku ?? '',
                 price: variant.price ? String(variant.price) : '',
                 cost: variant.cost ? String(variant.cost) : '',
-                qty: stockQty, 
+                qty: stockQty,
                 selected: true,
+                channel_listings: variant.channel_listings ?? [],
             };
         });
     };
@@ -177,13 +180,24 @@ export default function Edit({ product }) {
         setData('variants', updatedVariants);
     };
 
-    const submit = (e) => { 
-        e.preventDefault(); 
-        patch(`/dashboard/products/${product.id}`); 
+    const submit = (e) => {
+        e.preventDefault();
+        patch(`/dashboard/products/${product.id}`);
     };
 
     const nextStep = () => step < maxSteps && setStep(step + 1);
     const prevStep = () => step > 1 && setStep(step - 1);
+
+    // Publishing is a separate, immediate action against the already-saved
+    // product — reuses the same ProductPushService the old wizard called.
+    const [publishing, setPublishing] = useState(false);
+    const publish = () => {
+        setPublishing(true);
+        router.post(`/dashboard/products/${product.id}/push`, {}, {
+            preserveScroll: true,
+            onFinish: () => setPublishing(false),
+        });
+    };
 
     return (
         <SaasLayout pageHeader={{
@@ -194,9 +208,21 @@ export default function Edit({ product }) {
                 { label: 'Edit' },
             ],
             actions: (
-                <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={publish}
+                        disabled={publishing || connections.length === 0}
+                        title={connections.length === 0 ? 'No active platform connections for this store.' : undefined}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                        {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        Publish to platforms
+                    </button>
+                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
+                        <ArrowLeft className="w-4 h-4" /> Back
+                    </Link>
+                </div>
             ),
         }}>
             
@@ -379,6 +405,7 @@ export default function Edit({ product }) {
                                                             <th className="p-2.5">Variant SKU</th>
                                                             <th className="p-2.5">Price (MAD)</th>
                                                             <th className="p-2.5">Stock Quantity (الكمية)</th>
+                                                            <th className="p-2.5">Listings</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-line">
@@ -398,6 +425,19 @@ export default function Edit({ product }) {
                                                                 <td className="p-2.5">
                                                                     <input type="number" value={v.qty ?? 0} onChange={e => handleVariantChange(index, 'qty', e.target.value)}
                                                                         className="bg-surface-2 border border-indigo-500/30 rounded px-2 py-1 text-xs text-emerald-600 dark:text-emerald-400 w-24 focus:outline-none focus:border-indigo-500 font-bold" />
+                                                                </td>
+                                                                <td className="p-2.5">
+                                                                    {(v.channel_listings ?? []).length === 0 ? (
+                                                                        <span className="text-content-muted/60">—</span>
+                                                                    ) : (
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {v.channel_listings.map((l) => (
+                                                                                <span key={l.id} className="px-1.5 py-0.5 rounded bg-surface-3 border border-line text-[10px] text-content-muted">
+                                                                                    {l.connection?.platform ?? 'platform'}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -431,6 +471,43 @@ export default function Edit({ product }) {
                                     </div>
                                     <Field label="Image URL" value={data.featured_image} onChange={(v) => setData('featured_image', v)} error={errors.featured_image} />
                                 </div>
+                            </Section>
+
+                            <Section title="Channel mappings & inventory link">
+                                <Card className="!p-4">
+                                    <p className="text-xs text-content-muted mb-3">
+                                        Managed by integrations/inventory engine — read-only here. Use "Publish to platforms" above to push changes out.
+                                    </p>
+
+                                    <div className="space-y-1.5">
+                                        <p className="text-xs font-semibold text-content-muted uppercase tracking-wide">Product listings</p>
+                                        {(product.channel_listings ?? []).length === 0 ? (
+                                            <p className="text-xs text-content-muted">Not yet listed on any platform.</p>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-2">
+                                                {product.channel_listings.map((listing) => (
+                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-3 border border-line text-xs">
+                                                        <span className="font-medium text-content">{listing.connection?.label ?? listing.connection?.platform}</span>
+                                                        <span className="text-content-muted font-mono">#{listing.external_product_id}</span>
+                                                        <StatusBadge type="sync" status={listing.sync_status} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-3 pt-3 border-t border-line space-y-1.5">
+                                        <p className="text-xs font-semibold text-content-muted uppercase tracking-wide">Inventory / master SKU link</p>
+                                        {product.inventory_link?.inventory_item ? (
+                                            <p className="text-xs text-content">
+                                                Linked to master SKU <span className="font-mono text-content-muted">{product.inventory_link.inventory_item.sku}</span>
+                                                {' '}({product.inventory_link.inventory_item.name})
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-content-muted">No inventory item linked yet — created automatically the first time stock is recorded.</p>
+                                        )}
+                                    </div>
+                                </Card>
                             </Section>
                         </div>
                     )}

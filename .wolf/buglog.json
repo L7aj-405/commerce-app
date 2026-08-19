@@ -2,6 +2,18 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-product-controller-undefined-optional-key",
+      "timestamp": "2026-08-19T00:00:00.000Z",
+      "error_message": "\"Something went wrong: Undefined array key \\\"description\\\"\" flashed on product create/update whenever an optional field (description/category/compare_price/cost/featured_image) is omitted from the request",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "store()/update() read $validated['description'] etc. directly instead of with a ?? fallback, even though those keys are validated as 'nullable' — Laravel's $request->validate() omits a nullable key entirely from the returned array when it isn't present in the request at all (as opposed to present-but-null). It was latent because Create.jsx/Edit.jsx's useForm() always initializes those fields to '' so the browser always sends them; a minimal API-style POST (e.g. from tests) without those keys hit it immediately.",
+      "fix": "Changed every optional field read to '$validated[\"x\"] ?? null' (and the compare_price/cost ternaries to check '($validated[\"x\"] ?? null)' before casting) in both store() and update().",
+      "tags": ["products", "validation", "undefined-array-key", "inertia", "root-cause"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:00:00.000Z"
+    },
+    {
       "id": "bug-settings-profile-rules-ulid-typeerror",
       "timestamp": "2026-08-18T00:00:00.000Z",
       "error_message": "TypeError: App\\Http\\Controllers\\Settings\\SettingsController::profileRules(): Argument #1 ($userId) must be of type ?int, string given — 500 on PATCH /settings/profile",
@@ -4681,6 +4693,118 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-08-19T14:32:36.762Z"
+    },
+    {
+      "id": "bug-283",
+      "timestamp": "2026-08-19T14:49:03.250Z",
+      "error_message": "Significant refactor of ",
+      "file": "routes/web.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:49:03.250Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-08-19T14:49:09.450Z",
+      "error_message": "Wrong reference: ProductSyncService should be ProductPushService",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Used \"ProductSyncService\" instead of \"ProductPushService\"",
+      "fix": "Changed ProductSyncService → ProductPushService",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:49:09.450Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-08-19T14:49:42.312Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:49:42.312Z"
+    },
+    {
+      "id": "bug-286",
+      "timestamp": "2026-08-19T14:49:49.678Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "hover: bg-surface-3 hover:text-content\" → bg-indigo-500\"",
+      "fix": "Changed hover: bg-surface-3 hover:text-content\" → bg-indigo-500\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:49:49.678Z"
+    },
+    {
+      "id": "bug-287",
+      "timestamp": "2026-08-19T14:50:08.054Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T14:50:08.054Z"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-08-19T14:50:31.980Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {(v.channel_listings ?? []).length === 0 ? (; <span className=\"text-content-muted/60\">—</span>",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T14:50:54.110Z"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-08-19T14:52:39.915Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: 'description'    => $validated['description'] ?? null,; 'category'       => $validated['category'] ?? null,",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T14:52:49.075Z"
     }
   ]
 }

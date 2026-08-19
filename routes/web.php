@@ -45,10 +45,12 @@ Route::middleware(['auth', \App\Http\Middleware\ResolveTenant::class, 'verified'
     // Store sub-routes — variant wizards + WhatsApp/Meta OAuth wizards stay as Livewire
     // (multi-step flows with active OAuth business logic; risky to rebuild).
     Route::prefix('stores/{store}')->group(function () {
-        // Products: list redirects, variant wizards stay
+        // Products: creation/edit wizard migrated to Inertia (Option B2) —
+        // legacy Livewire ProductCreationWizard/ProductEditWizard are now
+        // unrouted (kept on disk until confirmed fully dead).
         Route::get('/products',                fn ($store) => redirect('/dashboard/products'))->name('stores.products.index');
-        Route::get('/products/create',         \App\Livewire\Products\ProductCreationWizard::class)->name('stores.products.create');
-        Route::get('/products/{product}/edit', \App\Livewire\Products\ProductEditWizard::class)->name('stores.products.edit');
+        Route::get('/products/create',         fn ($store) => redirect('/dashboard/products/create'))->name('stores.products.create');
+        Route::get('/products/{product}/edit', fn ($store, $product) => redirect("/dashboard/products/{$product}/edit"))->name('stores.products.edit');
 
         // WhatsApp / Meta OAuth wizard (kept — handles Facebook OAuth callback flow)
         Route::get('/settings/whatsapp',           \App\Livewire\Stores\Settings\WhatsappSettings::class)->name('stores.settings.whatsapp');

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
-import { Package, Layers } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Package, Layers, Plus } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DataTable from '@/Components/DataTable';
 import SearchFilterBar from '@/Components/SearchFilterBar';
@@ -8,6 +8,8 @@ import SyncProductsModal from '@/Components/SyncProductsModal';
 
 export default function Index({ store, products = { data: [], links: [] }, filters = {}, connections = [] }) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const permissions = usePage().props.auth?.permissions ?? [];
+    const canManage = permissions.includes('*') || permissions.includes('products.manage');
 
     const applyFilters = (q) => {
         const params = q ? { search: q } : {};
@@ -110,12 +112,21 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                     >
                         <Layers className="w-4 h-4" /> Stock
                     </Link>
-                    
+
                     {/* مررنا الـ connections والـ onSyncCompleted لي غيعيط ليها الـ Modal */}
-                    <SyncProductsModal 
-                        connections={connections} 
+                    <SyncProductsModal
+                        connections={connections}
                         onSyncCompleted={refreshCatalog}
                     />
+
+                    {canManage && (
+                        <Link
+                            href="/dashboard/products/create"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                        >
+                            <Plus className="w-4 h-4" /> Add product
+                        </Link>
+                    )}
                 </div>
             ),
         }}>

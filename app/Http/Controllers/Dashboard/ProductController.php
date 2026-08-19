@@ -9,6 +9,7 @@ use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Stock;
+use App\Services\Sync\ProductPushService;
 use App\Services\Sync\ProductSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -168,12 +169,12 @@ class ProductController extends Controller
                 'store_id'       => $store->id, // 👈 ضروري جداً لـ Multi-tenancy
                 'name'           => $validated['name'],
                 'sku'            => $validated['sku'],
-                'description'    => $validated['description'],
-                'category'       => $validated['category'],
+                'description'    => $validated['description'] ?? null,
+                'category'       => $validated['category'] ?? null,
                 'price'          => (float) $validated['price'],
-                'compare_price'  => $validated['compare_price'] ? (float) $validated['compare_price'] : null,
-                'cost'           => $validated['cost'] ? (float) $validated['cost'] : 0.0,
-                'featured_image' => $validated['featured_image'],
+                'compare_price'  => ($validated['compare_price'] ?? null) ? (float) $validated['compare_price'] : null,
+                'cost'           => ($validated['cost'] ?? null) ? (float) $validated['cost'] : 0.0,
+                'featured_image' => $validated['featured_image'] ?? null,
                 'type'           => $validated['type'], 
                 'status'         => 'active', // الـ default status عند الإنشاء
             ]);
@@ -237,16 +238,21 @@ class ProductController extends Controller
         $product->load([
             'variants.stocks',
             'variants.channelListings.connection:id,platform,label',
+            'variants.inventoryLink.inventoryItem:id,sku,name',
             'stocks',
             'channelListings.connection:id,platform,label',
+            'inventoryLink.inventoryItem:id,sku,name',
         ]);
-        
+
         // حساب الـ total_stock وتمريرها نيشان للـ Simple Product باش يعمر الـ input فـ React
         // sellableStocks() only — damaged stock must never pre-fill the editable quantity
         $product->total_stock = (int) $product->sellableStocks()->whereNull('variant_id')->sum('quantity');
 
         return Inertia::render('Dashboard/Products/Edit', [
-            'product' => $product
+            'product'     => $product,
+            'connections' => $store->connections()
+                ->where('status', 'active')
+                ->get(['id', 'platform', 'label']),
         ]);
     }
 
@@ -297,12 +303,12 @@ class ProductController extends Controller
                     'name'           => $validated['name'],
                     'sku'            => $validated['sku'],
                     'type'           => $validated['type'],
-                    'description'    => $validated['description'],
-                    'category'       => $validated['category'],
+                    'description'    => $validated['description'] ?? null,
+                    'category'       => $validated['category'] ?? null,
                     'price'          => (float) $validated['price'],
-                    'compare_price'  => $validated['compare_price'] ? (float) $validated['compare_price'] : null,
-                    'cost'           => $validated['cost'] ? (float) $validated['cost'] : 0.0,
-                    'featured_image' => $validated['featured_image'],
+                    'compare_price'  => ($validated['compare_price'] ?? null) ? (float) $validated['compare_price'] : null,
+                    'cost'           => ($validated['cost'] ?? null) ? (float) $validated['cost'] : 0.0,
+                    'featured_image' => $validated['featured_image'] ?? null,
                     'status'         => $validated['status'],
                 ]);
 
@@ -376,5 +382,51 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->route('dashboard.products.index')->with('success', 'Product deleted.');
+    }
+
+    /**
+     * Publish/re-publish a product to its store's active platform connections.
+     * Ported from the legacy ProductEditWizard::confirmPush() — same
+     * ProductPushService calls, no new channel-listing logic.
+     */
+    public function push(Request $request, Product $product, ProductPushService $service): RedirectResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $product->store_id !== $store->id, 403);
+
+        if ($product->isVariable() && ! $product->variants()->exists()) {
+            return back()->with('error', 'Add at least one variant before publishing a variable product.');
+        }
+
+        $connections = $store->connections()->where('status', 'active')->get();
+
+        if ($connections->isEmpty()) {
+            return back()->with('error', 'No active platform connections for this store.');
+        }
+
+        $results = [];
+
+        foreach ($connections->groupBy('platform') as $platform => $platformConnections) {
+            $platformResults = $product->external_id
+                ? $service->pushProduct($product, $platform)
+                : $service->createProduct($product, $platform);
+
+            foreach ($platformResults as $r) {
+                $results[] = array_merge($r, ['platform' => $platform]);
+            }
+
+            $product->refresh();
+        }
+
+        $succeeded = collect($results)->where('success', true)->count();
+        $total     = count($results);
+
+        if ($succeeded > 0) {
+            return back()->with('success', $succeeded === $total
+                ? "Published on {$total} platform(s)."
+                : "Published on {$succeeded}/{$total} platform(s).");
+        }
+
+        return back()->with('error', collect($results)->pluck('message')->filter()->implode('; ') ?: 'Publish failed.');
     }
 }

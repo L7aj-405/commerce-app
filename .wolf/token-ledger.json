@@ -2,14 +2,14 @@
   "version": 1,
   "created_at": "2026-05-15T18:04:05.132Z",
   "lifetime": {
-    "total_tokens_estimated": 10028269,
-    "total_reads": 3600,
-    "total_writes": 9346,
+    "total_tokens_estimated": 10049854,
+    "total_reads": 3613,
+    "total_writes": 9375,
     "total_sessions": 42,
-    "anatomy_hits": 2008,
-    "anatomy_misses": 1537,
-    "repeated_reads_blocked": 880,
-    "estimated_savings_vs_bare_cli": 2553188
+    "anatomy_hits": 2009,
+    "anatomy_misses": 1549,
+    "repeated_reads_blocked": 883,
+    "estimated_savings_vs_bare_cli": 2563664
   },
   "sessions": [
     {
@@ -71426,6 +71426,246 @@
         "writes_count": 7,
         "repeated_reads_blocked": 0,
         "anatomy_lookups": 0
+      }
+    },
+    {
+      "id": "session-2026-08-19-1530",
+      "started": "2026-08-19T14:30:12.799Z",
+      "ended": "2026-08-19T14:54:54.896Z",
+      "reads": [
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Concerns/ProfileValidationRules.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/web.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
+          "tokens_estimated": 4457,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 5138,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Index.jsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Create.jsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Inventory/CatalogInventoryService.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Inventory/InventoryCompatibilityBridge.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Stock.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Livewire/Products/ProductCreationWizard.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Livewire/Products/ProductEditWizard.php",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/SupportAccessTest.php",
+          "tokens_estimated": 0,
+          "was_repeated": true,
+          "anatomy_had_description": false
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 0,
+          "was_repeated": false,
+          "anatomy_had_description": false
+        }
+      ],
+      "writes": [
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Concerns/ProfileValidationRules.php",
+          "tokens_estimated": 60,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Concerns/ProfileValidationRules.php",
+          "tokens_estimated": 21,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 381,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 12,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 48,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 34,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 24,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/.claude/plans/tidy-frolicking-moler.md",
+          "tokens_estimated": 3640,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/web.php",
+          "tokens_estimated": 196,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 24,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 273,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 563,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
+          "tokens_estimated": 89,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Index.jsx",
+          "tokens_estimated": 200,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Index.jsx",
+          "tokens_estimated": 345,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/StatusBadge.jsx",
+          "tokens_estimated": 74,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 121,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 193,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 338,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 949,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 96,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 262,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+          "tokens_estimated": 580,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardMigrationTest.php",
+          "tokens_estimated": 2476,
+          "action": "create"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardMigrationTest.php",
+          "tokens_estimated": 72,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardMigrationTest.php",
+          "tokens_estimated": 24,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 143,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+          "tokens_estimated": 167,
+          "action": "edit"
+        },
+        {
+          "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/_SmokeCheck.php",
+          "tokens_estimated": 585,
+          "action": "create"
+        }
+      ],
+      "totals": {
+        "input_tokens_estimated": 9595,
+        "output_tokens_estimated": 11990,
+        "reads_count": 13,
+        "writes_count": 29,
+        "repeated_reads_blocked": 3,
+        "anatomy_lookups": 1
       }
     }
   ],

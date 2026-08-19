@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T14:32:41.152Z
-> Files: 127 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T14:54:06.677Z
+> Files: 132 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -11,7 +11,7 @@
 
 ## ../../../../.claude/plans/
 
-- `tidy-frolicking-moler.md` — Option B1 — Migrate Settings (Profile/Appearance/Security) to React/Inertia (~2224 tok)
+- `tidy-frolicking-moler.md` — Option B2 — Migrate Product Create/Edit wizard to React/Inertia (~3185 tok)
 
 ## ../../../../AppData/Local/Temp/
 
@@ -82,6 +82,7 @@
 - `DashboardController.php` — index (~1906 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~837 tok)
 - `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~3362 tok)
+- `ProductController.php` — index, syncFromPlatform, create, store, edit + 1 more (~5150 tok)
 - `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~5223 tok)
 - `StockTransferController.php` — index, create, store, slip (~2839 tok)
 - `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
@@ -260,7 +261,7 @@
 
 - `Button.jsx` — Codifies the button classes already used consistently across (~340 tok)
 - `Card.jsx` — Thin wrapper for the `bg-surface-2 border border-line rounded-xl` pattern (~396 tok)
-- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~801 tok)
+- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~840 tok)
 - `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
 - `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
 
@@ -367,6 +368,8 @@
 
 ## resources/js/Pages/Dashboard/Products/
 
+- `Edit.jsx` — Edit (~10499 tok)
+- `Index.jsx` — Index — renders table (~2131 tok)
 
 ## resources/js/Pages/Dashboard/Roles/
 
@@ -487,8 +490,9 @@
 ## routes/
 
 - `auth.php` (~1236 tok)
-- `dashboard.php` (~4457 tok)
+- `dashboard.php` (~4484 tok)
 - `settings.php` (~380 tok)
+- `web.php` — ============================================ (~1220 tok)
 
 ## storage/app/
 
@@ -525,7 +529,7 @@
 
 ## tests/Feature/
 
-- `_SmokeCheck.php` (~216 tok)
+- `_SmokeCheck.php` (~546 tok)
 
 ## tests/Feature/Api/
 
@@ -540,6 +544,7 @@
 
 ## tests/Feature/Foundation/
 
+- `ProductWizardMigrationTest.php` — Declares pwmWorkspace (~2277 tok)
 - `SettingsPageMigrationTest.php` (~381 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
 

@@ -133,6 +133,7 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     Route::post('/',            [ProductController::class, 'store'])->name('store');
                     Route::patch('/{product}',  [ProductController::class, 'update'])->name('update');
                     Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
+                    Route::post('/{product}/push', [ProductController::class, 'push'])->name('push');
                     Route::post('/sync/start',  [ProductSyncController::class, 'startSync'])->name('sync.start');
                 });
             });
