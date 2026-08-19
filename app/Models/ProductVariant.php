@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenantThroughProduct;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProductVariant extends Model
 {
-    use SoftDeletes, HasUlids;
+    use BelongsToTenantThroughProduct, SoftDeletes, HasUlids;
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -51,6 +52,36 @@ class ProductVariant extends Model
         return $this->hasMany(Stock::class, 'variant_id');
     }
 
+    /** Platform-specific identities for this canonical variant. */
+    public function channelListings(): HasMany
+    {
+        return $this->hasMany(ProductVariantChannelListing::class, 'product_variant_id');
+    }
+
+    public function listingForConnection(PlatformConnection|string $connection): ?ProductVariantChannelListing
+    {
+        $connectionId = $connection instanceof PlatformConnection ? $connection->id : $connection;
+
+        return $this->channelListings()
+            ->where('platform_connection_id', $connectionId)
+            ->first();
+    }
+
+    public function externalIdForConnection(PlatformConnection $connection): ?string
+    {
+        $externalId = $this->listingForConnection($connection)?->external_variant_id;
+
+        if (is_string($externalId) && $externalId !== '') {
+            return $externalId;
+        }
+
+        // Legacy fallback is safe only when the parent product itself belongs to
+        // this platform. A raw variant.external_id has no platform dimension.
+        return $this->product?->platform === $connection->platform && ! empty($this->external_id)
+            ? (string) $this->external_id
+            : null;
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'variant_id');
@@ -74,15 +105,30 @@ class ProductVariant extends Model
      */
     public function syncAttributeValues(array $valueIds): void
     {
-        $this->attributeValues()->sync($valueIds);
+        $requestedIds = collect($valueIds)
+            ->filter(fn ($id) => is_string($id) && $id !== '')
+            ->unique()
+            ->values();
 
-        $attrs = ProductAttributeValue::whereIn('id', $valueIds)
+        $values = ProductAttributeValue::query()
+            ->whereIn('id', $requestedIds)
+            ->whereHas('attribute', fn ($query) => $query->where('product_id', $this->product_id))
             ->with('attribute')
-            ->get()
-            ->groupBy(fn ($v) => $v->attribute->name)
-            ->map(function ($vals) {
-                $values = $vals->pluck('value')->all();
-                return count($values) === 1 ? $values[0] : $values;
+            ->get();
+
+        if ($values->count() !== $requestedIds->count()) {
+            throw new \InvalidArgumentException('One or more attribute values do not belong to this product.');
+        }
+
+        // Validate ownership before touching the pivot. This prevents a crafted
+        // request from attaching attribute values belonging to another tenant.
+        $this->attributeValues()->sync($values->pluck('id')->all());
+
+        $attrs = $values
+            ->groupBy(fn ($value) => $value->attribute->name)
+            ->map(function ($group) {
+                $groupValues = $group->pluck('value')->all();
+                return count($groupValues) === 1 ? $groupValues[0] : $groupValues;
             })
             ->toArray();
 
@@ -192,9 +238,14 @@ class ProductVariant extends Model
         return $this->getFormattedPrice();
     }
 
-    public function canPushToPlatform(): bool
+    public function canPushToPlatform(?PlatformConnection $connection = null): bool
     {
-        return !empty($this->external_id) && !empty($this->product?->external_id);
+        if ($connection !== null) {
+            return $this->externalIdForConnection($connection) !== null
+                && $this->product?->externalIdForConnection($connection) !== null;
+        }
+
+        return $this->channelListings()->exists() || (! empty($this->external_id) && ! empty($this->product?->external_id));
     }
 
     /**
@@ -222,5 +273,10 @@ class ProductVariant extends Model
         return collect($attrs)
             ->map(fn ($value, $key) => $key . ': ' . (is_array($value) ? implode(', ', $value) : (string) $value))
             ->join(', ');
+    }
+
+    public function inventoryLink(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VariantInventoryLink::class, 'product_variant_id');
     }
 }

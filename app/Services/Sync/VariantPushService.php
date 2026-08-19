@@ -9,7 +9,9 @@ use App\Connectors\WooCommerceConnector;
 use App\Connectors\YouCanConnector;
 use App\Models\PlatformConnection;
 use App\Models\Product;
+use App\Models\ProductChannelListing;
 use App\Models\ProductVariant;
+use App\Models\ProductVariantChannelListing;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\SyncLog;
@@ -20,7 +22,7 @@ class VariantPushService
 {
     /**
      * Create a brand-new variant on ALL active platform connections (or one if $platform specified).
-     * Looks up the platform-specific product external_id from SyncLog so multi-platform products work.
+     * Resolves platform-specific ids from channel listing tables.
      *
      * @return array<int, array{success: bool, message: string, platform: string, external_id?: string}>
      */
@@ -32,7 +34,7 @@ class VariantPushService
         // Intentionally NOT using $product->platform here — that stores only the FIRST platform
         // a product was pushed to. We want to push to ALL active connections.
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            $productExternalId = $this->getProductExternalId($product, $connection->platform);
+            $productExternalId = $product->externalIdForConnection($connection);
 
             if (empty($productExternalId)) {
                 $results[] = [
@@ -43,12 +45,74 @@ class VariantPushService
                 continue;
             }
 
+            $existingVariantExternalId = $variant->externalIdForConnection($connection);
+            if (! empty($existingVariantExternalId)) {
+                $productListing = $product->listingForConnection($connection);
+
+                if ($productListing === null) {
+                    $productListing = ProductChannelListing::updateOrCreate(
+                        [
+                            'product_id' => $product->id,
+                            'platform_connection_id' => $connection->id,
+                        ],
+                        [
+                            'external_product_id' => $productExternalId,
+                            'sync_status' => 'synced',
+                        ],
+                    );
+                }
+
+                if ($variant->listingForConnection($connection) === null) {
+                    ProductVariantChannelListing::updateOrCreate(
+                        [
+                            'product_variant_id' => $variant->id,
+                            'platform_connection_id' => $connection->id,
+                        ],
+                        [
+                            'product_id' => $product->id,
+                            'product_channel_listing_id' => $productListing->id,
+                            'external_variant_id' => $existingVariantExternalId,
+                            'sync_status' => 'synced',
+                        ],
+                    );
+                }
+
+                $results[] = [
+                    'success' => true,
+                    'message' => 'Variant is already linked to this channel.',
+                    'platform' => $connection->platform,
+                    'external_id' => $existingVariantExternalId,
+                ];
+                continue;
+            }
+
             try {
                 $connector = $this->makeConnector($connection);
                 $result    = $connector->createVariant($variant, $productExternalId);
 
-                if ($result['success'] && !empty($result['external_id'])) {
-                    $variant->update(['external_id' => $result['external_id']]);
+                if ($result['success'] && ! empty($result['external_id'])) {
+                    $productListing = $product->listingForConnection($connection);
+
+                    if ($productListing !== null) {
+                        ProductVariantChannelListing::updateOrCreate(
+                            [
+                                'product_variant_id' => $variant->id,
+                                'platform_connection_id' => $connection->id,
+                            ],
+                            [
+                                'product_id' => $product->id,
+                                'product_channel_listing_id' => $productListing->id,
+                                'external_variant_id' => (string) $result['external_id'],
+                                'sync_status' => 'synced',
+                                'last_pushed_at' => now(),
+                            ],
+                        );
+                    }
+
+                    // Legacy compatibility only; per-channel listing is authoritative.
+                    if (empty($variant->external_id)) {
+                        $variant->forceFill(['external_id' => (string) $result['external_id']])->save();
+                    }
                 }
 
                 $this->log($connection, 'variant_create', $variant->id, $result['success'], $result['external_id'] ?? null, $result['error'] ?? null);
@@ -78,8 +142,8 @@ class VariantPushService
         $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            $variantExternalId = $this->getVariantExternalId($variant, $connection->platform);
-            $productExternalId = $this->getProductExternalId($product, $connection->platform);
+            $variantExternalId = $variant->externalIdForConnection($connection);
+            $productExternalId = $product->externalIdForConnection($connection);
 
             if (empty($variantExternalId)) {
                 $results[] = ['success' => false, 'message' => 'Variant not linked to this platform', 'platform' => $connection->platform];
@@ -89,6 +153,13 @@ class VariantPushService
             try {
                 $connector = $this->makeConnector($connection);
                 $result    = $connector->pushProductVariant($variant, $productExternalId, $variantExternalId);
+
+                if ($result['success'] ?? false) {
+                    $variant->listingForConnection($connection)?->update([
+                        'last_pushed_at' => now(),
+                        'sync_status' => 'synced',
+                    ]);
+                }
 
                 $this->log($connection, 'variant', $variant->id, $result['success'], $variantExternalId, $result['error'] ?? null);
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
@@ -117,8 +188,8 @@ class VariantPushService
         $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            $variantExternalId = $this->getVariantExternalId($variant, $connection->platform);
-            $productExternalId = $this->getProductExternalId($product, $connection->platform);
+            $variantExternalId = $variant->externalIdForConnection($connection);
+            $productExternalId = $product->externalIdForConnection($connection);
 
             if (empty($variantExternalId)) {
                 $results[] = ['success' => false, 'message' => 'Variant not linked to this platform', 'platform' => $connection->platform];
@@ -136,6 +207,13 @@ class VariantPushService
 
                 $connector = $this->makeConnector($connection);
                 $result    = $this->pushVariantStockViaConnector($connector, $product, $variant, $qty, $connection, $productExternalId, $variantExternalId);
+
+                if ($result['success'] ?? false) {
+                    $variant->listingForConnection($connection)?->update([
+                        'last_pushed_at' => now(),
+                        'sync_status' => 'synced',
+                    ]);
+                }
 
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
@@ -163,7 +241,7 @@ class VariantPushService
         $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            $variantExternalId = $this->getVariantExternalId($variant, $connection->platform);
+            $variantExternalId = $variant->externalIdForConnection($connection);
 
             if (empty($variantExternalId)) {
                 $results[] = ['success' => true, 'message' => 'Variant not on this platform, nothing to delete', 'platform' => $connection->platform];
@@ -171,9 +249,15 @@ class VariantPushService
             }
 
             try {
-                $productExternalId = $this->getProductExternalId($product, $connection->platform);
+                $productExternalId = $product->externalIdForConnection($connection);
                 $connector         = $this->makeConnector($connection);
                 $result            = $connector->deleteVariant($variant, $productExternalId, $variantExternalId);
+
+                if ($result['success'] ?? false) {
+                    $variant->channelListings()
+                        ->where('platform_connection_id', $connection->id)
+                        ->delete();
+                }
 
                 $this->log($connection, 'variant_delete', $variant->id, $result['success'], $variantExternalId, $result['error'] ?? null);
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
@@ -195,44 +279,7 @@ class VariantPushService
     // Private helpers
     // ──────────────────────────────────────────────
 
-    /**
-     * Look up a product's external_id for a specific platform.
-     * First checks SyncLog (per-platform records), then falls back to product.external_id
-     * only if product.platform matches (single-platform products).
-     */
-    private function getProductExternalId(Product $product, string $platform): ?string
-    {
-        $fromLog = SyncLog::where('entity_id', $product->id)
-            ->where('platform', $platform)
-            ->where('status', 'success')
-            ->whereNotNull('external_id')
-            ->orderByDesc('completed_at')
-            ->value('external_id');
-
-        if ($fromLog) {
-            return $fromLog;
-        }
-
-        // Fallback: if the product was only pushed to one platform and it matches
-        return ($product->platform === $platform) ? ($product->external_id ?: null) : null;
-    }
-
-    /**
-     * Look up a variant's external_id for a specific platform from SyncLog.
-     * Falls back to variant.external_id as last resort.
-     */
-    private function getVariantExternalId(ProductVariant $variant, string $platform): ?string
-    {
-        $fromLog = SyncLog::where('entity_id', $variant->id)
-            ->where('platform', $platform)
-            ->where('status', 'success')
-            ->whereNotNull('external_id')
-            ->orderByDesc('completed_at')
-            ->value('external_id');
-
-        return $fromLog ?: ($variant->external_id ?: null);
-    }
-
+    /** Listing tables are the source of truth for remote ids. */
     private function pushVariantStockViaConnector(
         object $connector,
         Product $product,

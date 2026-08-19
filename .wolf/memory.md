@@ -3,7 +3,25 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+## Session: 2026-08-19 (Phase 1 / Step 7 — Operational Queues)
+
+| 01:47 | Added inventory.transfers.receive permission + granted to Warehouse role | app/Support/PermissionCatalog.php | success | ~150 |
+| 01:47 | Added customer_name/customer_phone to updateStatus validation + Confirmed-branch persistence | app/Http/Controllers/Dashboard/OrderController.php | success | ~200 |
+| 01:47 | New service: cross-store queues scoped by warehouse operator (own/operate warehouse, then filter to stores the viewer holds orders.fulfil/orders.manage on) | app/Services/Orders/OperationsQueueService.php | success | ~2200 |
+| 01:47 | New controller: waitingStock/picking/packing/readyForDelivery/transferReceiving/receiveTransfer | app/Http/Controllers/Dashboard/OperationsController.php | success | ~700 |
+| 01:47 | Added /dashboard/operations/* and /dashboard/operations/transfers/* route groups | routes/dashboard.php | success | ~300 |
+| 01:47 | Added customer name/phone inputs to confirm payload | resources/js/Pages/Dashboard/Departments/Confirmation.jsx | success | ~200 |
+| 01:47 | New pages: WaitingForStock, Picking, Packing, ReadyForDelivery, TransferReceiving | resources/js/Pages/Dashboard/Operations/*.jsx | success | ~2500 |
+| 01:47 | New shared components: OperationsNav, OperationsTable, OperationsFilterBar + useOperationsFilters hook | resources/js/Components/Departments/*, resources/js/Hooks/useOperationsFilters.js | success | ~1200 |
+| 01:47 | New tests: 10 scenarios (confirmation scoping, allocation, waiting/picking/packing/ready queues, warehouse-operator isolation, agency cross-client visibility, no-leak between clients sharing one warehouse) | tests/Feature/Orders/OperationalQueueTest.php | success — 10/10 pass, Foundation 45/45 still pass | ~2800 |
+
 | 20:15 | Added products, syncLogs, warehouses, customerInteractions relationships + getPrimaryWarehouse/getActiveWarehouses helpers; added BelongsToMany/Collection imports and explicit keyType/incrementing | app/Models/Store.php | success | ~400 |
+
+## Session: 2026-07-26 (POS variant selection)
+
+| --:-- | Root cause: PosController::presentProduct never sent variants → variable products added base row with no picker. Added variant+attribute payload (eager-load variants.attributeValues + sellable stock_sum), new VariantModal.jsx (pill selectors, per-combo live stock, out-of-stock disabling, qty stepper), made useCart line-keyed by composite line_id, variant-aware ProductCard/CartItem/Cart/CheckoutPreviewModal/Dashboard | PosController.php, useCart.js, VariantModal.jsx, ProductCard.jsx, CartItem.jsx, Cart.jsx, Dashboard.jsx | success | ~2500 |
+| --:-- | Backend persist+decrement: added variant_id to pos_order_items (migration), PosOrderItem fillable+relation, CheckoutController validation, OrderProcessingService createOrder + adjustInventory (decrement correct variant Stock row instead of hardcoded null) | migration 2026_07_26_000001, PosOrderItem.php, CheckoutController.php, OrderProcessingService.php | success | ~300 |
+| --:-- | Dashboard stock adjust was variant-blind (adjustStock hardcoded variant_id=>null). Made StockController::index present per-variant sellable stock + adjustStock accept batch `adjustments:[{variant_id,quantity_change}]` writing the exact Stock row; added variant_id to stock_ledger (migration) + StockLedger fillable/relation; rewrote AdjustStockModal.jsx (per-variant signed inputs, current→new preview, filter, validation); Stock.jsx + StockMovements.jsx show variant badges. POS reads same sellable stocks table so sync is automatic | StockController.php, StockLedger.php, migration 2026_07_26_000002, AdjustStockModal.jsx, Stock.jsx, StockMovements.jsx | success | ~1200 |
 
 ## Session: 2026-05-26
 
@@ -571,3 +589,1366 @@
 | 21:28 | Fixed Railway deployment: removed Tailwind v3/v4 devDependency conflict, replaced heroku-php-apache2 with php artisan serve, created nixpacks.toml | package.json, railway.json, Procfile, nixpacks.toml, .env.example | done | ~150 |
 | 21:28 | Session end: 17 writes across 10 files (MetaMessageService.php, SendWhatsAppConfirmation.php, OrderSyncService.php, WhatsAppWebhookHandler.php, WhatsappSettings.php) | 16 reads | ~12002 tok |
 | 21:29 | Session end: 17 writes across 10 files (MetaMessageService.php, SendWhatsAppConfirmation.php, OrderSyncService.php, WhatsAppWebhookHandler.php, WhatsappSettings.php) | 16 reads | ~12002 tok |
+
+## Session: 2026-06-01 14:04
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:07 | Edited app/Connectors/ShopifyConnector.php | 2→2 lines | ~40 |
+| 14:07 | Edited app/Connectors/YouCanConnector.php | 2→2 lines | ~39 |
+| 14:07 | Edited app/Connectors/YouCanConnector.php | added 1 condition(s) | ~240 |
+| 14:07 | Edited app/Models/Product.php | added 1 condition(s) | ~107 |
+| 14:08 | Edited resources/views/livewire/products/product-index.blade.php | 3→6 lines | ~84 |
+| 14:08 | Edited resources/views/livewire/products/product-index.blade.php | added 1 condition(s) | ~474 |
+| 14:08 | Edited resources/views/livewire/products/product-index.blade.php | 2→2 lines | ~25 |
+| 14:10 | Fix product image sync: normalized featured_image key in Shopify+YouCan connectors, added image column to product-index, added thumbnail_url accessor on Product | ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php | ok | ~1200 |
+| 14:10 | Session end: 7 writes across 4 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php) | 7 reads | ~26204 tok |
+| 14:17 | Created vite.config.js | — | ~113 |
+| 14:17 | Edited resources/css/app.css | 3→4 lines | ~31 |
+| 14:18 | Edited resources/css/app.css | 4→2 lines | ~17 |
+| 14:20 | Created resources/css/app.css | — | ~1627 |
+| 14:41 | Tailwind v3->v4 migration: wired @tailwindcss/vite, removed postcss.config.js, replaced @tailwind directives with @import+@config, converted @layer components to @utility, installed @tailwindcss/forms | vite.config.js, postcss.config.js, app.css, package.json | build ok 137KB | ~2500 |
+| 14:41 | Session end: 11 writes across 6 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 12 reads | ~30026 tok |
+| 15:34 | Created database/migrations/2026_06_01_120001_create_pos_sessions_table.php | — | ~400 |
+| 15:35 | Created database/migrations/2026_06_01_120002_create_pos_orders_table.php | — | ~545 |
+| 15:35 | Created database/migrations/2026_06_01_120003_create_pos_order_items_table.php | — | ~390 |
+| 15:35 | Created database/migrations/2026_06_01_120004_create_inventory_adjustments_table.php | — | ~381 |
+| 15:35 | Created database/migrations/2026_06_01_120005_create_cashier_accounts_table.php | — | ~370 |
+| 15:35 | Created database/migrations/2026_06_01_120006_create_pos_devices_table.php | — | ~328 |
+| 15:35 | Created app/Models/PosSession.php | — | ~383 |
+| 15:35 | Created app/Models/PosOrder.php | — | ~416 |
+| 15:35 | Created app/Models/PosOrderItem.php | — | ~330 |
+| 15:35 | Created app/Models/InventoryAdjustment.php | — | ~327 |
+| 15:35 | Created app/Models/CashierAccount.php | — | ~392 |
+| 15:35 | Created app/Models/PosDevice.php | — | ~234 |
+| 15:41 | Generate POS module: 6 migrations + 6 models (PosSession, PosOrder, PosOrderItem, InventoryAdjustment, CashierAccount, PosDevice) with ULIDs, FKs, decimal:2 casts, encrypted pin_code, polymorphic adjustable | database/migrations/2026_06_01_120001..6, app/Models/Pos*.php, InventoryAdjustment.php, CashierAccount.php | lint ok | ~4500 |
+| 15:41 | Session end: 23 writes across 18 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 13 reads | ~34842 tok |
+| 15:55 | Created database/migrations/2026_06_01_120007_add_category_and_barcode_to_products.php | — | ~213 |
+| 15:55 | Created app/Services/Pos/OrderProcessingService.php | — | ~933 |
+| 15:56 | Created app/Services/Pos/DocumentGenerationService.php | — | ~232 |
+| 15:56 | Created app/Services/Pos/SessionManagementService.php | — | ~562 |
+| 15:56 | Created app/Http/Middleware/IsCashier.php | — | ~420 |
+| 15:56 | Created app/Http/Controllers/Pos/PosController.php | — | ~751 |
+| 15:56 | Created app/Http/Controllers/Pos/CheckoutController.php | — | ~893 |
+| 15:56 | Created app/Http/Controllers/Pos/SessionController.php | — | ~669 |
+| 15:56 | Created routes/pos.php | — | ~208 |
+| 15:57 | Edited bootstrap/app.php | modified withRouting() | ~254 |
+| 15:57 | Created app/Http/Middleware/HandleInertiaRequests.php | — | ~191 |
+| 15:57 | Created resources/views/app.blade.php | — | ~140 |
+| 15:57 | Created resources/js/app.jsx | — | ~106 |
+| 15:57 | Created resources/js/Pages/Pos/Dashboard.jsx | — | ~2263 |
+| 15:57 | Created vite.config.js | — | ~136 |
+| 16:08 | POS controllers + Inertia/React setup: installed inertia/inertia-laravel, @inertiajs/react@2, react@18, @vitejs/plugin-react@6; built PosController/CheckoutController/SessionController, IsCashier+HandleInertiaRequests middleware, OrderProcessing/DocumentGeneration/SessionManagement services, routes/pos.php, migration for products.category+barcode, app.blade.php Inertia root, app.jsx, Pages/Pos/Dashboard.jsx | composer.json, package.json, bootstrap/app.php, vite.config.js, 14 new files | build ok 339KB jsx | ~7000 |
+| 16:09 | Session end: 38 writes across 32 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 14 reads | ~43502 tok |
+| 16:12 | Created resources/js/Hooks/useCart.js | — | ~1749 |
+| 16:12 | Created resources/js/Pages/Pos/Components/SearchBar.jsx | — | ~740 |
+| 16:12 | Created resources/js/Pages/Pos/Components/ProductCard.jsx | — | ~749 |
+| 16:13 | Created resources/js/Pages/Pos/Components/ProductGrid.jsx | — | ~362 |
+| 16:13 | Created resources/js/Pages/Pos/Components/CartItem.jsx | — | ~1121 |
+| 16:13 | Created resources/js/Pages/Pos/Components/Checkout.jsx | — | ~1665 |
+| 16:13 | Created resources/js/Pages/Pos/Components/Cart.jsx | — | ~1739 |
+| 16:13 | Created resources/js/Pages/Pos/Components/SessionStatus.jsx | — | ~371 |
+| 16:14 | Created resources/js/Pages/Pos/Dashboard.jsx | — | ~1930 |
+| 16:14 | Created vite.config.js | — | ~177 |
+| 16:15 | POS React UI: useCart reducer hook + Dashboard rewrite + 7 components (ProductGrid/Card, SearchBar, Cart, CartItem, Checkout, SessionStatus); added @/ alias in vite.config.js; installed axios | resources/js/Hooks/useCart.js, resources/js/Pages/Pos/Dashboard.jsx + Components/*.jsx (7), vite.config.js, package.json | build ok 357KB jsx | ~6500 |
+| 16:16 | Session end: 48 writes across 40 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 14 reads | ~54105 tok |
+| 16:19 | Created app/Services/Pos/OrderProcessingService.php | — | ~2540 |
+| 16:19 | Created app/Services/Pos/DocumentGenerationService.php | — | ~1086 |
+| 16:19 | Created app/Services/Pos/SessionManagementService.php | — | ~1295 |
+| 16:19 | Created app/Jobs/Pos/SyncInventoryToWebhooks.php | — | ~562 |
+| 16:21 | Created resources/views/pos/documents/receipt.blade.php | — | ~936 |
+| 16:21 | Created resources/views/pos/documents/invoice.blade.php | — | ~1386 |
+| 16:28 | Edited app/Http/Controllers/Pos/CheckoutController.php | jobs() → queueInventorySyncToWebhooks() | ~41 |
+| 16:28 | POS services upgrade: real adjustInventory + queueInventorySyncToWebhooks in OrderProcessingService, mPDF-based generateReceipt/generateInvoice in DocumentGenerationService, validateSessionBalance in SessionManagementService; new SyncInventoryToWebhooks job; receipt.blade + invoice.blade templates; CheckoutController calls queue dispatch | 3x services + 1 job + 2 blades + 1 controller edit | lint ok | ~5500 |
+| 16:29 | Session end: 55 writes across 43 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 15 reads | ~62511 tok |
+| 16:40 | Created app/Jobs/SyncInventoryToWebhooks.php | — | ~2697 |
+| 16:41 | Edited app/Services/Pos/OrderProcessingService.php | inline fix | ~10 |
+| 16:41 | Edited app/Services/Pos/OrderProcessingService.php | modified foreach() | ~47 |
+| 16:42 | SyncInventoryToWebhooks job: real WC/Shopify/YouCan HTTP implementations with Http::withBasicAuth/withHeaders/withToken, per-platform external_id resolution via SyncLog fallback to Product.external_id, per-platform success/fail tracking in sync_metadata, release(300) on any-failure with backoff [30,60,120,300,600]; moved from app/Jobs/Pos/ to app/Jobs/ per spec; took Store+InventoryAdjustment constructor | app/Jobs/SyncInventoryToWebhooks.php, removed app/Jobs/Pos/SyncInventoryToWebhooks.php, OrderProcessingService import updated | lint ok | ~3500 |
+| 16:42 | Session end: 58 writes across 43 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 16 reads | ~65461 tok |
+| 16:44 | Created app/Http/Middleware/RedirectIfNotCashier.php | — | ~378 |
+| 16:44 | Created app/Http/Middleware/RedirectIfCashier.php | — | ~147 |
+| 16:44 | Created app/Http/Controllers/Pos/CashierAuthController.php | — | ~1152 |
+| 16:45 | Created routes/pos.php | — | ~370 |
+| 16:45 | Edited bootstrap/app.php | added 2 import(s) | ~44 |
+| 16:45 | Edited bootstrap/app.php | 4→6 lines | ~69 |
+| 16:45 | Created resources/js/Pages/Pos/CashierLogin.jsx | — | ~2194 |
+| 16:46 | Edited resources/js/Pages/Pos/Dashboard.jsx | inline fix | ~14 |
+| 16:46 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: hover, hover | ~308 |
+| 16:46 | Cashier PIN auth: RedirectIfNotCashier+RedirectIfCashier middleware, CashierAuthController (showLogin/login/logout with hash_equals PIN check, lockout after 5 failures for 15min), CashierLogin.jsx (Inertia useForm, numeric PIN input, show/hide toggle, store dropdown), Dashboard.jsx logout button, routes/pos.php split into guest/auth groups, pos.auth+pos.guest aliases in bootstrap/app.php | 6 new files + Dashboard.jsx + bootstrap/app.php | lint+build ok 362KB jsx | ~5200 |
+| 16:47 | Session end: 67 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 16 reads | ~70291 tok |
+| 17:00 | Edited resources/views/app.blade.php | 6→5 lines | ~44 |
+| 17:13 | Fix Inertia\Middleware not found: re-installed inertiajs/inertia-laravel (correct package name, was rolled back); removed @routes Blade directive (Ziggy not installed); cleared compiled views | composer.json, vendor/inertiajs/, resources/views/app.blade.php, storage/framework/views/* | resolved | ~600 |
+| 17:14 | Session end: 68 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 17 reads | ~70478 tok |
+| 17:30 | Session end: 68 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 17 reads | ~70478 tok |
+| 17:42 | Edited app/Models/CashierAccount.php | 9→9 lines | ~96 |
+| 17:43 | Created app/Http/Controllers/Pos/CashierAuthController.php | — | ~1566 |
+| 17:43 | Created routes/pos.php | — | ~403 |
+| 17:43 | Edited app/Http/Middleware/RedirectIfNotCashier.php | added nullish coalescing | ~68 |
+| 17:43 | Edited app/Http/Middleware/RedirectIfCashier.php | 7→8 lines | ~101 |
+| 17:45 | Edited resources/js/Pages/Pos/CashierLogin.jsx | CSS: pin_code | ~174 |
+| 17:45 | Edited resources/js/Pages/Pos/CashierLogin.jsx | 11→12 lines | ~252 |
+| 17:45 | Edited resources/js/Pages/Pos/CashierLogin.jsx | 8→8 lines | ~114 |
+| 17:46 | Switch cashier PIN auth to bcrypt + Hash::check: CashierAccount.pin_code cast encrypted→hashed; CashierAuthController iterates cashiers in store and Hash::check each; Auth::login(user) is now primary auth via PIN; routes/pos.php removed outer auth (login is public); CashierLogin.jsx pin_code field name + 4-digit lock; existing PINs need reset | model, controller, routes, both middleware, CashierLogin.jsx | lint+build ok | ~3500 |
+| 17:47 | Session end: 76 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 17 reads | ~73411 tok |
+| 17:58 | Edited app/Http/Controllers/Pos/CashierAuthController.php | added 1 condition(s) | ~177 |
+| 18:01 | Fix Hash::check RuntimeException on legacy non-bcrypt pin_code rows: guard with str_starts_with($hash,$2) before Hash::check in CashierAuthController; log warning for legacy rows | CashierAuthController.php | resolved | ~400 |
+| 18:01 | Session end: 77 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 17 reads | ~73601 tok |
+| 18:10 | Reset cashier PIN data after cast change: identified single CashierAccount with legacy encrypted ciphertext (eyJp prefix), updated to bcrypt via cast (1234 → \$2y\$..., 60 chars), cleared failed_attempts/locked_until, verified Hash::check(1234) PASSes and Hash::check(9999) FAILs; cleared Laravel view/config/route caches; corrected lint with real Herd php.exe path (Bash PATH lacks php) | DB row + caches | login ready | ~600 |
+| 18:11 | Session end: 77 writes across 47 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 17 reads | ~73601 tok |
+| 18:48 | Created database/migrations/2026_06_01_130001_create_factures_table.php | — | ~571 |
+| 18:48 | Created database/migrations/2026_06_01_130002_create_bon_de_livraisons_table.php | — | ~527 |
+| 18:48 | Created database/migrations/2026_06_01_130003_create_stock_ledger_table.php | — | ~377 |
+| 18:48 | Created app/Models/Facture.php | — | ~512 |
+| 18:48 | Created app/Models/BonDeLivraison.php | — | ~394 |
+| 18:48 | Created app/Models/StockLedger.php | — | ~329 |
+| 18:49 | Factures + BonDeLivraisons + StockLedger schema: 3 migrations (130001 factures with status/payment_status enums + computed accessors, 130002 bon_de_livraisons w/ table-name override, 130003 stock_ledger renamed from stock_movements to avoid conflict with existing warehouse-based table); 3 models with HasUlids+casts+relationships; migrations applied successfully | 6 files + DB | migrate ok | ~2800 |
+| 18:50 | Session end: 83 writes across 53 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 18 reads | ~76503 tok |
+| 18:52 | Edited app/Models/User.php | added nullish coalescing | ~172 |
+| 18:53 | Created app/Http/Controllers/Dashboard/FacturesController.php | — | ~1064 |
+| 18:53 | Created app/Http/Controllers/Dashboard/BonDeLivraisonController.php | — | ~770 |
+| 18:53 | Created app/Http/Controllers/Dashboard/StockController.php | — | ~1433 |
+| 18:53 | Created routes/dashboard.php | — | ~346 |
+| 18:53 | Edited bootstrap/app.php | modified function() | ~77 |
+| 18:54 | Dashboard controllers (Factures/BonDeLivraison/Stock): added User::getActiveStore() (session store_id → owned-stores fallback), FacturesController index+show+download with status/payment_status/search filters and stats, BonDeLivraisonController index+updateStatus with shipped_at/delivered_at stamps, StockController index+adjustStock+movements using StockLedger model and withSum stocks for inventory totals (no products.stock column), routes/dashboard.php registered via bootstrap/app.php then: callback, all 8 routes register correctly | 6 files | lint+route:list ok | ~4500 |
+| 18:54 | Session end: 89 writes across 58 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 19 reads | ~80639 tok |
+| 18:55 | Created resources/js/Components/Dashboard/StatCard.jsx | — | ~340 |
+| 18:55 | Created resources/js/Components/Dashboard/StatusBadge.jsx | — | ~408 |
+| 18:55 | Created resources/js/Components/Dashboard/PaymentBadge.jsx | — | ~204 |
+| 18:56 | Created resources/js/Components/Dashboard/AdjustStockModal.jsx | — | ~1912 |
+| 18:56 | Created resources/js/Pages/Dashboard/Factures.jsx | — | ~2757 |
+| 18:57 | Created resources/js/Pages/Dashboard/BonDeLivraison.jsx | — | ~2581 |
+| 18:57 | Created resources/js/Pages/Dashboard/Stock.jsx | — | ~2456 |
+| 18:58 | Created resources/js/Pages/Dashboard/StockMovements.jsx | — | ~2074 |
+| 18:59 | Dashboard React UI: 4 Inertia pages (Factures, BonDeLivraison, Stock with AdjustStockModal, StockMovements) + 4 shared components (StatCard, StatusBadge, PaymentBadge, AdjustStockModal) in resources/js/Components/Dashboard/; installed lucide-react for icons; pages use router.get for filters (preserveState+replace) and router.patch for bon status quick-edits; build green 394KB jsx with 2499 modules transformed | 9 new files + lucide-react dep | build ok | ~6500 |
+| 19:00 | Session end: 97 writes across 66 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 19 reads | ~93371 tok |
+| 19:01 | Created app/Http/Controllers/Dashboard/StoreSwitchController.php | — | ~196 |
+| 19:01 | Edited routes/dashboard.php | added 1 import(s) | ~71 |
+| 19:02 | Edited routes/dashboard.php | 2→4 lines | ~68 |
+| 19:02 | Edited app/Http/Middleware/HandleInertiaRequests.php | modified share() | ~184 |
+| 19:03 | Created resources/js/Components/Dashboard/StoreSwitcher.jsx | — | ~1193 |
+| 19:04 | Edited resources/js/Pages/Dashboard/Factures.jsx | added 1 import(s) | ~71 |
+| 19:04 | Edited resources/js/Pages/Dashboard/Factures.jsx | 4→7 lines | ~117 |
+| 19:04 | Edited resources/js/Pages/Dashboard/BonDeLivraison.jsx | added 1 import(s) | ~53 |
+| 19:04 | Edited resources/js/Pages/Dashboard/BonDeLivraison.jsx | 4→7 lines | ~123 |
+| 19:04 | Edited resources/js/Pages/Dashboard/Stock.jsx | added 1 import(s) | ~56 |
+| 19:04 | Edited resources/js/Pages/Dashboard/Stock.jsx | 8→11 lines | ~166 |
+| 19:04 | Edited resources/js/Pages/Dashboard/StockMovements.jsx | added 1 import(s) | ~50 |
+| 19:04 | Edited resources/js/Pages/Dashboard/StockMovements.jsx | 8→11 lines | ~165 |
+| 19:06 | Store switcher: StoreSwitchController + POST /dashboard/stores/switch route, HandleInertiaRequests shares auth.stores + auth.activeStore globally, StoreSwitcher dropdown component (lucide Store/ChevronDown/Check icons, click-outside close, hides when user has ≤1 store), mounted in headers of Factures/BonDeLivraison/Stock/StockMovements | 8 files | lint+build ok 397KB jsx | ~2000 |
+| 19:06 | Session end: 110 writes across 68 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 19 reads | ~95922 tok |
+| 10:17 | Created resources/js/Components/StatusBadge.jsx | — | ~846 |
+| 10:17 | Created resources/js/Components/PageHeader.jsx | — | ~441 |
+| 10:17 | Created resources/js/Components/StatsCard.jsx | — | ~506 |
+| 10:17 | Created resources/js/Components/DataTable.jsx | — | ~1050 |
+| 10:17 | Created resources/js/Components/SearchFilterBar.jsx | — | ~1063 |
+| 10:17 | Created resources/js/Components/EmptyState.jsx | — | ~203 |
+| 10:18 | Created resources/js/Components/StoreSwitcher.jsx | — | ~1346 |
+| 10:18 | Created resources/js/Components/NotificationBell.jsx | — | ~1408 |
+| 10:18 | Created resources/js/Components/UserDropdown.jsx | — | ~934 |
+| 10:18 | Created resources/js/Components/ToastNotification.jsx | — | ~768 |
+| 10:19 | Created resources/js/Layouts/SaasLayout.jsx | — | ~3097 |
+| 10:20 | Created resources/js/Pages/Dashboard/Factures.jsx | — | ~1926 |
+| 10:20 | Created resources/js/Pages/Dashboard/BonDeLivraison.jsx | — | ~1985 |
+| 10:20 | Created resources/js/Pages/Dashboard/Stock.jsx | — | ~2427 |
+| 10:21 | Created resources/js/Pages/Dashboard/StockMovements.jsx | — | ~1516 |
+| 10:21 | Created resources/js/app.jsx | — | ~128 |
+| 10:21 | Edited resources/views/app.blade.php | 3→6 lines | ~78 |
+| 10:34 | Pro SaaS UX revision: 11 new shared components (SaasLayout, PageHeader, StatsCard, DataTable, SearchFilterBar, StatusBadge with type prop, NotificationBell, UserDropdown, StoreSwitcher sidebar variant, EmptyState, ToastNotification) plus dark theme #0F1117/#1A1D27/#2A2D3A palette, sidebar w/ 4 sections + active-state detection + mobile drawer + bottom nav, top header w/ breadcrumbs + cmd+k search trigger + sync pill + notifications + user dropdown; rewrote Factures/BonDeLivraison/Stock/StockMovements on new system; app.jsx adds Inertia progress bar (#6366F1); Inter font via Bunny preconnect in app.blade.php | 16 files | build ok 415KB jsx 2507 modules | ~14000 |
+| 10:34 | Session end: 127 writes across 77 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 19 reads | ~115649 tok |
+| 10:57 | Created database/migrations/2026_06_02_100001_add_onboarding_to_users_table.php | — | ~159 |
+| 10:57 | Created database/migrations/2026_06_02_100002_add_business_type_to_stores_table.php | — | ~150 |
+| 10:57 | Created app/Http/Controllers/Auth/RegisterController.php | — | ~452 |
+| 10:58 | Created app/Http/Controllers/Onboarding/OnboardingController.php | — | ~1436 |
+| 10:58 | Created app/Http/Middleware/EnsureOnboardingComplete.php | — | ~146 |
+| 10:58 | Created app/Mail/WelcomeMail.php | — | ~254 |
+| 10:58 | Created resources/views/emails/welcome.blade.php | — | ~883 |
+| 10:59 | Created resources/js/Pages/Auth/Register.jsx | — | ~4254 |
+| 11:00 | Created resources/js/Pages/Onboarding/Wizard.jsx | — | ~5291 |
+| 11:00 | Created resources/js/Pages/Welcome.jsx | — | ~3015 |
+| 11:03 | Edited app/Models/User.php | 9→10 lines | ~53 |
+| 11:03 | Edited app/Models/User.php | 3→4 lines | ~57 |
+| 11:03 | Edited bootstrap/app.php | added 1 import(s) | ~58 |
+| 11:03 | Edited bootstrap/app.php | 6→7 lines | ~95 |
+| 11:03 | Edited routes/auth.php | modified group() | ~87 |
+| 11:03 | Edited routes/web.php | modified group() | ~123 |
+| 11:03 | Edited routes/web.php | inline fix | ~27 |
+| 11:05 | Session end: 144 writes across 89 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 21 reads | ~135210 tok |
+| 11:29 | Created database/migrations/2026_06_02_110001_add_role_and_is_active_to_users_table.php | — | ~215 |
+| 11:29 | Created database/migrations/2026_06_02_110002_create_store_members_table.php | — | ~287 |
+| 11:29 | Created database/migrations/2026_06_02_110003_create_store_invitations_table.php | — | ~325 |
+| 11:29 | Created app/Models/StoreMember.php | — | ~246 |
+| 11:30 | Created app/Models/StoreInvitation.php | — | ~435 |
+| 11:30 | Edited app/Models/User.php | 10→12 lines | ~63 |
+| 11:30 | Edited app/Models/User.php | 3→4 lines | ~52 |
+| 11:30 | Edited app/Models/User.php | modified stores() | ~369 |
+| 14:27 | Edited app/Models/Store.php | modified user() | ~159 |
+| 14:27 | Created app/Http/Middleware/EnsureSuperAdmin.php | — | ~137 |
+| 14:27 | Created app/Http/Middleware/EnsureCanAccessDashboard.php | — | ~181 |
+| 14:27 | Created app/Http/Middleware/EnsureStoreAdmin.php | — | ~143 |
+| 14:27 | Created app/Http/Middleware/EnsureCanAccessPos.php | — | ~145 |
+| 14:27 | Edited bootstrap/app.php | added 4 import(s) | ~105 |
+| 14:27 | Edited bootstrap/app.php | 7→11 lines | ~164 |
+| 14:27 | Edited app/Http/Controllers/Auth/RegisterController.php | 6→8 lines | ~88 |
+| 14:27 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | added 1 import(s) | ~97 |
+| 14:27 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | expanded (+8 lines) | ~123 |
+| 14:28 | Created app/Http/Controllers/Dashboard/TeamController.php | — | ~1075 |
+| 14:28 | Created app/Http/Controllers/Auth/InvitationController.php | — | ~941 |
+| 14:28 | Created app/Http/Controllers/Admin/SuperAdminController.php | — | ~870 |
+| 14:28 | Created app/Mail/InvitationMail.php | — | ~366 |
+| 14:28 | Created resources/views/emails/invitation.blade.php | — | ~601 |
+| 14:29 | Edited app/Providers/AppServiceProvider.php | added 4 condition(s) | ~259 |
+| 14:29 | Edited routes/web.php | modified group() | ~579 |
+| 14:29 | Edited routes/auth.php | modified group() | ~157 |
+| 14:30 | Created resources/js/Layouts/SuperAdminLayout.jsx | — | ~1597 |
+| 14:30 | Created resources/js/Pages/Admin/Dashboard.jsx | — | ~934 |
+| 14:30 | Created resources/js/Pages/Admin/Clients.jsx | — | ~1640 |
+| 14:30 | Created resources/js/Pages/Admin/ClientDetail.jsx | — | ~1200 |
+| 14:31 | Created resources/js/Pages/Dashboard/Team.jsx | — | ~1613 |
+| 14:31 | Created resources/js/Pages/Dashboard/InviteMember.jsx | — | ~1768 |
+| 14:31 | Created resources/js/Pages/Auth/AcceptInvitation.jsx | — | ~2141 |
+| 14:32 | Created resources/js/Pages/Auth/InvitationInvalid.jsx | — | ~695 |
+| 14:32 | Edited resources/js/Layouts/SaasLayout.jsx | CSS: storeAdminOnly, storeAdminOnly | ~420 |
+| 14:32 | Edited resources/js/Layouts/SaasLayout.jsx | added optional chaining | ~613 |
+| 14:32 | Edited resources/js/Layouts/SaasLayout.jsx | added optional chaining | ~253 |
+| 14:47 | Session end: 181 writes across 112 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 23 reads | ~156968 tok |
+| 15:40 | Created app/Http/Controllers/Dashboard/DashboardController.php | — | ~1653 |
+| 15:42 | Created resources/js/Pages/Dashboard/Index.jsx | — | ~6178 |
+| 15:42 | Edited routes/web.php | 2→2 lines | ~35 |
+| 15:50 | Session end: 184 writes across 114 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 23 reads | ~164954 tok |
+| 16:19 | Created routes/auth.php | — | ~635 |
+| 16:19 | Created routes/admin.php | — | ~255 |
+| 16:19 | Created routes/dashboard.php | — | ~1360 |
+| 16:19 | Created routes/pos.php | — | ~475 |
+| 16:19 | Edited bootstrap/app.php | reduced (-7 lines) | ~45 |
+| 16:23 | Created routes/web.php | — | ~1150 |
+| 16:23 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | "dashboard" → "dashboard.home" | ~12 |
+| 16:24 | Session end: 191 writes across 115 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 28 reads | ~172904 tok |
+| 10:45 | Session end: 191 writes across 115 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 28 reads | ~172904 tok |
+| 11:00 | Created routes/dashboard.php | — | ~999 |
+| 11:00 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | "dashboard.home" → "dashboard" | ~10 |
+| 11:00 | Session end: 193 writes across 115 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 28 reads | ~173985 tok |
+| 11:38 | Session end: 193 writes across 115 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 28 reads | ~173985 tok |
+| 11:53 | Created app/Http/Controllers/Dashboard/StoreController.php | — | ~1084 |
+| 11:53 | Created app/Http/Controllers/Dashboard/OrderController.php | — | ~579 |
+| 11:53 | Created app/Http/Controllers/Dashboard/ProductController.php | — | ~388 |
+| 11:53 | Created app/Http/Controllers/Dashboard/SettingsController.php | — | ~500 |
+| 11:53 | Created app/Http/Controllers/Dashboard/IntegrationsController.php | — | ~352 |
+| 11:53 | Edited app/Http/Controllers/Dashboard/FacturesController.php | 5→5 lines | ~50 |
+| 11:54 | Created resources/js/Layouts/PosLayout.jsx | — | ~1121 |
+| 11:54 | Created resources/js/Pages/Dashboard/FacturesDetail.jsx | — | ~3859 |
+| 11:55 | Created resources/js/Pages/Dashboard/Stores/Index.jsx | — | ~1784 |
+| 11:55 | Created resources/js/Pages/Dashboard/Stores/Create.jsx | — | ~1812 |
+| 11:56 | Created resources/js/Pages/Dashboard/Orders/Index.jsx | — | ~1546 |
+| 11:56 | Created resources/js/Pages/Dashboard/Products/Index.jsx | — | ~1583 |
+| 11:56 | Created resources/js/Pages/Dashboard/Settings/Index.jsx | — | ~2010 |
+| 11:56 | Created resources/js/Pages/Dashboard/Integrations/Index.jsx | — | ~1592 |
+| 11:57 | Created routes/dashboard.php | — | ~1320 |
+| 11:58 | Edited resources/js/Layouts/SaasLayout.jsx | 6→6 lines | ~53 |
+| 11:58 | Edited resources/js/Layouts/SaasLayout.jsx | reduced (-16 lines) | ~348 |
+| 11:59 | Edited resources/js/Pages/Pos/Dashboard.jsx | 6→6 lines | ~75 |
+| 11:59 | Edited resources/js/Pages/Pos/Dashboard.jsx | removed 34 lines | ~63 |
+| 12:00 | Edited resources/js/Pages/Pos/Dashboard.jsx | 12→12 lines | ~98 |
+| 12:03 | Session end: 213 writes across 123 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 31 reads | ~200700 tok |
+| 12:22 | Edited app/Http/Controllers/Dashboard/OrderController.php | 5→7 lines | ~46 |
+| 12:22 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 condition(s) | ~216 |
+| 12:22 | Edited app/Http/Controllers/Dashboard/StoreController.php | added 3 condition(s) | ~503 |
+| 12:22 | Created app/Http/Controllers/Dashboard/WarehouseController.php | — | ~877 |
+| 12:22 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 4 condition(s) | ~892 |
+| 12:22 | Edited app/Http/Controllers/Dashboard/StoreController.php | 9→11 lines | ~82 |
+| 12:23 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added nullish coalescing | ~1168 |
+| 12:25 | Created routes/dashboard.php | — | ~1834 |
+| 12:26 | Created resources/js/Pages/Dashboard/Orders/Show.jsx | — | ~2360 |
+| 12:26 | Created resources/js/Pages/Dashboard/Stores/Edit.jsx | — | ~1628 |
+| 12:26 | Created resources/js/Pages/Dashboard/Products/Create.jsx | — | ~1452 |
+| 12:27 | Created resources/js/Pages/Dashboard/Products/Edit.jsx | — | ~1654 |
+| 12:27 | Created resources/js/Pages/Dashboard/Warehouses/Index.jsx | — | ~1198 |
+| 12:27 | Created resources/js/Pages/Dashboard/Warehouses/Create.jsx | — | ~1312 |
+| 12:27 | Created resources/js/Pages/Dashboard/Warehouses/Edit.jsx | — | ~1380 |
+| 12:28 | Created resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | — | ~1072 |
+| 12:28 | Created resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | — | ~976 |
+| 12:28 | Created resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | — | ~921 |
+| 12:29 | Created resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | — | ~1338 |
+| 12:30 | Edited resources/js/Layouts/SaasLayout.jsx | CSS: storeAdminOnly | ~86 |
+| 12:30 | Edited resources/js/Layouts/SaasLayout.jsx | CSS: items | ~55 |
+| 12:31 | Session end: 234 writes across 130 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 35 reads | ~228909 tok |
+| 12:45 | Edited resources/views/layouts/app/sidebar.blade.php | 12→12 lines | ~226 |
+| 12:45 | Edited resources/views/livewire/stores/store-index.blade.php | 4→3 lines | ~96 |
+| 12:46 | Edited resources/views/livewire/stores/settings-layout.blade.php | 8→8 lines | ~160 |
+| 12:46 | Edited resources/views/livewire/products/product-sync-modal.blade.php | 2→2 lines | ~58 |
+| 12:46 | Session end: 238 writes across 134 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 39 reads | ~237304 tok |
+| 12:56 | Edited routes/web.php | modified group() | ~700 |
+| 12:59 | Session end: 239 writes across 134 files (ShopifyConnector.php, YouCanConnector.php, Product.php, product-index.blade.php, vite.config.js) | 39 reads | ~236986 tok |
+| 13:13 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 4 import(s) | ~70 |
+| 13:13 | Edited app/Http/Controllers/Dashboard/ProductController.php | added nullish coalescing | ~242 |
+| 13:13 | Edited app/Http/Controllers/Dashboard/ProductController.php | added error handling | ~536 |
+
+## Session: 2026-07-11 21:14
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:49 | Codebase audit for returning dev; found migration uncommitted, Order vs PosOrder split (dashboard shows only PosOrder), broken OrderManagementTest (deleted Livewire refs), unsigned WhatsApp webhook, no Policies | (analysis) | report delivered | ~12k |
+
+## Session: 2026-07-11 23:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-11 23:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-11 23:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-11 23:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-07-11 23:08
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:13 | Created app/Support/PermissionCatalog.php | — | ~1913 |
+| 23:13 | Created database/migrations/2026_07_11_000001_create_store_roles_table.php | — | ~316 |
+| 23:13 | Created database/migrations/2026_07_11_000002_add_store_role_id_to_members_and_invitations.php | — | ~311 |
+| 23:13 | Created app/Models/StoreRole.php | — | ~709 |
+| 23:14 | Edited app/Models/Store.php | added nullish coalescing | ~397 |
+| 23:14 | Edited app/Models/Store.php | added 1 condition(s) | ~226 |
+| 23:14 | Edited app/Models/StoreMember.php | 7→8 lines | ~42 |
+| 23:14 | Edited app/Models/StoreMember.php | modified user() | ~59 |
+| 23:14 | Edited app/Models/StoreInvitation.php | 10→11 lines | ~58 |
+| 23:14 | Edited app/Models/StoreInvitation.php | modified invitedBy() | ~64 |
+| 23:14 | Edited app/Models/User.php | added nullish coalescing | ~471 |
+| 23:14 | Created app/Http/Middleware/EnsurePermission.php | — | ~235 |
+| 23:15 | Edited bootstrap/app.php | added 1 import(s) | ~36 |
+| 23:15 | Edited bootstrap/app.php | 2→3 lines | ~50 |
+| 23:15 | Created app/Http/Controllers/Dashboard/RoleController.php | — | ~1694 |
+| 23:15 | Edited routes/dashboard.php | added 1 import(s) | ~129 |
+| 23:16 | Edited routes/dashboard.php | modified group() | ~1619 |
+| 23:16 | Edited app/Http/Controllers/Dashboard/StoreController.php | 9→12 lines | ~109 |
+| 23:16 | Edited app/Http/Controllers/Dashboard/TeamController.php | added 3 import(s) | ~111 |
+| 23:17 | Edited app/Http/Controllers/Dashboard/TeamController.php | added nullish coalescing | ~1064 |
+| 23:17 | Edited app/Http/Controllers/Dashboard/TeamController.php | 3→2 lines | ~17 |
+| 23:17 | Edited app/Http/Controllers/Auth/InvitationController.php | modified use() | ~120 |
+| 23:17 | Edited app/Http/Middleware/HandleInertiaRequests.php | modified values() | ~148 |
+| 23:17 | Edited resources/js/Layouts/SaasLayout.jsx | 6→6 lines | ~56 |
+| 23:17 | Edited resources/js/Layouts/SaasLayout.jsx | 26→27 lines | ~468 |
+| 23:17 | Edited resources/js/Layouts/SaasLayout.jsx | modified Sidebar() | ~107 |
+| 23:18 | Edited resources/js/Pages/Dashboard/Team.jsx | added nullish coalescing | ~52 |
+| 23:18 | Edited resources/js/Pages/Dashboard/Team.jsx | modified toLocaleDateString() | ~105 |
+| 23:18 | Edited resources/js/Pages/Dashboard/Team.jsx | 9→6 lines | ~94 |
+| 23:18 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | added optional chaining | ~112 |
+| 23:18 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | CSS: Monitor | ~903 |
+| 23:19 | Created resources/js/Pages/Dashboard/Roles/Index.jsx | — | ~1464 |
+| 23:19 | Created resources/js/Pages/Dashboard/Roles/Form.jsx | — | ~2718 |
+| 23:20 | Created ../../../../.claude/jobs/a866b444/tmp/backfill_roles.php | — | ~215 |
+| 23:22 | Created ../../../../.claude/jobs/a866b444/tmp/verify_perms.php | — | ~380 |
+| 23:24 | Edited app/Support/PermissionCatalog.php | 6→6 lines | ~64 |
+| 23:26 | Built custom store roles + granular permissions (admin defines roles, ticks permissions) | PermissionCatalog, StoreRole model, EnsurePermission mw, RoleController, Roles/{Index,Form}.jsx, +2 migrations | migrated+backfilled, build passes | ~9000 |
+| 23:26 | Session end: 36 writes across 23 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 19 reads | ~35152 tok |
+| 23:29 | Created tests/Feature/Roles/RolePermissionTest.php | — | ~857 |
+| 23:30 | Edited database/migrations/2026_05_25_200000_extend_sync_logs_action_enum.php | added 2 condition(s) | ~198 |
+| 23:36 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | 7→10 lines | ~111 |
+| 23:36 | Session end: 39 writes across 26 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 26 reads | ~40089 tok |
+| 23:41 | Edited app/Models/User.php | modified accessibleStores() | ~303 |
+| 23:41 | Edited app/Http/Middleware/HandleInertiaRequests.php | modified values() | ~83 |
+| 23:42 | Edited app/Http/Controllers/Dashboard/TeamController.php | added 4 import(s) | ~130 |
+| 23:42 | Edited app/Http/Controllers/Dashboard/TeamController.php | added 5 condition(s) | ~1144 |
+| 23:42 | Edited routes/dashboard.php | modified group() | ~248 |
+| 23:43 | Created resources/js/Pages/Dashboard/AddMember.jsx | — | ~2573 |
+| 23:43 | Edited resources/js/Pages/Dashboard/Team.jsx | expanded (+8 lines) | ~249 |
+| 23:44 | Created tests/Feature/Team/AddMemberTest.php | — | ~1209 |
+| 23:46 | Session end: 47 writes across 28 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 26 reads | ~46252 tok |
+| 23:46 | Edited app/Http/Controllers/Dashboard/StoreSwitchController.php | 7→8 lines | ~103 |
+| 23:47 | Created tests/Feature/Team/StoreSwitchTest.php | — | ~396 |
+| 23:52 | Direct add-member view + getActiveStore spans owned+joined + switcher accepts joined stores | TeamController, StoreSwitchController, User, HandleInertiaRequests, AddMember.jsx, Team.jsx | 13 tests pass | ~6000 |
+| 23:52 | Session end: 49 writes across 30 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 28 reads | ~48328 tok |
+| 23:58 | Edited app/Http/Controllers/Dashboard/TeamController.php | added nullish coalescing | ~1617 |
+| 23:58 | Edited app/Http/Controllers/Dashboard/TeamController.php | added 1 import(s) | ~39 |
+| 23:58 | Edited routes/dashboard.php | 3→5 lines | ~160 |
+| 23:58 | Edited app/Http/Controllers/Pos/CashierAuthController.php | added 1 condition(s) | ~479 |
+| 23:59 | Edited resources/js/Pages/Dashboard/Team.jsx | 2→2 lines | ~36 |
+| 23:59 | Edited resources/js/Pages/Dashboard/Team.jsx | expanded (+11 lines) | ~312 |
+| 23:59 | Created resources/js/Pages/Dashboard/EditMember.jsx | — | ~3467 |
+| 00:02 | Created tests/Feature/Team/EditMemberTest.php | — | ~1262 |
+| 00:07 | Edit-member view (name/role/status) + cashier PIN management + fixed POS login for multiple cashiers | TeamController, CashierAuthController, EditMember.jsx, Team.jsx, routes | 19 team/roles tests pass | ~7000 |
+| 00:08 | Session end: 57 writes across 33 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 32 reads | ~59369 tok |
+| 00:10 | Edited app/Http/Controllers/Pos/CashierAuthController.php | added 3 condition(s) | ~922 |
+| 00:10 | Edited app/Http/Controllers/Pos/CashierAuthController.php | added 1 import(s) | ~30 |
+| 00:10 | Edited app/Http/Controllers/Pos/CashierAuthController.php | expanded (+10 lines) | ~164 |
+| 00:10 | Edited routes/pos.php | modified group() | ~114 |
+| 00:11 | Created resources/js/Pages/Pos/CashierLogin.jsx | — | ~3041 |
+| 00:11 | Created tests/Feature/Team/CashierPinSetupTest.php | — | ~1058 |
+| 00:12 | Cashier self-enrolment: first-login PIN setup (email+password -> choose PIN) | CashierAuthController (setupPin/establishSession), CashierLogin.jsx, pos.php | 5 new tests, 18 team tests pass | ~5000 |
+| 00:12 | Session end: 63 writes across 36 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 33 reads | ~67082 tok |
+| 13:43 | Edited app/Providers/AppServiceProvider.php | added 4 import(s) | ~118 |
+| 13:43 | Edited app/Providers/AppServiceProvider.php | added 1 condition(s) | ~346 |
+| 13:43 | Edited app/Support/PermissionCatalog.php | 6→9 lines | ~227 |
+| 13:44 | Edited app/Support/PermissionCatalog.php | 7→7 lines | ~84 |
+| 13:44 | Created database/migrations/2026_07_12_130001_extend_factures_for_lifecycle.php | — | ~903 |
+| 13:45 | Created app/Models/Facture.php | — | ~1440 |
+| 13:45 | Created app/Models/FactureItem.php | — | ~283 |
+| 13:46 | Created app/Contracts/Invoiceable.php | — | ~328 |
+| 13:46 | Edited app/Models/PosOrder.php | added 5 import(s) | ~122 |
+| 13:46 | Edited app/Models/PosOrder.php | modified items() | ~575 |
+| 13:46 | Edited app/Models/Order.php | added 4 import(s) | ~192 |
+| 13:46 | Edited app/Models/Order.php | added nullish coalescing | ~664 |
+| 13:47 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~540 |
+| 13:47 | Created resources/views/documents/facture.blade.php | — | ~1254 |
+| 13:48 | Created app/Services/Invoicing/InvoiceService.php | — | ~1871 |
+| 13:48 | Created app/Repositories/InvoiceRepository.php | — | ~507 |
+| 13:48 | Created app/Policies/FacturePolicy.php | — | ~539 |
+| 13:49 | Created app/Http/Controllers/Dashboard/InvoiceController.php | — | ~1316 |
+| 13:49 | Edited app/Http/Controllers/Controller.php | added 2 import(s) | ~42 |
+| 13:50 | Created app/Mail/InvoiceMail.php | — | ~299 |
+| 13:50 | Created resources/views/emails/invoice.blade.php | — | ~163 |
+| 13:50 | Edited routes/dashboard.php | added 1 import(s) | ~44 |
+| 13:50 | Edited routes/dashboard.php | modified group() | ~355 |
+| 13:54 | Created tests/Feature/Invoicing/InvoiceLifecycleTest.php | — | ~1450 |
+| 13:56 | Edited app/Models/Facture.php | 4→3 lines | ~40 |
+| 13:56 | Edited app/Models/Facture.php | reduced (-6 lines) | ~56 |
+| 13:56 | Edited app/Models/Facture.php | modified setDescriptionForEvent() | ~43 |
+| 13:56 | Edited app/Models/PosOrder.php | 3→3 lines | ~40 |
+| 13:56 | Edited app/Models/Order.php | 4→4 lines | ~52 |
+| 13:56 | Edited app/Services/Invoicing/InvoiceService.php | modified markSent() | ~265 |
+| 13:57 | Edited app/Services/Invoicing/InvoiceService.php | modified void() | ~488 |
+| 14:01 | Phase 1: audit trail (activitylog) + polymorphic invoice lifecycle (InvoiceService/Repository/Policy) + immutability + Gate bridge | Facture/Order/PosOrder, InvoiceService, FacturePolicy, InvoiceController, AppServiceProvider, +2 migrations | 32 tests pass, 112 assertions | ~14000 |
+| 14:02 | Session end: 94 writes across 53 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 41 reads | ~88613 tok |
+| 14:05 | Created app/Support/TenantContext.php | — | ~328 |
+| 14:06 | Created app/Models/Scopes/TenantScope.php | — | ~174 |
+| 14:06 | Created app/Models/Concerns/BelongsToTenant.php | — | ~271 |
+| 14:06 | Created app/Http/Middleware/ResolveTenant.php | — | ~206 |
+| 14:06 | Edited app/Providers/AppServiceProvider.php | modified register() | ~54 |
+| 14:06 | Edited bootstrap/app.php | added 1 import(s) | ~31 |
+| 14:06 | Edited bootstrap/app.php | 3→8 lines | ~114 |
+| 14:07 | Edited bootstrap/app.php | 12→12 lines | ~154 |
+| 14:07 | Edited app/Models/Facture.php | added 2 import(s) | ~129 |
+| 14:07 | Edited app/Models/PosOrder.php | added 2 import(s) | ~144 |
+| 14:07 | Edited app/Models/Order.php | added 1 import(s) | ~212 |
+| 14:08 | Created app/Policies/OrderPolicy.php | — | ~355 |
+| 14:09 | Created tests/Feature/Invoicing/TenantScopeTest.php | — | ~694 |
+| 14:10 | Created database/migrations/2026_07_12_130002_scope_invoice_number_unique_per_store.php | — | ~220 |
+| 14:17 | Phase 2: multi-tenancy global scope (TenantContext/BelongsToTenant/TenantScope/ResolveTenant) + OrderPolicy + per-store invoice numbers | app/Support, app/Models/Concerns, app/Models/Scopes, ResolveTenant, OrderPolicy, +1 migration | 11 invoicing tests pass, no new suite failures | ~7000 |
+| 14:17 | Session end: 108 writes across 60 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 42 reads | ~91917 tok |
+| 14:20 | Edited app/Http/Controllers/Dashboard/FacturesController.php | added 2 import(s) | ~82 |
+| 14:20 | Edited app/Http/Controllers/Dashboard/FacturesController.php | added nullish coalescing | ~364 |
+| 14:20 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 import(s) | ~46 |
+| 14:20 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified render() | ~133 |
+| 14:20 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | added 1 condition(s) | ~250 |
+| 14:21 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | CSS: disabled | ~438 |
+| 14:21 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | CSS: hover | ~297 |
+| 14:22 | Created resources/js/Pages/Dashboard/FacturesDetail.jsx | — | ~6376 |
+| 14:23 | Edited app/Http/Controllers/Dashboard/FacturesController.php | modified value() | ~61 |
+| 14:23 | Edited app/Http/Controllers/Dashboard/FacturesController.php | 4→5 lines | ~57 |
+| 14:23 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | inline fix | ~29 |
+| 14:23 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | inline fix | ~22 |
+| 14:24 | Created tests/Feature/Invoicing/InvoiceDashboardTest.php | — | ~995 |
+| 14:26 | Phase 3: React invoice dashboards — Generate-invoice on POS order, FacturesDetail lifecycle actions + amend/void/pay modals + audit timeline | Orders/Show.jsx, FacturesDetail.jsx, OrderController, FacturesController | 40 invoicing/team/roles tests pass, build green | ~9000 |
+| 14:26 | Session end: 121 writes across 65 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 46 reads | ~109211 tok |
+| 14:33 | Created database/migrations/2026_07_12_140001_fix_activity_log_morphs_for_ulid.php | — | ~296 |
+| 14:37 | Fixed MySQL truncation: activity_log subject_id/causer_id bigint -> char(26) for ULID keys | migration 2026_07_12_140001, buglog.json | migrated on MySQL (char(26) verified), 16 tests pass | ~2500 |
+| 14:37 | Session end: 122 writes across 66 files (PermissionCatalog.php, 2026_07_11_000001_create_store_roles_table.php, 2026_07_11_000002_add_store_role_id_to_members_and_invitations.php, StoreRole.php, Store.php) | 47 reads | ~109528 tok |
+
+## Session: 2026-07-18 21:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:07 | Created resources/js/Components/LoginModal.jsx | — | ~2773 |
+| 21:08 | Edited resources/js/Pages/Welcome.jsx | added 2 import(s) | ~73 |
+| 21:08 | Edited resources/js/Pages/Welcome.jsx | modified Welcome() | ~89 |
+| 21:08 | Edited resources/js/Pages/Welcome.jsx | 6→7 lines | ~127 |
+| 21:08 | Edited resources/js/Pages/Welcome.jsx | 6→7 lines | ~136 |
+| 21:08 | Login modal (Inertia useForm) on Welcome | LoginModal.jsx, Welcome.jsx | vite build OK | ~6k |
+| 21:09 | Session end: 5 writes across 2 files (LoginModal.jsx, Welcome.jsx) | 7 reads | ~12605 tok |
+| 22:09 | Investigated order->facture->send/print flow; ran invoicing tests | InvoiceController.php, FacturesDetail.jsx, Orders/Show.jsx | 16 tests pass, flow works E2E | ~5k |
+| 22:15 | Session end: 5 writes across 2 files (LoginModal.jsx, Welcome.jsx) | 9 reads | ~20285 tok |
+| 22:19 | Session end: 5 writes across 2 files (LoginModal.jsx, Welcome.jsx) | 9 reads | ~20285 tok |
+| 22:21 | Created resources/views/documents/facture-receipt.blade.php | — | ~904 |
+| 22:21 | Edited app/Services/Pos/DocumentGenerationService.php | 4→5 lines | ~82 |
+| 22:21 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~282 |
+| 22:21 | Edited app/Http/Controllers/Dashboard/InvoiceController.php | added 4 import(s) | ~106 |
+| 22:22 | Edited app/Http/Controllers/Dashboard/InvoiceController.php | added error handling | ~546 |
+| 22:22 | Edited app/Http/Controllers/Dashboard/InvoiceController.php | modified catch() | ~202 |
+| 22:22 | Edited routes/dashboard.php | 3→4 lines | ~114 |
+| 22:22 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | 4→4 lines | ~52 |
+| 22:22 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | CSS: onStart, onFinish | ~218 |
+| 22:22 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | CSS: disabled | ~422 |
+| 22:23 | Edited resources/js/Pages/Dashboard/FacturesDetail.jsx | expanded (+10 lines) | ~230 |
+| 22:27 | Edited tests/Feature/Invoicing/InvoiceDashboardTest.php | added 2 import(s) | ~64 |
+| 22:27 | Edited tests/Feature/Invoicing/InvoiceDashboardTest.php | modified it() | ~426 |
+| 22:30 | Edited tests/Feature/Invoicing/InvoiceDashboardTest.php | 3→3 lines | ~45 |
+| 22:31 | Thermal invoice receipt (80mm) + hardened email send (sync, truthful sent_at, resend) | facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php, dashboard.php, FacturesDetail.jsx, InvoiceDashboardTest.php | 19 invoicing tests pass, vite build OK | ~9k |
+| 22:31 | Session end: 19 writes across 8 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 13 reads | ~28881 tok |
+| 22:45 | Edited routes/dashboard.php | modified group() | ~112 |
+| 22:45 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 import(s) | ~69 |
+| 22:45 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 condition(s) | ~320 |
+| 22:46 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | 7→8 lines | ~131 |
+| 22:46 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | expanded (+7 lines) | ~349 |
+| 22:46 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | inline fix | ~26 |
+| 22:50 | POS order receipt route+button; cleaned Orders index (removed TEST debug col, real View/Receipt buttons) | OrderController.php, dashboard.php, Orders/Show.jsx, Orders/Index.jsx | route ok, receipt PDF 40KB, 19 tests pass, build clean | ~5k |
+| 23:29 | Session end: 25 writes across 11 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 16 reads | ~35355 tok |
+| 23:31 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~326 |
+| 23:31 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified receipt() | ~154 |
+| 23:31 | Edited app/Http/Controllers/Dashboard/OrderController.php | 5→4 lines | ~36 |
+| 23:32 | Session end: 28 writes across 11 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 16 reads | ~35908 tok |
+| 23:35 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | 15→15 lines | ~270 |
+| 23:35 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | 8→8 lines | ~128 |
+| 23:36 | Session end: 30 writes across 11 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 17 reads | ~37347 tok |
+| 23:42 | Edited app/Models/PosOrder.php | added nullish coalescing | ~196 |
+| 23:42 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | 8→8 lines | ~149 |
+| 23:42 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | "/dashboard/orders/${order" → "/dashboard/orders/${order" | ~24 |
+| 23:42 | Edited resources/js/Pages/Dashboard/Index.jsx | "/dashboard/orders/${o.id}" → "/dashboard/orders/${o.rec" | ~33 |
+| 23:46 | POS order URLs now use receipt_number (getRouteKeyName + dual resolveRouteBinding); switched order links | PosOrder.php, Orders/Index.jsx, Orders/Show.jsx, Dashboard/Index.jsx | binding resolves by num+id, 19 tests pass, build clean | ~4k |
+| 23:46 | Session end: 34 writes across 12 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 18 reads | ~43941 tok |
+| 12:37 | Session end: 34 writes across 12 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 18 reads | ~43941 tok |
+| 13:06 | Cleanup Stages 1+2 on branch cleanup/orphaned-blade: removed VerifyEmailController + 14 orphaned Livewire files (2506 lines) | see git log | 90 pass/7 pre-existing fail, routes resolve | ~12k |
+| 13:06 | Session end: 34 writes across 12 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 18 reads | ~43941 tok |
+| 13:39 | Created resources/js/Hooks/usePersistentState.js | — | ~212 |
+| 13:39 | Created resources/js/Pages/Pos/Components/ProductViewControls.jsx | — | ~973 |
+| 13:39 | Created resources/js/Pages/Pos/Components/ProductCard.jsx | — | ~1334 |
+| 13:39 | Created resources/js/Pages/Pos/Components/ProductGrid.jsx | — | ~547 |
+| 13:40 | Edited resources/js/Pages/Pos/Dashboard.jsx | added 2 import(s) | ~166 |
+| 13:40 | Edited resources/js/Pages/Pos/Dashboard.jsx | added 1 condition(s) | ~162 |
+| 13:40 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: sm, sm | ~412 |
+| 13:41 | Edited resources/js/Layouts/PosLayout.jsx | 2→2 lines | ~70 |
+| 13:41 | Edited resources/js/Pages/Pos/Dashboard.jsx | "flex-1 flex flex-col text" → "flex-1 min-h-0 flex flex-" | ~20 |
+| 13:41 | Edited resources/js/Pages/Pos/Components/Cart.jsx | 2→2 lines | ~83 |
+| 13:41 | Edited resources/js/Pages/Pos/Components/Cart.jsx | "flex-1 overflow-y-auto px" → "flex-1 min-h-0 overflow-y" | ~27 |
+| 13:41 | Edited resources/js/Pages/Pos/Components/Cart.jsx | "border-t border-gray-700 " → "flex-shrink-0 border-t bo" | ~25 |
+| 13:42 | Session end: 46 writes across 19 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 23 reads | ~53641 tok |
+| 13:49 | Edited resources/css/app.css | expanded (+39 lines) | ~408 |
+| 13:50 | Created resources/js/Hooks/useTheme.js | — | ~594 |
+| 13:50 | Created resources/js/Components/ThemeToggle.jsx | — | ~280 |
+| 13:50 | Edited resources/views/app.blade.php | added error handling | ~150 |
+| 13:51 | Session end: 50 writes across 23 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 26 reads | ~57054 tok |
+| 13:52 | Created resources/js/Pages/Welcome.jsx | — | ~3230 |
+| 13:56 | Theme system (tokens+useTheme+ThemeToggle+FOUC) & converted Welcome.jsx to tokens as POC | app.css, useTheme.js, ThemeToggle.jsx, app.blade.php, Welcome.jsx | build clean, Welcome fully tokenized | ~7k |
+| 13:56 | Session end: 51 writes across 23 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 26 reads | ~60390 tok |
+| 13:58 | Created resources/js/Components/LoginModal.jsx | — | ~2728 |
+| 13:58 | Edited resources/js/Layouts/SaasLayout.jsx | added 1 import(s) | ~63 |
+| 13:58 | Edited resources/js/Layouts/SaasLayout.jsx | 2→3 lines | ~29 |
+| 13:58 | Edited resources/js/Layouts/PosLayout.jsx | added 1 import(s) | ~72 |
+| 13:58 | Edited resources/js/Layouts/PosLayout.jsx | 3→5 lines | ~44 |
+| 13:58 | Edited resources/js/Layouts/SuperAdminLayout.jsx | added 1 import(s) | ~38 |
+| 13:58 | Edited resources/js/Layouts/SuperAdminLayout.jsx | 5→6 lines | ~94 |
+| 14:02 | Tokenized LoginModal; added ThemeToggle to Saas/Pos/SuperAdmin layouts | LoginModal.jsx, SaasLayout.jsx, PosLayout.jsx, SuperAdminLayout.jsx | build clean, modal fully tokenized | ~4k |
+| 14:02 | Session end: 58 writes across 25 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 29 reads | ~71342 tok |
+| 14:06 | Created resources/js/Components/PageHeader.jsx | — | ~443 |
+| 14:07 | Created resources/js/Components/EmptyState.jsx | — | ~205 |
+| 14:07 | Created resources/js/Components/StatsCard.jsx | — | ~589 |
+| 14:07 | Created resources/js/Components/StatusBadge.jsx | — | ~530 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~4 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~3 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~4 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~7 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~4 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~6 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~6 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~6 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~6 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~6 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~11 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~11 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~9 |
+| 14:08 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~10 |
+| 14:09 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~11 |
+| 14:09 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~11 |
+| 14:09 | Edited resources/js/Layouts/SaasLayout.jsx | "font-bold text-white text" → "font-bold text-content te" | ~30 |
+| 14:13 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~3 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~8 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~4 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~6 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~6 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~6 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~9 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~10 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~10 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~11 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~10 |
+| 14:15 | Edited resources/js/Pages/Dashboard/Index.jsx | inline fix | ~10 |
+| 15:59 | Tokenized SaasLayout + Dashboard/Index + shared components (PageHeader, StatsCard, EmptyState, StatusBadge) for light/dark | 6 files | build clean, all structural colors tokenized, accents use dark: variants | ~10k |
+| 15:59 | Session end: 102 writes across 29 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 33 reads | ~75425 tok |
+| 16:03 | Created resources/js/Pages/Pos/Components/SearchBar.jsx | — | ~745 |
+| 16:04 | Created resources/js/Pages/Pos/Components/CartItem.jsx | — | ~1137 |
+| 16:04 | Created resources/js/Pages/Pos/Components/Checkout.jsx | — | ~1574 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~8 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~4 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~4 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~4 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~4 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~8 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~7 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~19 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~6 |
+| 16:05 | Edited resources/js/Pages/Pos/Components/Cart.jsx | inline fix | ~9 |
+| 16:06 | Created resources/js/Pages/Pos/Components/ProductGrid.jsx | — | ~554 |
+| 16:06 | Created resources/js/Pages/Pos/Components/ProductCard.jsx | — | ~1359 |
+| 16:06 | Created resources/js/Pages/Pos/Components/ProductViewControls.jsx | — | ~978 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~3 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~4 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~6 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~4 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~4 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~6 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~8 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~4 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~6 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~6 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~6 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~10 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~11 |
+| 16:07 | Edited resources/js/Layouts/PosLayout.jsx | inline fix | ~9 |
+| 16:07 | Edited resources/js/Pages/Pos/Dashboard.jsx | "px-4 py-2 bg-emerald-500/" → "px-4 py-2 bg-emerald-500/" | ~54 |
+| 16:07 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: dark | ~65 |
+| 16:07 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: dark | ~49 |
+| 16:08 | Edited resources/js/Pages/Pos/Dashboard.jsx | "flex-1 min-h-0 flex flex-" → "flex-1 min-h-0 flex flex-" | ~21 |
+| 16:08 | Edited resources/js/Pages/Pos/Components/SessionStatus.jsx | CSS: dark, dark | ~61 |
+| 16:08 | Edited resources/js/Pages/Pos/Components/SessionStatus.jsx | "text-gray-400 hidden md:i" → "text-content-muted hidden" | ~20 |
+| 16:09 | Created resources/js/Components/DataTable.jsx | — | ~1056 |
+| 16:09 | Created resources/js/Components/SearchFilterBar.jsx | — | ~1081 |
+| 16:09 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~4 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~4 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~8 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~9 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~9 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~4 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~4 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~8 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~6 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~11 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~11 |
+| 16:10 | Edited resources/js/Components/StoreSwitcher.jsx | inline fix | ~13 |
+| 16:10 | Tokenized POS view (PosLayout + 8 Pos components) + shared DataTable/SearchFilterBar/UserDropdown/StoreSwitcher; fixed bug-123 (toggle inert on POS) | 13 files | build clean, all tokenized (InvoiceModal left light: print doc) | ~14k |
+| 16:11 | Session end: 164 writes across 37 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 41 reads | ~91127 tok |
+| 16:24 | Tokenized 10 dashboard INDEX pages for light/dark via scripted pass (theme.sed) | Orders/Factures/Products/Stock/Team/Roles/Warehouses/BonDeLivraison/Integrations/Stores Index.jsx | build clean, 0 residual hardcoded, no artifacts | ~8k |
+| 16:24 | Session end: 164 writes across 37 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 41 reads | ~91127 tok |
+| 16:34 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "text-sm font-medium text-" → "text-sm font-medium text-" | ~32 |
+| 16:34 | Tokenized 18 dashboard detail/form pages (theme.sed + input text-white cleanup) | AddMember/EditMember/InviteMember/FacturesDetail/Orders.Show/Products.Create+Edit/Roles.Form/Settings/StockMovements/Stores+Warehouses.Create+Edit/Integrations.Platforms.* | build clean, 0 residual, whole Dashboard dir done | ~9k |
+| 16:35 | Session end: 165 writes across 38 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 41 reads | ~91159 tok |
+| 16:41 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 4→4 lines | ~98 |
+| 16:41 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | "p-1 text-content-muted ho" → "p-1 text-content-muted ho" | ~22 |
+| 16:41 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | "rounded-md bg-red-50 bord" → "rounded-md bg-red-500/10 " | ~40 |
+| 16:41 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | inline fix | ~12 |
+| 16:41 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | "px-3 py-2 rounded-lg bg-g" → "px-3 py-2 rounded-lg bg-c" | ~46 |
+| 16:42 | Edited resources/js/Components/SyncProductsModal.jsx | "w-full mt-4 bg-surface-3 " → "w-full mt-4 bg-surface-3 " | ~44 |
+| 16:44 | Tokenized admin area (SuperAdminLayout + Admin/Dashboard,Clients,ClientDetail) + shared components (NotificationBell, SyncProductsModal, ToastNotification, AdjustStockModal light->tokens) | 8 files | build clean, 0 residual (StatsCard/StatusBadge slate lines are intentional dark: accents) | ~7k |
+| 16:44 | Session end: 171 writes across 40 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 42 reads | ~93333 tok |
+| 16:47 | Edited resources/css/app.css | expanded (+30 lines) | ~380 |
+| 16:47 | Created resources/js/Hooks/useProductFilters.js | — | ~1442 |
+| 16:48 | Created resources/js/Components/Filters/PriceRangeSlider.jsx | — | ~675 |
+| 16:48 | Created resources/js/Components/Filters/FilterSidebar.jsx | — | ~2907 |
+| 16:48 | Created resources/js/Components/Filters/ActiveFilterChips.jsx | — | ~527 |
+| 16:51 | Built modular filter system (useProductFilters hook + FilterSidebar/PriceRangeSlider/ActiveFilterChips + range CSS) | Filters/*, useProductFilters.js, app.css | build clean | ~6k |
+| 16:51 | Session end: 176 writes across 44 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 42 reads | ~99264 tok |
+| 16:55 | Edited resources/js/Components/Filters/FilterSidebar.jsx | 4→5 lines | ~22 |
+| 16:56 | Edited resources/js/Components/Filters/FilterSidebar.jsx | 2→2 lines | ~36 |
+| 16:56 | Edited resources/js/Pages/Pos/Dashboard.jsx | expanded (+6 lines) | ~260 |
+| 16:56 | Edited resources/js/Pages/Pos/Dashboard.jsx | expanded (+26 lines) | ~388 |
+| 16:56 | Edited resources/js/Pages/Pos/Dashboard.jsx | 11→8 lines | ~103 |
+| 16:56 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: hover, dark | ~758 |
+| 16:57 | Wired filter system into POS terminal: FilterSidebar column + mobile drawer + ActiveFilterChips; Category(auto)/Price/Availability filters, text search on top | Pos/Dashboard.jsx, FilterSidebar.jsx | build clean, product shape matches accessors | ~4k |
+| 16:58 | Session end: 182 writes across 44 files (LoginModal.jsx, Welcome.jsx, facture-receipt.blade.php, DocumentGenerationService.php, InvoiceController.php) | 42 reads | ~101731 tok |
+| 16:16 | Created app/Enums/FulfillmentStatus.php | — | ~537 |
+| 16:18 | Created database/migrations/2026_07_22_120000_add_fulfillment_status_to_orders.php | — | ~651 |
+
+## Session: 2026-07-22 16:25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:32 | Edited app/Models/PosOrder.php | 5→7 lines | ~47 |
+| 16:33 | Edited app/Models/PosOrder.php | 8→10 lines | ~119 |
+| 16:34 | Edited app/Models/Order.php | 3→5 lines | ~71 |
+| 16:35 | Edited app/Models/Order.php | 1→3 lines | ~24 |
+| 16:53 | Created app/Support/OrderPresenter.php | — | ~1093 |
+| 16:54 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 5 import(s) | ~100 |
+| 16:54 | Edited app/Http/Controllers/Dashboard/OrderController.php | added nullish coalescing | ~685 |
+| 16:55 | Edited routes/dashboard.php | modified group() | ~172 |
+| 16:55 | Edited resources/js/Components/StatusBadge.jsx | 1→5 lines | ~68 |
+
+## Session: 2026-07-23 11:18
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:23 | Created resources/js/Pages/Dashboard/Orders/Manage.jsx | — | ~8342 |
+| 11:23 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~31 |
+| 11:31 | Built Order Management board (Manage.jsx) — Kanban/table + drawer + status actions; repointed Orders nav | resources/js/Pages/Dashboard/Orders/Manage.jsx, SaasLayout.jsx | build passed | ~8k |
+| 11:32 | Session end: 2 writes across 2 files (Manage.jsx, SaasLayout.jsx) | 9 reads | ~24902 tok |
+| 16:47 | Created app/Enums/CustomerType.php | — | ~226 |
+| 16:47 | Created database/migrations/2026_07_23_120000_add_customer_type_to_pos_orders.php | — | ~301 |
+| 16:48 | Edited app/Models/PosOrder.php | 4→7 lines | ~43 |
+| 16:48 | Edited app/Models/PosOrder.php | modified isCompany() | ~134 |
+| 16:48 | Edited app/Services/Pos/OrderProcessingService.php | 4→7 lines | ~135 |
+| 16:48 | Edited app/Http/Controllers/Pos/CheckoutController.php | added 1 import(s) | ~25 |
+| 16:48 | Edited app/Http/Controllers/Pos/CheckoutController.php | 5→8 lines | ~140 |
+| 16:48 | Edited app/Http/Controllers/Pos/CheckoutController.php | added 1 import(s) | ~26 |
+| 16:48 | Edited app/Http/Controllers/Pos/CheckoutController.php | 6→8 lines | ~100 |
+| 16:49 | Edited resources/js/Hooks/useCart.js | 6→9 lines | ~83 |
+| 16:49 | Edited resources/js/Hooks/useCart.js | 7→10 lines | ~160 |
+| 16:49 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | 1→2 lines | ~42 |
+| 16:50 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | expanded (+42 lines) | ~1079 |
+| 16:50 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | 31→30 lines | ~368 |
+| 16:50 | Created resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | — | ~2493 |
+| 16:51 | Edited resources/js/Pages/Pos/Components/Cart.jsx | CSS: sale | ~217 |
+| 16:51 | Edited resources/js/Pages/Pos/Components/Cart.jsx | expanded (+11 lines) | ~217 |
+| 16:51 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: customer_type, company_name, tax_id | ~109 |
+| 16:51 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: customer_type, company_name, tax_id | ~177 |
+| 16:52 | Edited resources/js/Pages/Pos/Components/InvoiceModal.jsx | CSS: trigger | ~89 |
+| 16:52 | Edited resources/js/Pages/Pos/Components/InvoiceModal.jsx | CSS: ICE, Contact | ~220 |
+| 17:18 | Cashier dynamic-print slice: CustomerType enum+migration, checkout preview modal, Individual/Company selector, auto thermal-vs-A4 print | app/Enums/CustomerType.php, PosOrder, CheckoutController, OrderProcessingService, useCart, Checkout, CheckoutPreviewModal, Cart, Dashboard, InvoiceModal | migrate+build+lint pass | ~14k |
+| 17:21 | Session end: 23 writes across 13 files (Manage.jsx, SaasLayout.jsx, CustomerType.php, 2026_07_23_120000_add_customer_type_to_pos_orders.php, PosOrder.php) | 16 reads | ~43246 tok |
+
+## Session: 2026-07-24 11:32
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:34 | Created app/Enums/FulfillmentType.php | — | ~458 |
+| 11:35 | Created database/migrations/2026_07_24_120000_add_delivery_address_to_pos_orders.php | — | ~211 |
+| 11:35 | Edited app/Models/PosOrder.php | 3→4 lines | ~23 |
+| 11:35 | Edited app/Services/Pos/OrderProcessingService.php | modified use() | ~281 |
+| 11:35 | Edited app/Services/Pos/OrderProcessingService.php | 3→4 lines | ~72 |
+| 11:35 | Edited app/Services/Pos/OrderProcessingService.php | added 1 import(s) | ~19 |
+| 11:35 | Edited app/Http/Controllers/Pos/CheckoutController.php | 5→8 lines | ~138 |
+| 11:35 | Edited app/Http/Controllers/Pos/CheckoutController.php | added 1 import(s) | ~26 |
+| 11:35 | Edited app/Http/Controllers/Pos/CheckoutController.php | 4→6 lines | ~88 |
+| 11:36 | Edited resources/js/Hooks/useCart.js | 4→6 lines | ~87 |
+| 11:36 | Edited resources/js/Hooks/useCart.js | added nullish coalescing | ~102 |
+| 11:36 | Edited resources/js/Hooks/useCart.js | 1→2 lines | ~60 |
+| 11:36 | Edited resources/js/Hooks/useCart.js | 4→5 lines | ~26 |
+| 11:36 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | expanded (+6 lines) | ~94 |
+| 11:36 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | expanded (+41 lines) | ~793 |
+| 11:36 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | 3→6 lines | ~101 |
+| 11:37 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | 2→2 lines | ~39 |
+| 11:37 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | 2→2 lines | ~36 |
+| 11:37 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | 1→2 lines | ~33 |
+| 11:37 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | CSS: dark, dark | ~363 |
+| 11:37 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | 5→5 lines | ~77 |
+| 11:37 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: fulfillment_type, delivery_address | ~106 |
+| 11:37 | Edited resources/js/Pages/Pos/Dashboard.jsx | added 1 condition(s) | ~310 |
+| 11:38 | Edited resources/js/Pages/Pos/Dashboard.jsx | 5→7 lines | ~135 |
+| 12:40 | Fulfillment type at checkout (instant vs delivery) — new FulfillmentType enum, delivery_address migration, useCart+Checkout toggle, preview badge, Dashboard skips auto-print for delivery | FulfillmentType.php, 2026_07_24_120000_*, PosOrder, OrderProcessingService, CheckoutController, useCart.js, Checkout.jsx, CheckoutPreviewModal.jsx, Dashboard.jsx | done, migrate+build pass | ~9k |
+| 12:03 | Session end: 24 writes across 9 files (FulfillmentType.php, 2026_07_24_120000_add_delivery_address_to_pos_orders.php, PosOrder.php, OrderProcessingService.php, CheckoutController.php) | 9 reads | ~15395 tok |
+
+## Session: 2026-07-24 14:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 15:04 | Created docs/order-lifecycle.md | — | ~7108 |
+| 15:08 | Session end: 1 writes across 1 files (order-lifecycle.md) | 8 reads | ~14274 tok |
+| 15:23 | Edited database/migrations/2026_07_22_120000_add_fulfillment_status_to_orders.php | modified up() | ~293 |
+| 15:23 | Created database/migrations/2026_07_24_130000_widen_fulfillment_status_columns.php | — | ~619 |
+| 15:25 | Created app/Enums/FulfillmentStatus.php | — | ~1439 |
+| 15:25 | Edited app/Enums/FulfillmentStatus.php | added nullish coalescing | ~246 |
+| 15:25 | Created database/migrations/2026_07_24_130001_create_order_returns_tables.php | — | ~1076 |
+| 15:26 | Created database/migrations/2026_07_24_130002_add_type_to_warehouses.php | — | ~327 |
+| 15:26 | Edited app/Models/Warehouse.php | expanded (+9 lines) | ~119 |
+| 15:26 | Edited app/Models/Warehouse.php | 3→4 lines | ~19 |
+| 15:26 | Edited app/Models/Warehouse.php | modified scopeSellable() | ~182 |
+| 15:26 | Edited app/Models/Warehouse.php | added 1 import(s) | ~36 |
+| 15:26 | Edited app/Models/Store.php | added 1 condition(s) | ~324 |
+| 15:27 | Edited app/Models/Store.php | 3→4 lines | ~56 |
+| 15:27 | Created app/Models/OrderReturn.php | — | ~871 |
+| 15:27 | Created app/Models/OrderReturnItem.php | — | ~782 |
+| 15:28 | Edited app/Models/OrderReturnItem.php | modified isDispositioned() | ~119 |
+| 15:29 | Edited app/Models/Product.php | modified stocks() | ~356 |
+| 15:29 | Edited app/Models/Product.php | added 1 import(s) | ~36 |
+| 15:29 | Edited app/Http/Controllers/Dashboard/DashboardController.php | withSum() → withSellableStock() | ~76 |
+| 15:29 | Edited app/Http/Controllers/Dashboard/ProductController.php | withSum() → withSellableStock() | ~31 |
+| 15:29 | Edited app/Http/Controllers/Dashboard/StockController.php | withSum() → withSellableStock() | ~52 |
+| 15:29 | Edited app/Http/Controllers/Dashboard/StockController.php | withSum() → withSellableStock() | ~42 |
+| 15:30 | Edited app/Http/Controllers/Dashboard/ProductController.php | stocks() → sellableStocks() | ~78 |
+| 15:30 | Edited app/Models/Store.php | modified getTotalStockValue() | ~138 |
+| 15:31 | Edited app/Jobs/SyncInventoryToWebhooks.php | 6→6 lines | ~94 |
+| 15:31 | Edited app/Jobs/SyncInventoryToWebhooks.php | modified sellableStock() | ~185 |
+| 15:31 | Edited app/Jobs/SyncInventoryToWebhooks.php | added 1 import(s) | ~28 |
+| 15:32 | Edited app/Models/Product.php | modified getTotalStock() | ~110 |
+| 15:32 | Edited app/Models/Product.php | modified getTotalVariantStock() | ~80 |
+| 15:34 | Created tests/Feature/Orders/OrderLifecycleFoundationTest.php | — | ~1822 |
+| 15:34 | Edited tests/Feature/Orders/OrderLifecycleFoundationTest.php | foreach() → count() | ~133 |
+| 15:54 | Session end: 31 writes across 16 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 12 reads | ~33338 tok |
+| 15:59 | Edited app/Support/PermissionCatalog.php | expanded (+6 lines) | ~283 |
+| 16:00 | Created app/Support/OrderLineItems.php | — | ~683 |
+| 16:00 | Created app/Services/Orders/StockMovementWriter.php | — | ~1081 |
+| 16:02 | Created app/Services/Orders/OrderWorkflowService.php | — | ~2112 |
+| 16:03 | Created app/Services/Orders/ReturnInspectionService.php | — | ~2836 |
+| 16:04 | Edited app/Services/Orders/OrderWorkflowService.php | 3→2 lines | ~13 |
+| 16:05 | Edited app/Models/Order.php | added nullish coalescing | ~377 |
+| 16:06 | Edited app/Models/Order.php | added 2 import(s) | ~48 |
+| 16:10 | Edited app/Http/Controllers/Dashboard/OrderController.php | added error handling | ~508 |
+| 16:11 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 import(s) | ~83 |
+| 16:12 | Created app/Http/Controllers/Dashboard/ReturnController.php | — | ~1803 |
+| 16:13 | Edited routes/dashboard.php | modified group() | ~378 |
+| 16:21 | Edited routes/dashboard.php | added 1 import(s) | ~43 |
+| 16:29 | Created tests/Feature/Orders/OrderWorkflowServiceTest.php | — | ~3435 |
+| 16:33 | Created database/migrations/2026_07_24_130003_widen_inventory_adjustment_source.php | — | ~363 |
+| 16:52 | Edited docs/order-lifecycle.md | expanded (+7 lines) | ~585 |
+| 16:53 | Session end: 47 writes across 27 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 14 reads | ~59378 tok |
+| 16:57 | Edited app/Support/PermissionCatalog.php | expanded (+21 lines) | ~379 |
+| 16:58 | Edited resources/js/Components/StatusBadge.jsx | expanded (+7 lines) | ~176 |
+| 17:02 | Edited app/Support/OrderPresenter.php | modified transitions() | ~212 |
+| 17:29 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | expanded (+17 lines) | ~800 |
+| 17:30 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added 4 condition(s) | ~1108 |
+| 17:31 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | expanded (+34 lines) | ~952 |
+| 17:31 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | expanded (+10 lines) | ~328 |
+| 17:32 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | inline fix | ~23 |
+| 17:32 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added 1 condition(s) | ~691 |
+| 17:33 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added optional chaining | ~1625 |
+| 17:33 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added nullish coalescing | ~115 |
+| 17:34 | Created resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | — | ~2192 |
+| 17:35 | Created resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | — | ~4183 |
+| 17:36 | Edited resources/js/Layouts/SaasLayout.jsx | 1→2 lines | ~63 |
+| 17:38 | Edited resources/js/Layouts/SaasLayout.jsx | 2→2 lines | ~21 |
+| 17:41 | Created tests/Feature/Orders/OrderDepartmentsTest.php | — | ~2488 |
+| 18:02 | Edited docs/order-lifecycle.md | 3→5 lines | ~165 |
+| 18:03 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | modified for() | ~105 |
+| 18:04 | Session end: 65 writes across 34 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 14 reads | ~75236 tok |
+| 18:19 | Created database/migrations/2026_07_24_140000_add_assignment_to_orders.php | — | ~436 |
+| 18:19 | Created database/migrations/2026_07_24_140001_create_order_shipments_table.php | — | ~701 |
+| 18:19 | Created app/Models/OrderShipment.php | — | ~714 |
+| 18:20 | Edited app/Support/PermissionCatalog.php | 1→2 lines | ~86 |
+| 18:20 | Edited app/Support/PermissionCatalog.php | expanded (+8 lines) | ~204 |
+| 18:20 | Edited app/Enums/FulfillmentStatus.php | modified phase() | ~230 |
+| 18:20 | Edited app/Enums/FulfillmentStatus.php | modified permission() | ~203 |
+| 18:21 | Created app/Services/Orders/OrderAssignmentService.php | — | ~1225 |
+| 18:21 | Edited app/Services/Orders/OrderAssignmentService.php | 3→1 lines | ~8 |
+| 18:22 | Created app/Services/Orders/DispatchService.php | — | ~1794 |
+| 18:23 | Created app/Http/Controllers/Dashboard/DepartmentController.php | — | ~3788 |
+| 18:23 | Created app/Support/DepartmentRegistry.php | — | ~906 |
+| 18:23 | Edited routes/dashboard.php | modified group() | ~455 |
+| 18:24 | Edited routes/dashboard.php | 5→5 lines | ~144 |
+| 18:24 | Edited routes/dashboard.php | added 1 import(s) | ~30 |
+| 18:32 | Created resources/js/Hooks/useQueue.js | — | ~1017 |
+| 18:32 | Created resources/js/Components/Departments/DepartmentNav.jsx | — | ~934 |
+| 18:33 | Created resources/js/Components/Departments/QueueParts.jsx | — | ~4229 |
+| 18:34 | Created resources/js/Pages/Dashboard/Departments/Confirmation.jsx | — | ~3604 |
+| 18:35 | Created resources/js/Pages/Dashboard/Departments/Packing.jsx | — | ~4719 |
+| 18:36 | Created resources/js/Pages/Dashboard/Departments/Dispatch.jsx | — | ~5864 |
+| 18:36 | Edited app/Support/OrderPresenter.php | 2→3 lines | ~44 |
+| 18:37 | Edited app/Support/OrderPresenter.php | 2→5 lines | ~83 |
+| 18:37 | Edited app/Http/Controllers/Dashboard/ReturnController.php | 5→6 lines | ~106 |
+| 18:37 | Edited app/Http/Controllers/Dashboard/ReturnController.php | added 1 import(s) | ~23 |
+| 18:37 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | added 1 import(s) | ~48 |
+| 18:38 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | inline fix | ~28 |
+| 18:38 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | 2→4 lines | ~49 |
+| 18:38 | Edited resources/js/Layouts/SaasLayout.jsx | expanded (+8 lines) | ~258 |
+| 18:38 | Edited resources/js/Layouts/SaasLayout.jsx | 2→2 lines | ~30 |
+| 18:39 | Edited app/Models/Order.php | 3→5 lines | ~34 |
+| 18:39 | Edited app/Models/Order.php | 1→2 lines | ~30 |
+| 18:39 | Edited app/Models/PosOrder.php | 3→5 lines | ~35 |
+| 18:40 | Edited app/Models/PosOrder.php | 2→3 lines | ~44 |
+| 18:41 | Created tests/Feature/Orders/DepartmentDashboardTest.php | — | ~3087 |
+| 18:48 | Edited tests/Feature/Orders/OrderLifecycleFoundationTest.php | modified it() | ~224 |
+| 18:51 | Session end: 101 writes across 49 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 14 reads | ~111693 tok |
+| 13:42 | Edited app/Services/Orders/DispatchService.php | added nullish coalescing | ~1242 |
+| 13:42 | Edited app/Services/Pos/DocumentGenerationService.php | 4→5 lines | ~87 |
+| 13:42 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~290 |
+| 13:43 | Created resources/views/documents/manifest.blade.php | — | ~1746 |
+| 13:43 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 6→7 lines | ~113 |
+| 13:43 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 condition(s) | ~424 |
+| 13:43 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 import(s) | ~37 |
+| 13:44 | Edited routes/dashboard.php | 3→7 lines | ~174 |
+| 13:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~38 |
+| 13:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 5→7 lines | ~89 |
+| 13:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: hover, group-hover | ~621 |
+| 13:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 3→3 lines | ~45 |
+| 13:46 | Created tests/Feature/Orders/ManifestTest.php | — | ~1383 |
+| 13:48 | Edited tests/Feature/Orders/ManifestTest.php | streamedContent() → and() | ~44 |
+| 13:50 | Session end: 115 writes across 52 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 14 reads | ~118421 tok |
+| 14:14 | Edited app/Enums/FulfillmentType.php | 9→10 lines | ~184 |
+| 14:14 | Edited app/Enums/FulfillmentType.php | modified initialFulfillmentStatus() | ~154 |
+| 14:15 | Created database/migrations/2026_07_25_120000_route_pos_delivery_past_confirmation.php | — | ~358 |
+| 14:16 | Created tests/Feature/Orders/PosDeliveryRoutingTest.php | — | ~1250 |
+| 14:19 | Session end: 119 writes across 55 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 16 reads | ~122138 tok |
+| 14:56 | Created database/migrations/2026_07_25_130000_add_cod_to_order_shipments.php | — | ~264 |
+| 14:56 | Edited app/Models/OrderShipment.php | modified casts() | ~122 |
+| 14:57 | Edited app/Support/PermissionCatalog.php | 2→3 lines | ~135 |
+| 14:57 | Edited app/Support/PermissionCatalog.php | expanded (+9 lines) | ~261 |
+| 14:57 | Edited app/Services/Orders/DispatchService.php | modified markDelivered() | ~433 |
+| 14:58 | Edited app/Services/Orders/DispatchService.php | added nullish coalescing | ~988 |
+| 14:58 | Edited app/Services/Orders/DispatchService.php | 6→6 lines | ~71 |
+| 14:58 | Created app/Http/Controllers/Dashboard/DeliveryController.php | — | ~941 |
+| 14:58 | Edited routes/dashboard.php | modified group() | ~254 |
+| 14:58 | Edited routes/dashboard.php | added 1 import(s) | ~45 |
+| 14:59 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 4→6 lines | ~117 |
+| 15:00 | Created resources/js/Pages/Dashboard/Delivery/MyDeliveries.jsx | — | ~5325 |
+| 15:00 | Edited resources/js/Layouts/SaasLayout.jsx | 3→4 lines | ~111 |
+| 15:00 | Edited resources/js/Layouts/SaasLayout.jsx | 2→2 lines | ~33 |
+| 15:01 | Created tests/Feature/Orders/DeliveryAgentTest.php | — | ~2064 |
+| 15:03 | Session end: 134 writes across 59 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 17 reads | ~137419 tok |
+| 15:14 | Edited app/Services/Orders/DispatchService.php | modified agentHistory() | ~544 |
+| 15:14 | Edited app/Http/Controllers/Dashboard/DeliveryController.php | modified if() | ~206 |
+| 15:14 | Created resources/js/Layouts/DeliveryAgentLayout.jsx | — | ~706 |
+| 15:15 | Created resources/js/Pages/Dashboard/Delivery/MyDeliveries.jsx | — | ~6621 |
+| 15:16 | Edited resources/js/Pages/Dashboard/Delivery/MyDeliveries.jsx | inline fix | ~13 |
+| 15:17 | Edited tests/Feature/Orders/DeliveryAgentTest.php | modified it() | ~131 |
+| 15:17 | Edited tests/Feature/Orders/DeliveryAgentTest.php | modified it() | ~218 |
+| 15:19 | Session end: 141 writes across 60 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 17 reads | ~145937 tok |
+| 15:23 | Edited app/Models/User.php | added 1 condition(s) | ~222 |
+| 15:24 | Edited app/Providers/AppServiceProvider.php | added 1 condition(s) | ~154 |
+| 15:24 | Created app/Http/Middleware/ConfineDeliveryAgent.php | — | ~280 |
+| 15:24 | Edited bootstrap/app.php | added 1 import(s) | ~37 |
+| 15:24 | Edited bootstrap/app.php | 1→2 lines | ~36 |
+| 15:24 | Edited routes/dashboard.php | modified group() | ~37 |
+| 15:25 | Edited resources/js/Layouts/DeliveryAgentLayout.jsx | CSS: dark, dark | ~658 |
+| 15:25 | Edited resources/js/Layouts/DeliveryAgentLayout.jsx | 2→2 lines | ~28 |
+| 15:25 | Edited resources/js/Pages/Dashboard/Delivery/MyDeliveries.jsx | 3→3 lines | ~55 |
+| 15:27 | Edited tests/Feature/Orders/DeliveryAgentTest.php | modified describe() | ~405 |
+| 15:27 | Edited tests/Feature/Orders/DeliveryAgentTest.php | assertForbidden() → assertRedirect() | ~85 |
+| 15:29 | Session end: 152 writes across 64 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 21 reads | ~151758 tok |
+| 15:51 | Created database/migrations/2026_07_25_140000_add_delivery_fee_to_pos_orders.php | — | ~220 |
+| 15:51 | Edited app/Models/PosOrder.php | 3→4 lines | ~25 |
+| 15:51 | Edited app/Models/PosOrder.php | 2→3 lines | ~39 |
+| 15:51 | Edited app/Http/Controllers/Pos/CheckoutController.php | 3→4 lines | ~74 |
+| 15:51 | Edited app/Services/Pos/OrderProcessingService.php | 3→7 lines | ~148 |
+| 15:52 | Edited app/Http/Controllers/Pos/CheckoutController.php | 2→3 lines | ~46 |
+| 15:52 | Edited resources/js/Hooks/useCart.js | 3→5 lines | ~106 |
+| 15:52 | Edited resources/js/Hooks/useCart.js | expanded (+9 lines) | ~181 |
+| 15:52 | Edited resources/js/Hooks/useCart.js | 17→22 lines | ~340 |
+| 15:52 | Edited resources/js/Hooks/useCart.js | 2→3 lines | ~87 |
+| 15:52 | Edited resources/js/Hooks/useCart.js | 4→5 lines | ~21 |
+| 15:53 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | expanded (+62 lines) | ~1471 |
+| 15:53 | Edited resources/js/Pages/Pos/Components/Checkout.jsx | 1→4 lines | ~45 |
+| 15:53 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | CSS: undefined | ~259 |
+| 15:53 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: delivery_fee, deliveryCharge | ~75 |
+| 15:54 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: delivery_fee | ~76 |
+| 16:06 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | inline fix | ~31 |
+| 16:06 | Edited app/Http/Controllers/Dashboard/DeliveryController.php | "Dashboard/Delivery/MyDeli" → "Delivery/DeliveryAgentVie" | ~13 |
+| 16:06 | Edited tests/Feature/Orders/DeliveryAgentTest.php | "Dashboard/Delivery/MyDeli" → "Delivery/DeliveryAgentVie" | ~16 |
+| 16:06 | Edited app/Models/User.php | added 1 condition(s) | ~450 |
+| 16:06 | Edited app/Http/Controllers/Dashboard/DashboardController.php | added 1 condition(s) | ~199 |
+| 16:08 | Edited tests/Feature/Orders/DeliveryAgentTest.php | modified it() | ~256 |
+| 16:11 | Session end: 174 writes across 72 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 30 reads | ~177994 tok |
+| 16:21 | Edited resources/js/Pages/Pos/Components/Cart.jsx | CSS: only | ~1082 |
+| 16:22 | Session end: 175 writes across 73 files (order-lifecycle.md, 2026_07_22_120000_add_fulfillment_status_to_orders.php, 2026_07_24_130000_widen_fulfillment_status_columns.php, FulfillmentStatus.php, 2026_07_24_130001_create_order_returns_tables.php) | 31 reads | ~181073 tok |
+
+## Session: 2026-07-26 11:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:19 | Cleanup step 1: removed duplicate connector stack (app/Services/Connectors/*), orphaned PlatformConnectorInterface + ConnectPlatform Livewire component | 7 files | deleted; suite unchanged (7 pre-existing migration failures, verified via isolation) | ~6k |
+| 13:40 | Created DEVELOPER_GUIDE.md | — | ~6825 |
+| 13:45 | Wrote DEVELOPER_GUIDE.md (setup, sync-engine deep dive, commands, troubleshooting) after inspecting connectors/services/jobs/scheduler; flagged broken SyncPlatformOrders job + stale SyncService order path | DEVELOPER_GUIDE.md, .wolf/buglog.json | delivered; live order-sync path = every-minute scheduler in routes/console.php | ~9k |
+| 13:45 | Session end: 1 writes across 1 files (DEVELOPER_GUIDE.md) | 21 reads | ~12004 tok |
+| 13:50 | Edited app/Services/SyncService.php | added 3 import(s) | ~69 |
+| 13:50 | Edited app/Services/SyncService.php | modified __construct() | ~86 |
+| 13:50 | Edited app/Services/SyncService.php | added 1 condition(s) | ~269 |
+| 13:50 | Edited app/Services/SyncService.php | create() → make() | ~128 |
+| 13:50 | Edited app/Jobs/SyncPlatformOrders.php | 3→3 lines | ~28 |
+| 13:50 | Edited app/Jobs/SyncPlatformOrders.php | syncOrders() → syncFromPlatform() | ~56 |
+| 13:56 | Repaired order-sync wiring: SyncService::syncOrders/testConnection + SyncPlatformOrders job now use correct signatures (OrderSyncService + connection) | app/Services/SyncService.php, app/Jobs/SyncPlatformOrders.php | fixed; suite 181 pass / 7 pre-existing, no regression | ~7k |
+| 13:56 | Edited DEVELOPER_GUIDE.md | 4→4 lines | ~107 |
+| 13:56 | Edited DEVELOPER_GUIDE.md | 3→3 lines | ~48 |
+| 13:56 | Edited DEVELOPER_GUIDE.md | 3→3 lines | ~54 |
+| 13:56 | Edited DEVELOPER_GUIDE.md | modified backfill() | ~366 |
+| 13:57 | Edited DEVELOPER_GUIDE.md | 12→16 lines | ~420 |
+| 13:57 | Session end: 12 writes across 3 files (DEVELOPER_GUIDE.md, SyncService.php, SyncPlatformOrders.php) | 21 reads | ~13750 tok |
+| 14:05 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/diag.php | — | ~255 |
+| 14:06 | Edited ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/diag.php | 2→1 lines | ~6 |
+| 14:07 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/diag2.php | — | ~322 |
+| 14:10 | Edited app/Support/OrderLineItems.php | added 2 import(s) | ~27 |
+| 14:10 | Edited app/Support/OrderLineItems.php | added 6 condition(s) | ~1295 |
+| 14:16 | Edited tests/Feature/Orders/OrderWorkflowServiceTest.php | modified it() | ~930 |
+| 14:21 | Fixed online-order confirm FK crash (1452): OrderLineItems::fromOnline now resolves platform external_id -> local ULID; unmatched skips stock. +2 regression tests | app/Support/OrderLineItems.php, tests/Feature/Orders/OrderWorkflowServiceTest.php | fixed; suite 183 pass / 7 pre-existing | ~10k |
+| 14:22 | Session end: 18 writes across 7 files (DEVELOPER_GUIDE.md, SyncService.php, SyncPlatformOrders.php, diag.php, diag2.php) | 29 reads | ~25566 tok |
+| 14:41 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/diag3.php | — | ~587 |
+| 14:44 | Session end: 19 writes across 8 files (DEVELOPER_GUIDE.md, SyncService.php, SyncPlatformOrders.php, diag.php, diag2.php) | 30 reads | ~26195 tok |
+| 14:54 | Edited app/Services/Sync/OrderSyncService.php | inline fix | ~8 |
+| 14:54 | Edited app/Services/Sync/OrderSyncService.php | inline fix | ~33 |
+| 14:54 | Edited app/Connectors/BaseConnector.php | inline fix | ~8 |
+| 14:54 | Edited app/Connectors/BaseConnector.php | inline fix | ~30 |
+| 14:54 | Edited app/Connectors/WooCommerceConnector.php | inline fix | ~8 |
+| 14:54 | Edited app/Connectors/WooCommerceConnector.php | inline fix | ~28 |
+| 14:54 | Edited app/Connectors/ShopifyConnector.php | inline fix | ~8 |
+| 14:54 | Edited app/Connectors/ShopifyConnector.php | inline fix | ~28 |
+| 14:54 | Edited app/Connectors/YouCanConnector.php | inline fix | ~8 |
+| 14:54 | Edited app/Connectors/YouCanConnector.php | inline fix | ~28 |
+| 14:55 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/verify_type.php | — | ~272 |
+| 15:03 | Fixed scheduler TypeError: widened $since ?Carbon -> ?CarbonInterface in OrderSyncService + getOrders (BaseConnector + 3 connectors); app uses Date::use(CarbonImmutable) globally | app/Services/Sync/OrderSyncService.php, app/Connectors/*.php | fixed; suite 225/183, verified by reflection | ~8k |
+| 15:03 | Session end: 30 writes across 14 files (DEVELOPER_GUIDE.md, SyncService.php, SyncPlatformOrders.php, diag.php, diag2.php) | 30 reads | ~26685 tok |
+| 15:18 | Edited app/Connectors/WooCommerceConnector.php | 4→8 lines | ~136 |
+| 15:18 | Edited app/Connectors/BaseConnector.php | 3→5 lines | ~94 |
+| 15:18 | Edited app/Services/Sync/OrderSyncService.php | added 1 import(s) | ~24 |
+| 15:18 | Edited app/Services/Sync/OrderSyncService.php | added nullish coalescing | ~1064 |
+| 15:19 | Edited app/Services/Sync/OrderSyncService.php | added 1 condition(s) | ~137 |
+| 15:25 | Created tests/Feature/Orders/OrderSyncServiceTest.php | — | ~1455 |
+| 15:35 | Fixed order-sync collision (WC parseOrder platform_id key) + made saveOrder idempotent (no status reset on re-sync; new orders land awaiting-confirmation) | app/Connectors/WooCommerceConnector.php, app/Connectors/BaseConnector.php, app/Services/Sync/OrderSyncService.php, tests/Feature/Orders/OrderSyncServiceTest.php | fixed; suite 231/189, 7 pre-existing | ~14k |
+| 15:35 | Session end: 36 writes across 15 files (DEVELOPER_GUIDE.md, SyncService.php, SyncPlatformOrders.php, diag.php, diag2.php) | 34 reads | ~41642 tok |
+
+## Session: 2026-07-26 16:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 16:48 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/mkdb.php | — | ~133 |
+| 16:49 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/dumpschema.php | — | ~126 |
+| 16:50 | Edited database/migrations/2026_05_25_000003_create_product_variant_attribute_values_table.php | inline fix | ~26 |
+| 16:51 | Edited database/migrations/2026_05_25_000003_create_product_variant_attribute_values_table.php | inline fix | ~22 |
+| 16:56 | Created database/migrations/0001_01_01_000000_create_users_table.php | — | ~623 |
+| 16:56 | Created database/migrations/0001_01_01_000001_create_cache_table.php | — | ~216 |
+| 16:57 | Created database/migrations/0001_01_01_000002_create_jobs_table.php | — | ~467 |
+| 16:57 | Created database/migrations/2026_05_04_000001_create_stores_table.php | — | ~388 |
+| 16:57 | Created database/migrations/2026_05_04_000002_create_store_credentials_table.php | — | ~1114 |
+| 16:58 | Created database/migrations/2026_05_04_000003_create_platform_connections_table.php | — | ~451 |
+| 16:58 | Created database/migrations/2026_05_04_000004_create_sync_logs_table.php | — | ~454 |
+| 16:58 | Created database/migrations/2026_05_05_000001_create_orders_table.php | — | ~978 |
+| 16:58 | Created database/migrations/2026_05_05_000002_create_customer_interactions_table.php | — | ~294 |
+| 16:58 | Created database/migrations/2026_05_15_000001_create_products_table.php | — | ~509 |
+| 16:58 | Created database/migrations/2026_05_15_000002_create_product_variants_table.php | — | ~376 |
+| 16:59 | Created database/migrations/2026_05_15_000003_create_warehouses_table.php | — | ~373 |
+| 16:59 | Created database/migrations/2026_05_15_000004_create_stocks_table.php | — | ~332 |
+| 16:59 | Created database/migrations/2026_05_15_000005_create_stock_movements_table.php | — | ~362 |
+| 16:59 | Created database/migrations/2026_05_15_000006_create_warehouse_store_table.php | — | ~259 |
+| 16:59 | Created database/migrations/2026_05_25_000001_create_product_attributes_table.php | — | ~206 |
+| 16:59 | Created database/migrations/2026_05_25_000002_create_product_attribute_values_table.php | — | ~225 |
+| 16:59 | Created database/migrations/2026_05_25_000003_create_product_variant_attribute_values_table.php | — | ~333 |
+| 16:59 | Created database/migrations/2026_06_01_000001_create_pos_sessions_table.php | — | ~399 |
+| 16:59 | Created database/migrations/2026_06_01_000002_create_pos_orders_table.php | — | ~803 |
+| 17:00 | Created database/migrations/2026_06_01_000003_create_pos_order_items_table.php | — | ~390 |
+| 17:00 | Created database/migrations/2026_06_01_000004_create_inventory_adjustments_table.php | — | ~410 |
+| 17:00 | Created database/migrations/2026_06_01_000005_create_cashier_accounts_table.php | — | ~370 |
+| 17:00 | Created database/migrations/2026_06_01_000006_create_pos_devices_table.php | — | ~328 |
+| 17:00 | Created database/migrations/2026_06_01_000007_create_factures_table.php | — | ~776 |
+| 17:00 | Created database/migrations/2026_06_01_000008_create_facture_items_table.php | — | ~339 |
+| 17:00 | Created database/migrations/2026_06_01_000009_create_bon_de_livraisons_table.php | — | ~527 |
+| 17:00 | Created database/migrations/2026_06_01_000010_create_stock_ledger_table.php | — | ~376 |
+| 17:01 | Created database/migrations/2026_06_02_000001_create_store_roles_table.php | — | ~316 |
+| 17:01 | Created database/migrations/2026_06_02_000002_create_store_members_table.php | — | ~328 |
+| 17:01 | Created database/migrations/2026_06_02_000003_create_store_invitations_table.php | — | ~366 |
+| 17:01 | Created database/migrations/2026_07_12_000001_create_activity_log_table.php | — | ~275 |
+| 17:01 | Created database/migrations/2026_07_24_000001_create_order_returns_tables.php | — | ~933 |
+| 17:01 | Created database/migrations/2026_07_24_000002_create_order_shipments_table.php | — | ~660 |
+| 17:12 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/new_migrations_block.md | — | ~964 |
+
+## Session: 2026-07-26 (migration squash)
+
+| 16:00 | Consolidated 61 migrations → 34 clean create-table migrations (one per table), final schema, FK-ordered. Fixed pvav over-long unique index (now composite PK pvav_primary), modeled evolving lists as final VARCHAR, ULID morphs on activity_log. Verified migrate:fresh on scratch MySQL DB + Pest 189 pass / 7 pre-existing (onboarding-redirect + deleted settings.profile component). Real dev DB untouched. | database/migrations/* | success | ~9000 |
+| 17:15 | Session end: 39 writes across 37 files (mkdb.php, dumpschema.php, 2026_05_25_000003_create_product_variant_attribute_values_table.php, 0001_01_01_000000_create_users_table.php, 0001_01_01_000001_create_cache_table.php) | 46 reads | ~32342 tok |
+
+## Session: 2026-07-26 17:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 17:23 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | 15→15 lines | ~355 |
+| 17:25 | Fixed Integrations Connect/Configure 404 — repointed stale /stores/{id}/connections links to /dashboard/integrations/{platform} | Pages/Dashboard/Integrations/Index.jsx | fixed | ~4k |
+| 17:26 | Session end: 1 writes across 1 files (Index.jsx) | 4 reads | ~355 tok |
+
+## Session: 2026-07-26 20:07
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:11 | Created database/migrations/2026_07_26_000001_add_variant_id_to_pos_order_items_table.php | — | ~294 |
+| 20:11 | Edited app/Models/PosOrderItem.php | 4→5 lines | ~32 |
+| 20:11 | Edited app/Models/PosOrderItem.php | modified product() | ~61 |
+| 20:11 | Edited app/Http/Controllers/Pos/PosController.php | added 1 import(s) | ~47 |
+| 20:11 | Edited app/Http/Controllers/Pos/PosController.php | 6→7 lines | ~76 |
+| 20:11 | Edited app/Http/Controllers/Pos/PosController.php | modified use() | ~115 |
+| 20:12 | Edited app/Http/Controllers/Pos/PosController.php | added 5 condition(s) | ~1258 |
+| 20:12 | Edited app/Http/Controllers/Pos/CheckoutController.php | 3→4 lines | ~88 |
+| 20:12 | Edited app/Services/Pos/OrderProcessingService.php | 4→5 lines | ~85 |
+| 20:12 | Edited app/Services/Pos/OrderProcessingService.php | 8→10 lines | ~142 |
+| 20:13 | Edited resources/js/Hooks/useCart.js | modified reducer() | ~664 |
+| 20:13 | Edited resources/js/Hooks/useCart.js | 4→8 lines | ~204 |
+| 20:13 | Edited resources/js/Hooks/useCart.js | added error handling | ~511 |
+| 20:14 | Created resources/js/Pages/Pos/Components/VariantModal.jsx | — | ~4036 |
+| 20:14 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | inline fix | ~16 |
+| 20:14 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | modified ProductCard() | ~150 |
+| 20:14 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | 6→6 lines | ~108 |
+| 20:15 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | expanded (+8 lines) | ~413 |
+| 20:15 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | 6→6 lines | ~97 |
+| 20:15 | Edited resources/js/Pages/Pos/Components/ProductCard.jsx | expanded (+6 lines) | ~226 |
+| 20:15 | Edited resources/js/Pages/Pos/Dashboard.jsx | added 1 import(s) | ~53 |
+| 20:15 | Edited resources/js/Pages/Pos/Dashboard.jsx | added 1 condition(s) | ~160 |
+| 20:15 | Edited resources/js/Pages/Pos/Dashboard.jsx | added nullish coalescing | ~149 |
+| 20:15 | Edited resources/js/Pages/Pos/Dashboard.jsx | 7→7 lines | ~94 |
+| 20:15 | Edited resources/js/Pages/Pos/Dashboard.jsx | expanded (+10 lines) | ~138 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CartItem.jsx | CSS: dark | ~227 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CartItem.jsx | 4→4 lines | ~60 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CartItem.jsx | 3→3 lines | ~54 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CartItem.jsx | 2→2 lines | ~41 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CartItem.jsx | 3→3 lines | ~60 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/Cart.jsx | 4→4 lines | ~56 |
+| 20:16 | Edited resources/js/Pages/Pos/Components/CheckoutPreviewModal.jsx | 6→9 lines | ~210 |
+| 20:17 | Edited resources/js/Pages/Pos/Dashboard.jsx | CSS: product_name | ~138 |
+| 20:22 | Session end: 33 writes across 12 files (2026_07_26_000001_add_variant_id_to_pos_order_items_table.php, PosOrderItem.php, PosController.php, CheckoutController.php, OrderProcessingService.php) | 22 reads | ~10218 tok |
+| 20:31 | Created database/migrations/2026_07_26_000002_add_variant_id_to_stock_ledger_table.php | — | ~276 |
+| 20:31 | Edited app/Models/StockLedger.php | 4→5 lines | ~29 |
+| 20:31 | Edited app/Models/StockLedger.php | modified product() | ~60 |
+| 20:31 | Edited app/Http/Controllers/Dashboard/StockController.php | added 3 import(s) | ~96 |
+| 20:31 | Edited app/Http/Controllers/Dashboard/StockController.php | modified use() | ~198 |
+| 20:32 | Edited app/Http/Controllers/Dashboard/StockController.php | added 3 condition(s) | ~1137 |
+| 20:32 | Edited app/Http/Controllers/Dashboard/StockController.php | added nullish coalescing | ~492 |
+| 20:33 | Created resources/js/Components/Dashboard/AdjustStockModal.jsx | — | ~4266 |
+| 20:33 | Edited resources/js/Pages/Dashboard/Stock.jsx | inline fix | ~29 |
+| 20:33 | Edited resources/js/Pages/Dashboard/Stock.jsx | CSS: dark | ~289 |
+| 20:53 | Edited app/Http/Controllers/Dashboard/StockController.php | 4→4 lines | ~56 |
+| 20:53 | Edited resources/js/Pages/Dashboard/StockMovements.jsx | CSS: dark | ~196 |
+| 20:54 | Session end: 45 writes across 18 files (2026_07_26_000001_add_variant_id_to_pos_order_items_table.php, PosOrderItem.php, PosController.php, CheckoutController.php, OrderProcessingService.php) | 29 reads | ~17511 tok |
+
+## Session: 2026-07-27 12:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:41 | Edited app/Http/Controllers/Dashboard/StockController.php | added 1 condition(s) | ~484 |
+| 12:41 | Edited app/Http/Controllers/Dashboard/StockController.php | 11→14 lines | ~191 |
+| 12:41 | Edited app/Http/Controllers/Dashboard/StockController.php | added 1 condition(s) | ~1038 |
+| 12:42 | Edited app/Http/Controllers/Dashboard/StockController.php | added 1 condition(s) | ~510 |
+| 12:43 | Created resources/js/Components/Dashboard/AdjustStockModal.jsx | — | ~5782 |
+| 12:45 | Edited app/Http/Controllers/Dashboard/StockController.php | "info" → "warning" | ~28 |
+| 12:49 | Fixed variable-product stock discrepancy (displayStock = variant sum) + redesigned Adjust modal into 4 tabs (Set/Restock/Returns/Damaged) with server-side set mode; vite build green | StockController.php, AdjustStockModal.jsx | done | ~7k |
+| 12:49 | Session end: 6 writes across 2 files (StockController.php, AdjustStockModal.jsx) | 5 reads | ~19350 tok |
+| 13:08 | Created database/migrations/2026_07_27_000001_create_stock_transfers_table.php | — | ~719 |
+| 13:08 | Created database/migrations/2026_07_27_000002_create_stock_transfer_items_table.php | — | ~391 |
+| 13:08 | Created app/Models/StockTransfer.php | — | ~816 |
+| 13:08 | Created app/Models/StockTransferItem.php | — | ~270 |
+| 13:09 | Created app/Services/Stocks/StockTransferService.php | — | ~2656 |
+| 13:10 | Created app/Http/Controllers/Dashboard/StockTransferController.php | — | ~2787 |
+| 13:10 | Edited app/Services/Pos/DocumentGenerationService.php | 2→3 lines | ~54 |
+| 13:11 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~347 |
+| 13:12 | Created resources/views/documents/bon-de-sortie.blade.php | — | ~2277 |
+| 13:12 | Edited routes/dashboard.php | modified group() | ~360 |
+| 13:12 | Edited routes/dashboard.php | added 1 import(s) | ~44 |
+| 13:12 | Edited app/Http/Controllers/Dashboard/StockController.php | 1→3 lines | ~71 |
+| 13:12 | Edited resources/js/Pages/Dashboard/Stock.jsx | 3→3 lines | ~60 |
+| 13:13 | Edited resources/js/Pages/Dashboard/Stock.jsx | added optional chaining | ~135 |
+| 13:13 | Edited resources/js/Pages/Dashboard/Stock.jsx | expanded (+11 lines) | ~324 |
+| 13:14 | Created resources/js/Pages/Dashboard/StockTransfers.jsx | — | ~2880 |
+| 13:15 | Created resources/js/Pages/Dashboard/StockTransferCreate.jsx | — | ~7280 |
+| 13:16 | Edited resources/js/Pages/Dashboard/StockTransferCreate.jsx | CSS: focus, focus, focus | ~74 |
+| 13:35 | Created tests/Feature/Stocks/StockTransferTest.php | — | ~1573 |
+| 13:51 | Built Stock Transfer / Bon de Sortie module: migrations (stock_transfers + items), StockTransfer(Item) models, StockTransferService (txn double-entry into stock_ledger), StockTransferController, bon-de-sortie A4 PDF, routes, StockTransfers.jsx + StockTransferCreate.jsx, Transfer button on Stock page; removed transfer from quick modal. 4 Pest tests green (real php via herd php84.bat). Migrated dev DB. | multiple | done | ~40k |
+| 13:52 | Session end: 25 writes across 15 files (StockController.php, AdjustStockModal.jsx, 2026_07_27_000001_create_stock_transfers_table.php, 2026_07_27_000002_create_stock_transfer_items_table.php, StockTransfer.php) | 22 reads | ~43721 tok |
+| 14:15 | Edited app/Models/Store.php | added 1 import(s) | ~29 |
+| 14:16 | Edited app/Models/Store.php | added nullish coalescing | ~457 |
+| 14:21 | Edited app/Http/Controllers/Dashboard/WarehouseController.php | added 2 condition(s) | ~230 |
+| 14:21 | Edited app/Http/Controllers/Dashboard/StockTransferController.php | 4→8 lines | ~97 |
+| 14:22 | Edited tests/Feature/Stocks/StockTransferTest.php | modified it() | ~469 |
+| 14:27 | Fixed: dashboard-created warehouses invisible in Stock Transfer dropdowns (never attached to warehouse_store pivot). Added Store::attachOwnerWarehouses()+markPrimaryWarehouse(); WarehouseController::store attaches on create; transfer create() self-heals orphans. 7 Pest tests green. | Store.php, WarehouseController.php, StockTransferController.php | done | ~9k |
+| 14:28 | Session end: 30 writes across 17 files (StockController.php, AdjustStockModal.jsx, 2026_07_27_000001_create_stock_transfers_table.php, 2026_07_27_000002_create_stock_transfer_items_table.php, StockTransfer.php) | 23 reads | ~45095 tok |
+| 14:56 | Edited app/Http/Controllers/Dashboard/StockController.php | added nullish coalescing | ~1169 |
+| 14:58 | Edited app/Http/Controllers/Dashboard/StockController.php | 14→18 lines | ~338 |
+| 14:59 | Edited app/Http/Controllers/Dashboard/StockController.php | added 7 condition(s) | ~2094 |
+| 15:01 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | added optional chaining | ~234 |
+| 15:01 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 6→10 lines | ~165 |
+| 15:01 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | CSS: warehouse_id | ~95 |
+| 15:02 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | added optional chaining | ~170 |
+| 15:03 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | inline fix | ~31 |
+| 15:05 | Created resources/js/Pages/Dashboard/Stock.jsx | — | ~4302 |
+| 15:08 | Created tests/Feature/Stocks/StockDashboardTest.php | — | ~1416 |
+| 15:11 | Edited tests/Feature/Stocks/StockDashboardTest.php | 2→2 lines | ~50 |
+| 15:13 | Multi-warehouse Stock dashboard: per-warehouse breakdown (product+variant, variant-aware, 1 query), warehouse filter dropdown, warehouse-scoped stats, warehouse-aware quick Adjust (warehouse_id). StockController + Stock.jsx + AdjustStockModal. 4 new Inertia tests; 30 Stocks/workflow tests green; vite build ok. | StockController.php, Stock.jsx, AdjustStockModal.jsx | done | ~28k |
+| 15:14 | Session end: 41 writes across 18 files (StockController.php, AdjustStockModal.jsx, 2026_07_27_000001_create_stock_transfers_table.php, 2026_07_27_000002_create_stock_transfer_items_table.php, StockTransfer.php) | 25 reads | ~58868 tok |
+| 16:03 | Edited resources/js/Pages/Dashboard/Stock.jsx | 6→6 lines | ~84 |
+| 16:03 | Edited resources/js/Pages/Dashboard/Stock.jsx | added error handling | ~142 |
+| 16:03 | Edited resources/js/Pages/Dashboard/Stock.jsx | CSS: columns | ~183 |
+| 16:04 | Edited resources/js/Pages/Dashboard/Stock.jsx | expanded (+14 lines) | ~548 |
+| 16:05 | Edited resources/js/Pages/Dashboard/Stock.jsx | added optional chaining | ~1688 |
+| 16:39 | Added Grid/Table view toggle to Stock dashboard (localStorage-persisted); responsive StockTable with per-warehouse columns, total+progress, Adjust action. Frontend-only, vite build green. | resources/js/Pages/Dashboard/Stock.jsx | done | ~7k |
+| 16:40 | Session end: 46 writes across 18 files (StockController.php, AdjustStockModal.jsx, 2026_07_27_000001_create_stock_transfers_table.php, 2026_07_27_000002_create_stock_transfer_items_table.php, StockTransfer.php) | 25 reads | ~61513 tok |
+
+## Session: 2026-07-27 23:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:05 | Edited app/Support/OrderPresenter.php | added nullish coalescing | ~591 |
+| 00:05 | Created resources/views/documents/online-receipt.blade.php | — | ~850 |
+| 00:06 | Edited app/Services/Pos/DocumentGenerationService.php | added 1 import(s) | ~19 |
+| 00:06 | Edited app/Services/Pos/DocumentGenerationService.php | 2→3 lines | ~54 |
+| 00:06 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~355 |
+| 00:06 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 import(s) | ~49 |
+| 00:07 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 condition(s) | ~1015 |
+| 00:07 | Edited app/Http/Controllers/Dashboard/OrderController.php | added nullish coalescing | ~596 |
+| 00:07 | Edited routes/dashboard.php | expanded (+6 lines) | ~182 |
+| 00:08 | Edited app/Http/Controllers/Dashboard/DashboardController.php | added 2 import(s) | ~57 |
+| 00:08 | Edited app/Http/Controllers/Dashboard/DashboardController.php | expanded (+15 lines) | ~195 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Index.jsx | 30→32 lines | ~635 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Index.jsx | added nullish coalescing | ~158 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Index.jsx | 5→5 lines | ~60 |
+| 00:09 | Created resources/js/Pages/Dashboard/Orders/Index.jsx | — | ~2226 |
+| 00:10 | Created resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | — | ~3073 |
+| 00:11 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: FulfillmentStatus | ~709 |
+| 00:11 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | modified BoardView() | ~139 |
+| 00:11 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | expanded (+18 lines) | ~775 |
+| 00:18 | Created tests/Feature/Orders/OrderChannelViewsTest.php | — | ~1405 |
+| 00:20 | Edited tests/Feature/Orders/OrderChannelViewsTest.php | added 1 import(s) | ~42 |
+| 00:20 | Edited tests/Feature/Orders/OrderChannelViewsTest.php | expanded (+7 lines) | ~122 |
+| 00:21 | Edited tests/Feature/Orders/OrderChannelViewsTest.php | 3→4 lines | ~54 |
+| 23:20 | Multi-channel orders: OrderPresenter posRow/onlineRow; unified OrderController@index (POS+online, source filter, in-memory paginate) | OrderController.php, OrderPresenter.php | done | ~2k |
+| 23:20 | Online order invoice+thermal receipt: renderOnlineReceipt + online-receipt.blade + showOnline/receiptOnline routes + ShowOnline.jsx | DocumentGenerationService.php, OrderController.php, dashboard.php, ShowOnline.jsx | done | ~2k |
+| 23:20 | Dashboard recent_orders now spans POS+online with origin badges | DashboardController.php, Dashboard/Index.jsx | done | ~1k |
+| 23:20 | Fixed Manage board phase filtering: 'All orders' spans all phases, delivery-phase alignment, POS tab returns orders | Orders/Manage.jsx | done | ~1k |
+| 23:20 | Added OrderChannelViewsTest (8 pass); invoicing/department suites green | tests/Feature/Orders/OrderChannelViewsTest.php | pass | ~1k |
+| 00:29 | Session end: 23 writes across 10 files (OrderPresenter.php, online-receipt.blade.php, DocumentGenerationService.php, OrderController.php, dashboard.php) | 22 reads | ~20320 tok |
+
+## Session: 2026-07-27 00:37
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:42 | Edited app/Support/OrderPresenter.php | expanded (+7 lines) | ~211 |
+| 00:42 | Edited app/Support/OrderPresenter.php | 6→9 lines | ~110 |
+| 00:42 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: channel | ~153 |
+| 00:42 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | inline fix | ~16 |
+| 00:42 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added nullish coalescing | ~38 |
+| 00:43 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 3→3 lines | ~67 |
+| 00:43 | Edited resources/js/Hooks/useQueue.js | inline fix | ~24 |
+| 00:43 | Edited tests/Feature/Orders/PosDeliveryRoutingTest.php | 3→6 lines | ~120 |
+| 00:43 | Edited tests/Feature/Orders/PosDeliveryRoutingTest.php | 3→3 lines | ~57 |
+| 00:52 | Fixed order Source/Status conflation: source now channel-only (pos/online), delivery moved to fulfillment_* fields; Direct POS filter fixed | OrderPresenter.php, Manage.jsx, Packing.jsx, useQueue.js, PosDeliveryRoutingTest.php | 44 order tests green | ~9k |
+| 00:52 | Session end: 9 writes across 5 files (OrderPresenter.php, Manage.jsx, Packing.jsx, useQueue.js, PosDeliveryRoutingTest.php) | 12 reads | ~24643 tok |
+
+## Session: 2026-08-01 10:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-02 12:52
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-18 15:59
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:17 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~3448 |
+| 01:18 | Edited app/Support/PermissionCatalog.php | 7→8 lines | ~125 |
+| 01:18 | Edited app/Support/PermissionCatalog.php | 4→4 lines | ~80 |
+| 01:18 | Edited app/Http/Controllers/Dashboard/OrderController.php | 6→8 lines | ~125 |
+| 01:19 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified if() | ~350 |
+| 01:21 | Created app/Services/Orders/OperationsQueueService.php | — | ~2197 |
+| 01:22 | Created app/Http/Controllers/Dashboard/OperationsController.php | — | ~837 |
+| 01:23 | Edited routes/dashboard.php | added 1 import(s) | ~44 |
+| 01:23 | Edited routes/dashboard.php | modified group() | ~388 |
+| 01:23 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | modified if() | ~298 |
+| 01:23 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | expanded (+17 lines) | ~537 |
+| 01:24 | Created resources/js/Components/Departments/OperationsNav.jsx | — | ~955 |
+| 01:24 | Created resources/js/Components/Departments/OperationsTable.jsx | — | ~1294 |
+| 01:24 | Created resources/js/Hooks/useOperationsFilters.js | — | ~432 |
+| 01:25 | Created resources/js/Components/Departments/OperationsFilterBar.jsx | — | ~377 |
+| 01:25 | Created resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | — | ~855 |
+| 01:25 | Created resources/js/Pages/Dashboard/Operations/Picking.jsx | — | ~1772 |
+| 01:26 | Created resources/js/Pages/Dashboard/Operations/Packing.jsx | — | ~1178 |
+| 01:26 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | 9→8 lines | ~187 |
+| 01:27 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | 10→8 lines | ~179 |
+| 01:27 | Edited resources/js/Pages/Dashboard/Operations/Packing.jsx | 9→8 lines | ~193 |
+| 01:28 | Created resources/js/Pages/Dashboard/Operations/ReadyForDelivery.jsx | — | ~1296 |
+| 01:28 | Created resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx | — | ~1642 |
+| 01:32 | Created tests/Feature/Orders/OperationalQueueTest.php | — | ~4716 |
+| 01:33 | Edited tests/Feature/Orders/OperationalQueueTest.php | added 1 import(s) | ~31 |
+| 01:33 | Edited tests/Feature/Orders/OperationalQueueTest.php | modified opsPendingOrder() | ~161 |
+| 01:34 | Edited tests/Feature/Orders/OperationalQueueTest.php | modified it() | ~473 |
+| 01:34 | Edited tests/Feature/Orders/OperationalQueueTest.php | 6→5 lines | ~46 |
+| 01:35 | Edited tests/Feature/Orders/OperationalQueueTest.php | modified opsGrantRole() | ~195 |
+| 01:40 | Edited app/Services/Orders/OperationsQueueService.php | added 1 import(s) | ~75 |
+| 01:41 | Edited app/Services/Orders/OperationsQueueService.php | modified operatingOrganizationId() | ~248 |
+| 01:41 | Edited tests/Feature/Orders/OperationalQueueTest.php | added 1 import(s) | ~30 |
+| 01:42 | Edited tests/Feature/Orders/OperationalQueueTest.php | modified it() | ~861 |
+| 01:43 | Edited tests/Feature/Orders/OperationalQueueTest.php | expanded (+11 lines) | ~211 |
+| 02:00 | Session end: 34 writes across 17 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 35 reads | ~49131 tok |
+| 11:22 | Session end: 34 writes across 17 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 35 reads | ~49131 tok |
+| 11:28 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~4544 |
+| 11:33 | Created app/Support/OnboardingOptions.php | — | ~973 |
+| 11:33 | Created app/Services/Onboarding/MerchantOnboardingService.php | — | ~1964 |
+| 11:33 | Created app/Http/Controllers/Onboarding/MerchantOnboardingController.php | — | ~1464 |
+| 11:34 | Edited app/Http/Controllers/Onboarding/MerchantOnboardingController.php | 7→7 lines | ~124 |
+| 11:34 | Edited app/Services/Agency/AgencyWorkspaceService.php | added nullish coalescing | ~130 |
+| 11:34 | Created app/Services/Onboarding/AgencyOnboardingService.php | — | ~1765 |
+| 11:35 | Created app/Http/Controllers/Onboarding/AgencyOnboardingController.php | — | ~2385 |
+| 11:35 | Edited routes/auth.php | added 2 import(s) | ~78 |
+| 11:35 | Edited routes/auth.php | modified group() | ~644 |
+| 11:35 | Edited app/Http/Controllers/Onboarding/OnboardingController.php | added 2 condition(s) | ~310 |
+| 11:35 | Created resources/js/Components/Onboarding/Field.jsx | — | ~360 |
+| 11:35 | Created resources/js/Components/Onboarding/Select.jsx | — | ~404 |
+| 11:36 | Created resources/js/Components/Onboarding/OnboardingShell.jsx | — | ~1141 |
+| 11:36 | Created resources/js/Components/Onboarding/WizardFooter.jsx | — | ~552 |
+| 11:36 | Created resources/js/Pages/Onboarding/ModeSelect.jsx | — | ~639 |
+| 11:36 | Edited app/Http/Controllers/Onboarding/MerchantOnboardingController.php | 6→10 lines | ~198 |
+| 11:38 | Created resources/js/Pages/Onboarding/Merchant.jsx | — | ~4478 |
+| 11:39 | Created resources/js/Pages/Onboarding/Agency.jsx | — | ~6910 |
+| 11:39 | Edited resources/js/Pages/Onboarding/Agency.jsx | modified initialKey() | ~44 |
+| 11:43 | Created tests/Feature/Onboarding/OnboardingFlowTest.php | — | ~631 |
+| 11:44 | Created tests/Feature/Onboarding/MerchantOnboardingTest.php | — | ~1199 |
+| 11:44 | Created tests/Feature/Onboarding/AgencyOnboardingTest.php | — | ~1641 |
+| 11:45 | Session end: 57 writes across 35 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 41 reads | ~82997 tok |
+| 11:49 | Session end: 57 writes across 35 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 41 reads | ~82997 tok |
+| 12:57 | Edited app/Providers/FortifyServiceProvider.php | added 1 import(s) | ~84 |
+| 12:57 | Edited app/Providers/FortifyServiceProvider.php | modified configureViews() | ~377 |
+| 12:57 | Edited routes/auth.php | 5→5 lines | ~85 |
+| 12:57 | Edited routes/auth.php | 3→5 lines | ~75 |
+| 12:57 | Created resources/js/Layouts/AuthLayout.jsx | — | ~436 |
+| 12:58 | Created resources/js/Pages/Auth/Login.jsx | — | ~2845 |
+| 12:58 | Created resources/js/Pages/Auth/VerifyEmail.jsx | — | ~646 |
+| 12:58 | Created resources/js/Pages/Auth/TwoFactorChallenge.jsx | — | ~1254 |
+| 12:58 | Created resources/js/Pages/Auth/ConfirmPassword.jsx | — | ~720 |
+| 13:00 | Created tests/Feature/Auth/AuthenticationTest.php | — | ~260 |
+| 13:00 | Edited tests/Feature/Auth/AuthenticationTest.php | modified test() | ~157 |
+| 13:00 | Created tests/Feature/Auth/PasswordConfirmationTest.php | — | ~248 |
+| 13:01 | Created tests/Feature/Auth/RegistrationTest.php | — | ~164 |
+| 13:02 | Edited tests/Feature/Auth/EmailVerificationTest.php | modified test() | ~81 |
+| 13:05 | Session end: 71 writes across 45 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 55 reads | ~91782 tok |
+| 13:21 | Session end: 71 writes across 45 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 63 reads | ~93385 tok |
+| 13:44 | Edited app/Http/Middleware/HandleInertiaRequests.php | expanded (+17 lines) | ~352 |
+| 13:44 | Edited app/Http/Middleware/HandleInertiaRequests.php | modified values() | ~187 |
+| 13:45 | Edited app/Http/Middleware/HandleInertiaRequests.php | 4→3 lines | ~43 |
+| 13:45 | Edited resources/js/Layouts/SaasLayout.jsx | 6→7 lines | ~88 |
+| 13:45 | Edited resources/js/Layouts/SaasLayout.jsx | expanded (+12 lines) | ~319 |
+| 13:45 | Edited resources/js/Components/StoreSwitcher.jsx | added optional chaining | ~261 |
+| 13:45 | Edited resources/js/Components/StoreSwitcher.jsx | 3→7 lines | ~118 |
+| 13:46 | Edited resources/js/Components/StoreSwitcher.jsx | expanded (+6 lines) | ~275 |
+| 13:46 | Edited resources/js/Components/StoreSwitcher.jsx | added optional chaining | ~297 |
+| 13:46 | Edited app/Http/Controllers/Dashboard/WarehouseController.php | modified collect() | ~245 |
+| 13:46 | Edited resources/js/Pages/Dashboard/Warehouses/Index.jsx | 7→9 lines | ~164 |
+| 13:46 | Edited resources/js/Pages/Dashboard/Warehouses/Index.jsx | added nullish coalescing | ~452 |
+| 13:48 | Session end: 83 writes across 50 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 64 reads | ~101047 tok |
+| 13:51 | Session end: 83 writes across 50 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 64 reads | ~101047 tok |
+| 14:00 | Session end: 83 writes across 50 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 65 reads | ~101047 tok |
+| 14:02 | Edited app/Providers/FortifyServiceProvider.php | modified configureViews() | ~439 |
+| 14:02 | Edited routes/auth.php | 4→3 lines | ~28 |
+| 14:03 | Edited routes/auth.php | 7→5 lines | ~83 |
+| 14:03 | Created resources/js/Pages/Auth/ForgotPassword.jsx | — | ~864 |
+| 14:03 | Created resources/js/Pages/Auth/ResetPassword.jsx | — | ~1520 |
+| 14:04 | Created tests/Feature/Auth/PasswordResetTest.php | — | ~500 |
+| 14:06 | Session end: 89 writes across 53 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 68 reads | ~105361 tok |
+| 14:24 | Edited app/Support/OnboardingOptions.php | expanded (+21 lines) | ~335 |
+| 14:24 | Edited app/Support/OnboardingOptions.php | modified businessTypeValues() | ~99 |
+| 14:24 | Edited app/Models/Store.php | 3→4 lines | ~22 |
+| 14:25 | Edited app/Http/Controllers/Dashboard/StoreController.php | added 3 import(s) | ~117 |
+| 14:25 | Edited app/Http/Controllers/Dashboard/StoreController.php | added 5 condition(s) | ~1420 |
+| 14:26 | Edited app/Http/Controllers/Dashboard/StoreController.php | reduced (-6 lines) | ~83 |
+| 14:26 | Edited app/Http/Controllers/Dashboard/StoreController.php | added 1 condition(s) | ~190 |
+| 14:26 | Created resources/js/Pages/Dashboard/Stores/Create.jsx | — | ~2696 |
+| 14:27 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | CSS: store_type | ~118 |
+| 14:27 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | expanded (+8 lines) | ~202 |
+| 14:27 | Edited resources/js/Pages/Dashboard/Stores/Index.jsx | CSS: dark | ~206 |
+| 14:27 | Edited resources/views/app.blade.php | 5→4 lines | ~62 |
+| 14:27 | Edited resources/js/app.jsx | CSS: page | ~96 |
+| 14:28 | Created tests/Feature/Foundation/StoreCreationFoundationTest.php | — | ~1474 |
+| 14:29 | Created tests/Feature/Foundation/StoreCreationFoundationTest.php | — | ~1977 |
+| 14:31 | Session end: 104 writes across 60 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 77 reads | ~121416 tok |
+| 14:42 | Session end: 104 writes across 60 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 77 reads | ~121416 tok |
+| 14:42 | Session end: 104 writes across 60 files (tidy-frolicking-moler.md, PermissionCatalog.php, OrderController.php, OperationsQueueService.php, OperationsController.php) | 77 reads | ~121416 tok |

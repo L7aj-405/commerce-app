@@ -6,7 +6,7 @@ namespace App\Connectors;
 
 use App\Exceptions\ConnectorException;
 use App\Models\PlatformConnection;
-use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +23,7 @@ abstract class BaseConnector
     abstract public function getProducts(int $page = 1, int $perPage = 50): array;
 
     /** Fetch a page of orders from the platform, returning normalized arrays. */
-    abstract public function getOrders(int $page = 1, int $perPage = 50, ?Carbon $since = null): array;
+    abstract public function getOrders(int $page = 1, int $perPage = 50, ?CarbonInterface $since = null): array;
 
     /** Map raw platform product data to a shape ready for normalizeProduct(). */
     abstract protected function parseProduct(array $raw): array;
@@ -63,8 +63,10 @@ abstract class BaseConnector
     protected function normalizeOrder(array $raw): array
     {
         return [
-            'platform_id'    => (string) ($raw['platform_id'] ?? ''),
-            'number'         => (string) ($raw['number'] ?? ''),
+            // Fall back to external_id/order_number so a connector using the
+            // product-style keys can't silently yield an empty unique key.
+            'platform_id'    => (string) ($raw['platform_id'] ?? $raw['external_id'] ?? ''),
+            'number'         => (string) ($raw['number'] ?? $raw['order_number'] ?? ''),
             'status'         => (string) ($raw['status'] ?? 'unknown'),
             'total'          => (float) ($raw['total'] ?? 0.0),
             'currency'       => (string) ($raw['currency'] ?? 'MAD'),

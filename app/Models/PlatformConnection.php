@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PlatformConnection extends Model
 {
-    use HasUlids, SoftDeletes;
+    use BelongsToTenant, HasUlids, SoftDeletes;
 
     const PLATFORM_WOOCOMMERCE = 'woocommerce';
     const PLATFORM_SHOPIFY     = 'shopify';
@@ -68,6 +69,16 @@ class PlatformConnection extends Model
     public function syncLogs(): HasMany
     {
         return $this->hasMany(SyncLog::class);
+    }
+
+    public function productListings(): HasMany
+    {
+        return $this->hasMany(ProductChannelListing::class);
+    }
+
+    public function variantListings(): HasMany
+    {
+        return $this->hasMany(ProductVariantChannelListing::class);
     }
 
     // Scopes

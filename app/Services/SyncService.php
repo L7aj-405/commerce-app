@@ -3,23 +3,23 @@
 namespace App\Services;
 
 use App\Factories\ConnectorFactory;
+use App\Models\PlatformConnection;
 use App\Models\Store;
+use App\Models\SyncLog;
 use App\Services\Sync\ProductSyncService;
 use App\Services\Sync\OrderSyncService;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class SyncService
 {
-    protected ConnectorFactory $factory;
     protected ProductSyncService $productService;
     protected OrderSyncService $orderService;
 
     public function __construct(
-        ConnectorFactory $factory,
         ProductSyncService $productService,
         OrderSyncService $orderService
     ) {
-        $this->factory = $factory;
         $this->productService = $productService;
         $this->orderService = $orderService;
     }
@@ -48,17 +48,26 @@ class SyncService
     }
 
     /**
-     * Sync orders from a specific platform
+     * Sync orders from a specific platform.
+     *
+     * Resolves the store's connection for the platform and delegates to
+     * OrderSyncService, which pages through the orders and records a SyncLog.
      */
-    public function syncOrders(Store $store, string $platform): array
+    public function syncOrders(Store $store, string $platform): SyncLog
     {
         Log::info("Starting order sync", [
             'store' => $store->id,
             'platform' => $platform,
         ]);
 
+        $connection = $store->connections()->where('platform', $platform)->first();
+
+        if ($connection === null) {
+            throw new RuntimeException("No {$platform} connection found for store {$store->id}");
+        }
+
         try {
-            return $this->orderService->syncFromPlatform($store, $platform);
+            return $this->orderService->syncFromPlatform($store, $connection);
         } catch (\Exception $e) {
             Log::error("Order sync failed", [
                 'store' => $store->id,
@@ -98,13 +107,12 @@ class SyncService
     }
 
     /**
-     * Test connection
+     * Test that a connection's credentials are valid.
      */
-    public function testConnection($connection): bool
+    public function testConnection(PlatformConnection $connection): bool
     {
         try {
-            $connector = $this->factory->create($connection->platform);
-            return $connector->authenticate();
+            return ConnectorFactory::make($connection)->authenticate();
         } catch (\Exception $e) {
             Log::error("Connection test failed", [
                 'platform' => $connection->platform,

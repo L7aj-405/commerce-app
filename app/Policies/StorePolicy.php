@@ -11,6 +11,6 @@ class StorePolicy
 {
     public function view(User $user, Store $store): bool
     {
-        return $user->id === $store->user_id;
+        return $user->isPrivilegedFor($store) || $user->storeMembershipFor($store) !== null;
     }
 }

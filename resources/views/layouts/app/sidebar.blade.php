@@ -135,15 +135,15 @@
                 </a>
 
                 @if($activeStore)
-                    <a href="{{ route('stores.connections.index', $activeStore) }}" wire:navigate
+                    <a href="{{ route('dashboard.integrations.index') }}"
                        class="flex items-center px-2 py-1.5 rounded-md text-sm transition-all duration-150
-                              {{ request()->routeIs('stores.connections.*') ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5' }}">
-                        Connections
+                              {{ request()->routeIs('dashboard.integrations.*') ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5' }}">
+                        Integrations
                     </a>
 
-                    <a href="{{ route('stores.settings.whatsapp', $activeStore) }}" wire:navigate
+                    <a href="{{ route('dashboard.integrations.whatsapp') }}"
                        class="flex items-center px-2 py-1.5 rounded-md text-sm transition-all duration-150
-                              {{ request()->routeIs('stores.settings.whatsapp') ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5' }}">
+                              {{ request()->routeIs('dashboard.integrations.whatsapp') ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-200 hover:bg-white/5' }}">
                         WhatsApp
                     </a>
 

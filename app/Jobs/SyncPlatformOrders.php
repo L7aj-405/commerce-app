@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\PlatformConnection;
-use App\Services\SyncService;
+use App\Services\Sync\OrderSyncService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,8 +23,11 @@ class SyncPlatformOrders implements ShouldQueue
         public readonly PlatformConnection $platformConnection,
     ) {}
 
-    public function handle(SyncService $syncService): void
+    public function handle(OrderSyncService $orderSync): void
     {
-        $syncService->syncOrders($this->platformConnection);
+        $orderSync->syncFromPlatform(
+            $this->platformConnection->store,
+            $this->platformConnection,
+        );
     }
 }

@@ -10,20 +10,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('platform_connections', function (Blueprint $table): void {
-            $table->char('id', 26)->primary();
-            $table->char('store_id', 26);
-            $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
+        Schema::create('platform_connections', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('store_id');
 
             $table->string('platform');
             $table->string('label')->nullable();
             $table->string('status')->default('pending');
+
             $table->boolean('is_syncing')->default(false);
             $table->timestamp('last_synced_at')->nullable();
             $table->text('last_sync_error')->nullable();
             $table->unsignedInteger('synced_products_count')->default(0);
             $table->unsignedInteger('synced_orders_count')->default(0);
 
+            // Credentials (encrypted at the model layer).
             $table->text('api_url')->nullable();
             $table->text('consumer_key')->nullable();
             $table->text('consumer_secret')->nullable();
@@ -37,6 +38,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
             $table->unique(['store_id', 'platform']);
         });
     }

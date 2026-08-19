@@ -8,7 +8,7 @@ use App\Exceptions\ConnectorException;
 use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -94,7 +94,7 @@ class WooCommerceConnector extends BaseConnector
         }
     }
 
-    public function getOrders(int $page = 1, int $perPage = 50, ?Carbon $since = null): array
+    public function getOrders(int $page = 1, int $perPage = 50, ?CarbonInterface $since = null): array
     {
         try {
             $params = [
@@ -271,8 +271,12 @@ class WooCommerceConnector extends BaseConnector
         ) ?: 'Guest Customer';
         
         return [
-            'external_id' => (string) ($order['id'] ?? ''),
-            'order_number' => (string) ($order['number'] ?? ''),
+            // Must use the normalized schema keys `platform_id` / `number` — these
+            // feed BaseConnector::normalizeOrder() and become the unique key
+            // (platform_connection_id, platform_order_id). Emitting `external_id`
+            // here left platform_id empty, collapsing every order onto one row.
+            'platform_id' => (string) ($order['id'] ?? ''),
+            'number' => (string) ($order['number'] ?? ''),
             'customer_name' => $customerName,
             'customer_email' => $billingAddress['email'] ?? '',
             'customer_phone' => $billingAddress['phone'] ?? '',
@@ -442,9 +446,11 @@ class WooCommerceConnector extends BaseConnector
     /**
      * @return array{success: bool, external_id: string, message: string, error: ?string}
      */
-    public function pushProduct(Product $product): array
+    public function pushProduct(Product $product, ?string $productExternalId = null): array
     {
-        if (empty($product->external_id)) {
+        $externalId = $productExternalId ?? $product->external_id;
+
+        if (empty($externalId)) {
             return ['success' => false, 'external_id' => '', 'message' => 'Product has no external_id', 'error' => 'missing_external_id'];
         }
 
@@ -462,7 +468,7 @@ class WooCommerceConnector extends BaseConnector
             ];
 
             $response = $this->guard(
-                $this->client()->put("/products/{$product->external_id}", $payload)
+                $this->client()->put("/products/{$externalId}", $payload)
             );
 
             $response->throw();
@@ -471,7 +477,7 @@ class WooCommerceConnector extends BaseConnector
 
             return [
                 'success'     => true,
-                'external_id' => (string) ($data['id'] ?? $product->external_id),
+                'external_id' => (string) ($data['id'] ?? $externalId),
                 'message'     => 'Product pushed to WooCommerce successfully',
                 'error'       => null,
             ];
@@ -617,9 +623,11 @@ class WooCommerceConnector extends BaseConnector
      *
      * @return array{success: bool, message: string, error: ?string}
      */
-    public function pushStock(Product $product, int $quantity): array
+    public function pushStock(Product $product, int $quantity, ?string $productExternalId = null): array
     {
-        if (empty($product->external_id)) {
+        $externalId = $productExternalId ?? $product->external_id;
+
+        if (empty($externalId)) {
             return ['success' => false, 'message' => 'Product has no external_id', 'error' => 'missing_external_id'];
         }
 
@@ -631,7 +639,7 @@ class WooCommerceConnector extends BaseConnector
             ];
 
             $response = $this->guard(
-                $this->client()->put("/products/{$product->external_id}", $payload)
+                $this->client()->put("/products/{$externalId}", $payload)
             );
 
             $response->throw();

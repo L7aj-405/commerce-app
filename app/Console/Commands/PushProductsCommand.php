@@ -68,11 +68,12 @@ class PushProductsCommand extends Command
         foreach ($stores as $store) {
             $this->line("Store: {$store->name}");
 
-            $productQuery = $store->products()->whereNotNull('external_id');
-
-            if ($platform !== null) {
-                $productQuery->where('platform', $platform);
-            }
+            $productQuery = $store->products()
+                ->whereHas('channelListings', function ($query) use ($platform): void {
+                    if ($platform !== null) {
+                        $query->whereHas('connection', fn ($connection) => $connection->where('platform', $platform));
+                    }
+                });
 
             $products = $productQuery->get();
 
