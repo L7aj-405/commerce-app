@@ -8,7 +8,7 @@ use App\Exceptions\ConnectorException;
 use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -104,7 +104,7 @@ class ShopifyConnector extends BaseConnector
         }
     }
 
-    public function getOrders(int $page = 1, int $perPage = 50, ?Carbon $since = null): array
+    public function getOrders(int $page = 1, int $perPage = 50, ?CarbonInterface $since = null): array
     {
         try {
             $params = ['limit' => $perPage, 'status' => 'any'];
@@ -163,7 +163,7 @@ class ShopifyConnector extends BaseConnector
                 ? (int) $firstVariant['inventory_quantity']
                 : null,
             'status'        => $product['status'] ?? 'unknown',
-            'image_url'     => $product['images'][0]['src'] ?? null,
+            'featured_image' => $product['images'][0]['src'] ?? null,
             'images'        => array_column($product['images'] ?? [], 'src'),
             'variants'      => $variants,
             'platform_data' => $product,
@@ -416,9 +416,11 @@ class ShopifyConnector extends BaseConnector
     /**
      * @return array{success: bool, external_id: string, message: string, error: ?string}
      */
-    public function pushProduct(Product $product): array
+    public function pushProduct(Product $product, ?string $productExternalId = null): array
     {
-        if (empty($product->external_id)) {
+        $externalId = $productExternalId ?? $product->external_id;
+
+        if (empty($externalId)) {
             return ['success' => false, 'external_id' => '', 'message' => 'Product has no external_id', 'error' => 'missing_external_id'];
         }
 
@@ -441,7 +443,7 @@ class ShopifyConnector extends BaseConnector
             ];
 
             $response = $this->guard(
-                $this->client()->put("/products/{$product->external_id}.json", $payload)
+                $this->client()->put("/products/{$externalId}.json", $payload)
             );
 
             $response->throw();
@@ -450,7 +452,7 @@ class ShopifyConnector extends BaseConnector
 
             return [
                 'success'     => true,
-                'external_id' => (string) ($data['id'] ?? $product->external_id),
+                'external_id' => (string) ($data['id'] ?? $externalId),
                 'message'     => 'Product pushed to Shopify successfully',
                 'error'       => null,
             ];
@@ -601,16 +603,18 @@ class ShopifyConnector extends BaseConnector
      *
      * @return array{success: bool, message: string, error: ?string}
      */
-    public function pushStock(Product $product, int $quantity): array
+    public function pushStock(Product $product, int $quantity, ?string $productExternalId = null): array
     {
-        if (empty($product->external_id)) {
+        $externalId = $productExternalId ?? $product->external_id;
+
+        if (empty($externalId)) {
             return ['success' => false, 'message' => 'Product has no external_id', 'error' => 'missing_external_id'];
         }
 
         try {
             // Get the product to find the first variant's inventory_item_id
             $productResponse = $this->guard(
-                $this->client()->get("/products/{$product->external_id}.json")
+                $this->client()->get("/products/{$externalId}.json")
             );
 
             $productResponse->throw();

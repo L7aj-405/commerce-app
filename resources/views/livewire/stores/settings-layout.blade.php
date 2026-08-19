@@ -44,13 +44,13 @@
                 @if($activeTab === 'whatsapp-templates') aria-current="page" @endif>
                 Templates
             </a>
-            <a href="{{ route('stores.connections.index', $store) }}" wire:navigate
+            <a href="{{ route('dashboard.integrations.index') }}"
                 class="whitespace-nowrap border-b-2 py-3 px-0.5 text-sm font-medium transition-colors
                     {{ $activeTab === 'connections'
                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                         : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500' }}"
                 @if($activeTab === 'connections') aria-current="page" @endif>
-                Connections
+                Integrations
             </a>
         </nav>
     </div>

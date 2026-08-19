@@ -2,6 +2,188 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-dashboard-stock-adjust-variant-blind",
+      "timestamp": "2026-07-26T00:00:00.000Z",
+      "error_message": "Dashboard stock adjustment for a variable product doesn't let you pick which variant gets the stock; increments land on the parent product row and don't sync to the correct variant in the POS",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "StockController::adjustStock hardcoded 'variant_id' => null in Stock::firstOrCreate (line 84), so every dashboard adjustment wrote the product-level stock row regardless of variant. index() also sent no variant data to Stock.jsx, and AdjustStockModal only had a single quantity input — the UI could not offer a variant choice. stock_ledger had no variant_id column so history couldn't attribute a change to a variant.",
+      "fix": "index() now eager-loads variants with sellable stock_sum (whereHas warehouse.sellable) and presents { type, has_variants, variant_count, variants:[{id,name,sku,stock}] } via paginator->through(). adjustStock() accepts batch payload { reason, notes, adjustments:[{variant_id,quantity_change}] }, validates that variable products target a real owned variant (and simple products carry null), skips zero rows, and writes each delta to the exact (product,variant,warehouse) Stock row + a variant-tagged StockLedger entry (applyAdjustment helper, one DB transaction). Added variant_id to stock_ledger (migration 2026_07_26_000002) + StockLedger fillable/relation. Frontend: rewrote AdjustStockModal.jsx — simple products keep the single input; variable products get a scrollable per-variant list (name/sku, current stock, signed input, live current→new preview, filter box when >6 variants), submit-disabled until a non-zero row exists. Stock.jsx cards + StockMovements.jsx rows show a variants badge. Sync to POS is automatic: both read the same sellable `stocks` rows (POS presentProduct stock_sum), reflected on the POS's next fetch/search (no websocket push).",
+      "tags": [
+        "stock",
+        "inventory",
+        "variants",
+        "dashboard",
+        "inertia",
+        "react",
+        "sync",
+        "pos",
+        "stock-ledger",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-pos-variant-products-not-selectable"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "id": "bug-pos-variant-products-not-selectable",
+      "timestamp": "2026-07-26T00:00:00.000Z",
+      "error_message": "POS: clicking a variable product (with sizes/colors) failed / added it directly with no way to pick the specific variant",
+      "file": "app/Http/Controllers/Pos/PosController.php",
+      "root_cause": "presentProduct() only returned id/name/sku/price/images/stock — it never included variants or attributes. Variable products arrived at the React POS looking identical to simple ones, so onAdd(product) added the BASE product row (base price, aggregate variant stock) via useCart, and cart lines were keyed by product_id alone, so a variant could never be distinguished or chosen. adjustInventory() also hardcoded variant_id => null, so even if a variant sold, the wrong (product-level) Stock row was decremented.",
+      "fix": "Backend: presentProduct now eager-loads variants.attributeValues + sellable stock_sum and returns { type, has_variants, variant_count, price_from, attributes:[{name,values}], variants:[{id,name,sku,price,stock,image,options}] }. Added variant_id to pos_order_items (migration 2026_07_26_000001), PosOrderItem fillable+relation, CheckoutController validation (items.*.variant_id nullable exists), OrderProcessingService persists variant_id and decrements the matching variant Stock row. Frontend: new VariantModal.jsx (attribute pill selectors, per-combination live stock, out-of-stock disabling relative to other selections, qty stepper), useCart keyed by composite line_id (`${productId}::${variantId}`) with addItem(product,{variant,quantity}); Dashboard opens the modal for has_variants products (adds simple ones directly) and folds the variant label into the receipt line name; ProductCard/CartItem/Cart/CheckoutPreviewModal made variant-aware.",
+      "tags": [
+        "pos",
+        "variants",
+        "inertia",
+        "react",
+        "product-variant",
+        "stock",
+        "checkout",
+        "usecart",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "id": "bug-integrations-connect-404-stale-route",
+      "timestamp": "2026-07-26T00:00:00.000Z",
+      "error_message": "Clicking Connect/Configure on the Integrations page 404s — user reported the connection flow never opens",
+      "file": "resources/js/Pages/Dashboard/Integrations/Index.jsx",
+      "root_cause": "The Connect button linked to `/stores/${store.id}/connections/connect` and Configure to `/stores/${store.id}/connections`. Those `stores.connections.*` routes belonged to the old Livewire ConnectPlatform wizard, which was DELETED on the cleanup/orphaned-blade branch (see cerebrum 'Connector architecture legacy stack REMOVED'). The Integrations UI was migrated to per-platform Inertia pages (Dashboard/Integrations/Platforms/{WooCommerce,Shopify,YouCan,WhatsApp}.jsx) served at /dashboard/integrations/{platform}, but Index.jsx's two buttons were never repointed, so every Connect/Configure click hit a non-existent URL.",
+      "fix": "Repointed both <Link> hrefs in Index.jsx to `/dashboard/integrations/${p.key}`. The provider keys (woocommerce/shopify/youcan/whatsapp) already equal the registered route path segments (verified via `route:list --path=dashboard/integrations`: all four GET routes exist). Connect and Configure share the same per-platform page — it renders the credential form for a new connection and shows 'Update credentials' when already connected. No backend/route change needed; the routes and controller were already correct.",
+      "tags": [
+        "integrations",
+        "inertia",
+        "react",
+        "404",
+        "stale-route",
+        "dead-code",
+        "cleanup",
+        "connect-button",
+        "livewire-migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "id": "bug-migration-consolidation-pvav-index-and-broken-chain",
+      "timestamp": "2026-07-26T00:00:00.000Z",
+      "error_message": "SQLSTATE[42000]: 1059 Identifier name 'product_variant_attribute_values_product_variant_id_product_attribute_value_id_unique' is too long — migrate:fresh aborted at pvav; 38 later migrations sat Pending in the real DB and never ran",
+      "file": "database/migrations/ (whole set, consolidated)",
+      "root_cause": "The original 61-file migration set could not build a fresh MySQL database. 2026_05_25_000003 created product_variant_attribute_values with $table->unique(['product_variant_id','product_attribute_value_id']) — Laravel's auto-generated index name exceeded MySQL's 64-char limit, so migrate:fresh died there and every migration after it (POS, factures, teams, returns, all the ALTERs) never executed. Separately, several ALTER migrations used native ENUM MODIFY guarded only for mysql, and the committed extend_sync_logs_action_enum lacked the sqlite guard (fails on the sqlite test DB).",
+      "fix": "Squashed 61 migrations into 34 clean create-table migrations (one per table), each reflecting the FINAL schema with every add/rename/drop/widen folded in. pvav now uses a composite PRIMARY KEY named 'pvav_primary' (product_variant_id, product_attribute_value_id) — it enforces uniqueness on its own, so the over-long unique index is gone. Evolving lists (orders/pos_orders.fulfillment_status, inventory_adjustments.source) are created as their final VARCHAR; sync_logs.action and factures.status are created with their final ENUM value sets; activity_log morph ids are char(26) from the start. FK dependency order preserved via timestamps (only reorder: store_roles before store_members/store_invitations). Data-only migrations dropped (no-ops on a fresh DB). Verified: migrate:fresh builds all 40 tables cleanly on MySQL; Pest suite 189 pass / 7 pre-existing failures (onboarding-redirect + deleted settings.profile component on the cleanup branch, unrelated to schema). Extracted ground truth via a throwaway scratch DB (saas_squash_tmp); the real saas_commerce dev DB was never touched.",
+      "tags": [
+        "migration",
+        "squash",
+        "consolidation",
+        "pvav",
+        "index-name-length",
+        "mysql",
+        "enum",
+        "sqlite",
+        "fulfillment",
+        "activity-log",
+        "ulid"
+      ],
+      "related_bugs": [
+        "bug-068",
+        "bug-038"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T00:00:00.000Z"
+    },
+    {
+      "id": "bug-order-sync-collision-and-reset",
+      "timestamp": "2026-07-26T14:30:00.000Z",
+      "error_message": "Synced WooCommerce orders all collapse onto ONE row (new orders take older orders' data); re-sync also resets an order's status back to Pending every minute",
+      "file": "app/Connectors/WooCommerceConnector.php, app/Connectors/BaseConnector.php, app/Services/Sync/OrderSyncService.php",
+      "root_cause": "1) WooCommerceConnector::parseOrder returned 'external_id'/'order_number' but BaseConnector::normalizeOrder reads 'platform_id'/'number' with no fallback -> platform_id='' for every WC order. The unique key (platform_connection_id, platform_order_id) then matched the single ('conn','') row, so every order overwrote it (Shopify/YouCan were fine — they emit platform_id). 2) OrderSyncService::saveOrder used updateOrCreate and set status=OrderStatus::Pending in the values on EVERY sync, resetting the commercial status of already-advanced orders and clobbering their volatile fields.",
+      "fix": "WooCommerceConnector::parseOrder now emits 'platform_id'/'number'; normalizeOrder falls back to external_id/order_number defensively. saveOrder rewritten: returns ?Order; skips (logs) empty platform_id; looks up existing by (connection,platform_order_id); if it exists and fulfillment_status !== Pending it is left untouched (SaaS owns the lifecycle), if still Pending only volatile platform data is refreshed (never status); new orders are Order::create'd with status=Pending AND fulfillment_status=Pending (awaiting confirmation) then fire OrderCreated + SendWhatsAppConfirmation. syncFromPlatform loop skips null returns. Tests: tests/Feature/Orders/OrderSyncServiceTest.php (6). NOTE: there is NO order webhook — sync is poll-only; both scheduler and SyncPlatformOrders job share this saveOrder path. Existing single empty-platform_order_id row from the old bug can be deleted manually.",
+      "tags": [
+        "orders",
+        "sync",
+        "woocommerce",
+        "collision",
+        "unique-key",
+        "idempotent",
+        "updateOrCreate",
+        "fulfillment",
+        "confirmation"
+      ],
+      "related_bugs": [
+        "bug-online-lineitem-productid",
+        "bug-since-carbon-immutable"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T14:30:00.000Z"
+    },
+    {
+      "id": "bug-since-carbon-immutable",
+      "timestamp": "2026-07-26T13:53:00.000Z",
+      "error_message": "Scheduled sync failed: OrderSyncService::syncFromPlatform(): Argument #3 ($since) must be of type ?Carbon\\Carbon, Carbon\\CarbonImmutable given, called in routes/console.php on line 24",
+      "file": "app/Services/Sync/OrderSyncService.php, app/Connectors/BaseConnector.php, app/Connectors/{WooCommerce,Shopify,YouCan}Connector.php",
+      "root_cause": "AppServiceProvider.php:109 sets Date::use(CarbonImmutable::class) globally, so every model datetime cast and now() returns CarbonImmutable. The scheduler passes $connection->last_synced_at->subMinutes(5) (a CarbonImmutable) into syncFromPlatform(), whose $since param was hinted ?Carbon\\Carbon. CarbonImmutable is NOT a subclass of Carbon (both are siblings under CarbonInterface), so the TypeError fired. The connectors' getOrders(?Carbon $since) had the same too-narrow hint downstream.",
+      "fix": "Widened $since to ?Carbon\\CarbonInterface in OrderSyncService::syncFromPlatform and getOrders across BaseConnector (abstract) + all three connectors (import changed Carbon\\Carbon -> Carbon\\CarbonInterface; Carbon was used nowhere else in those files). CarbonInterface is the shared parent so it accepts both mutable and immutable. Verified by reflection + full suite (225/183, 7 pre-existing).",
+      "tags": [
+        "carbon",
+        "carbonimmutable",
+        "type-error",
+        "scheduler",
+        "sync",
+        "orders",
+        "date-facade"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T13:53:00.000Z"
+    },
+    {
+      "id": "bug-online-lineitem-productid",
+      "timestamp": "2026-07-26T13:05:00.000Z",
+      "error_message": "SQLSTATE[23000]: Integrity constraint violation: 1452 ... stocks_product_id_foreign ... insert into stocks (product_id, ...) values (7778, ...) — confirming an online (WooCommerce) order threw a FK violation",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "OrderLineItems::fromOnline() copied product_id/variant_id straight from the orders.items JSON blob, but that blob stores the PLATFORM's ids (e.g. WooCommerce product id 7778), not local ULIDs. On confirm, OrderWorkflowService::applyStockEffects() -> StockMovementWriter::move(productId:'7778') tried to firstOrCreate a stocks row whose product_id (7778) has no matching products.id (all ULIDs) -> FK 1452. The class docblock already promised product_id was the LOCAL id (nullable when unmatched); fromOnline violated that. Also latently affected ReturnInspectionService (other OrderLineItems::for consumer).",
+      "fix": "fromOnline() now resolves each raw id (platform external_id OR an already-local ULID) to the local product/variant ULID via batched lookups (localProductMap/localVariantMap, scoped to order store_id, matching external_id OR id). Unmatched -> null, so StockMovementWriter::move() skips it (its productId===null guard). POS path (fromPos) unchanged — pos_order_items.product_id is already a local FK. Regression tests added to tests/Feature/Orders/OrderWorkflowServiceTest.php: (1) platform external_id 7778 resolves + deducts stock, (2) unmatched id moves no stock and does not throw.",
+      "tags": [
+        "orders",
+        "stock",
+        "foreign-key",
+        "1452",
+        "sync",
+        "woocommerce",
+        "online-orders",
+        "fulfillment",
+        "ulid"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T13:05:00.000Z"
+    },
+    {
+      "id": "bug-doc-sync-wiring",
+      "timestamp": "2026-07-26T00:00:00.000Z",
+      "error_message": "SyncPlatformOrders job + SyncService::syncOrders()/testConnection() have stale signatures; dispatching the job or calling those methods throws TypeError",
+      "file": "app/Jobs/SyncPlatformOrders.php, app/Services/SyncService.php",
+      "root_cause": "OrderSyncService::syncFromPlatform() changed to require (Store, PlatformConnection, ?Carbon) and ConnectorFactory exposes only static make(PlatformConnection); SyncService::syncOrders() still passes a string platform, and testConnection() calls a non-existent factory->create(). SyncPlatformOrders::handle() calls syncOrders($platformConnection) with wrong arity/type. The live order-sync path is the every-minute scheduler in routes/console.php calling OrderSyncService directly.",
+      "fix": "FIXED 2026-07-26: SyncService::syncOrders(Store,string) now resolves the store's PlatformConnection and calls OrderSyncService::syncFromPlatform($store,$connection), returning the SyncLog; testConnection() type-hinted to PlatformConnection and uses static ConnectorFactory::make($conn)->authenticate() (unused injected ConnectorFactory removed from constructor); SyncPlatformOrders::handle() now injects OrderSyncService and calls syncFromPlatform($conn->store,$conn) directly, mirroring the scheduler. Suite unchanged (181 pass / 7 pre-existing). Note: the only remaining callers of testConnection()/SyncPlatformOrders::dispatch() are the dead unrouted Livewire EditConnection/ConnectionIndex, pending the step-2 Blade sweep.",
+      "tags": [
+        "sync",
+        "orders",
+        "queue",
+        "stale-signature",
+        "dead-code",
+        "documentation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T00:00:00.000Z"
+    },
+    {
       "id": "bug-001",
       "timestamp": "2026-05-25T15:38:17.023Z",
       "error_message": "Significant refactor of ",
@@ -714,6 +896,3660 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-05-27T22:10:28.006Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-06-01T13:07:16.564Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Had 'image_url'",
+      "fix": "Changed to 'featured_image'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T13:07:16.564Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-06-01T13:07:18.642Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/YouCanConnector.php",
+      "root_cause": "Had 'image_url'",
+      "fix": "Changed to 'featured_image'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T13:07:18.642Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "error_message": "Product images never appear in the UI for any platform after sync",
+      "file": "app/Connectors/ShopifyConnector.php, app/Connectors/YouCanConnector.php, resources/views/livewire/products/product-index.blade.php",
+      "root_cause": "Two-part issue: (1) Shopify and YouCan connectors emitted 'image_url' in their parsed payload, but ProductSyncService::saveProduct() only reads 'featured_image' — the key mismatch silently dropped the URL on every sync. WooCommerce was unaffected because it already returned 'featured_image'. (2) product-index.blade.php never rendered an image column, so even WooCommerce rows that did persist featured_image were invisible.",
+      "fix": "Normalized Shopify + YouCan parseProduct() to return 'featured_image' (matching WooCommerce and what ProductSyncService consumes). Added extractYouCanFeaturedImage()/extractYouCanImages() helpers that read images[].url (the YouCan API shape) with thumbnail/image fallbacks. Added thumbnail_url accessor on Product model (returns images[1] if present, else featured_image). Added a 40px thumbnail column to product-index.blade.php with loading=lazy, onerror fallback, alt text, and a placeholder SVG when no image exists.",
+      "tags": [
+        "connector",
+        "sync",
+        "image",
+        "field-name-mismatch",
+        "woocommerce",
+        "shopify",
+        "youcan",
+        "blade",
+        "ui"
+      ],
+      "related_bugs": [
+        "bug-044",
+        "bug-045"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-06-01T13:17:57.958Z",
+      "error_message": "Missing import: tailwindcss",
+      "file": "resources/css/app.css",
+      "root_cause": "Module(s) not imported: tailwindcss",
+      "fix": "Added import(s) for tailwindcss",
+      "tags": [
+        "auto-detected",
+        "missing-import",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T13:17:57.958Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "error_message": "[plugin:vite:css] [postcss] It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package",
+      "file": "postcss.config.js, vite.config.js, resources/css/app.css",
+      "root_cause": "Project was half-migrated from Tailwind v3 to v4. tailwindcss@4.0.7 and @tailwindcss/vite@4.1.11 were installed but unused: vite.config.js never wired @tailwindcss/vite, postcss.config.js still used 'tailwindcss: {}' (v4 split that into @tailwindcss/postcss), and app.css still used @tailwind base/components/utilities directives. @tailwindcss/forms was referenced from tailwind.config.js but not installed.",
+      "fix": "1) Wired @tailwindcss/vite into vite.config.js plugins[]. 2) Deleted postcss.config.js entirely (the Vite plugin replaces it). 3) Replaced @tailwind directives in app.css with @import \"tailwindcss\" + @config \"../../tailwind.config.js\" so the v3-style JS config (forms, darkMode:class, Inter, content globs) is still honored. 4) npm install @tailwindcss/forms.",
+      "tags": [
+        "tailwind",
+        "tailwind-v4",
+        "vite",
+        "postcss",
+        "migration",
+        "build"
+      ],
+      "related_bugs": [
+        "bug-049"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-06-01T00:00:00.000Z",
+      "error_message": "Error: Cannot apply unknown utility class `btn` (from @tailwindcss/vite:generate:build)",
+      "file": "resources/css/app.css",
+      "root_cause": "In Tailwind v4, @apply inside @layer components cannot resolve another custom class (e.g. .btn-primary doing @apply btn bg-blue-600). v3 allowed this implicitly; v4 enforces strict utility resolution and components-layer classes are not registered as utilities.",
+      "fix": "Converted every @layer components { .name { @apply ... } } block to @utility name { @apply ...; }. The @utility directive registers the class so other utilities can @apply it. @layer base was kept for element selectors, scrollbar styling, and [x-cloak]. Vite build now produces 137 KB CSS with no errors.",
+      "tags": [
+        "tailwind",
+        "tailwind-v4",
+        "apply",
+        "layer-components",
+        "utility-directive"
+      ],
+      "related_bugs": [
+        "bug-048"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-06-01T15:41:48.973Z",
+      "error_message": "Wrong reference: Pos should be SyncInventoryToWebhooks",
+      "file": "app/Services/Pos/OrderProcessingService.php",
+      "root_cause": "Used \"Pos\" instead of \"SyncInventoryToWebhooks\"",
+      "fix": "Changed Pos → SyncInventoryToWebhooks",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T15:41:48.973Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-06-01T16:43:18.215Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Middleware/RedirectIfNotCashier.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T16:43:18.215Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-06-01T16:43:38.761Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Middleware/RedirectIfCashier.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→8 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T16:43:38.761Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-06-01T16:45:02.915Z",
+      "error_message": "CSS fix: onError",
+      "file": "resources/js/Pages/Pos/CashierLogin.jsx",
+      "root_cause": "onError: () => reset('pin'), → () => reset('pin_code'),",
+      "fix": "Changed onError: () => reset('pin'), → () => reset('pin_code'),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T16:45:02.915Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-06-01T16:58:57.034Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Pos/CashierAuthController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→14 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T16:58:57.034Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-06-01T17:52:50.636Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/User.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-01T17:52:50.636Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-06-02T10:03:06.853Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/User.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T10:03:06.853Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-06-02T10:03:49.404Z",
+      "error_message": "Significant refactor of ",
+      "file": "bootstrap/app.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T10:03:49.404Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-06-02T10:03:53.009Z",
+      "error_message": "Significant refactor of ",
+      "file": "routes/auth.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T10:03:53.009Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-06-02T10:30:12.463Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/User.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T10:30:12.463Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-06-02T13:27:34.197Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Auth/RegisterController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T13:27:34.197Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-06-02T13:32:15.945Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Team / Cashiers',href: '/dashboard/team',     icon: Users → 'Integrations',   href: '/dashboard/integrations', icon: Plug",
+      "fix": "Changed label: 'Team / Cashiers',href: '/dashboard/team',     icon: Users → 'Integrations',   href: '/dashboard/integrations', icon: Plug",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T13:32:15.945Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-06-02T13:32:27.443Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {props.auth?.user?.role && (() => {; const r = ROLE_BADGE[props.auth.user.role] ?? ROLE_BADGE.sto",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-02T13:32:33.402Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-06-02T14:42:04.190Z",
+      "error_message": "Incorrect value in code",
+      "file": "routes/web.php",
+      "root_cause": "Had 'dashboard'",
+      "fix": "Changed to 'index'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T14:42:04.190Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-06-02T15:19:51.641Z",
+      "error_message": "Significant refactor of ",
+      "file": "bootstrap/app.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 12→5 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T15:19:51.641Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-06-02T15:23:58.092Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Onboarding/OnboardingController.php",
+      "root_cause": "Had 'dashboard'",
+      "fix": "Changed to 'dashboard.home'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-02T15:23:58.092Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-06-03T10:00:24.876Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Onboarding/OnboardingController.php",
+      "root_cause": "Had 'dashboard.home'",
+      "fix": "Changed to 'dashboard'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T10:00:24.876Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-06-03T10:59:43.838Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "28 lines replaced/restructured",
+      "fix": "Rewrote 34→6 lines (28 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T10:59:43.838Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-06-03T11:23:57.751Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T11:23:57.751Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-06-03T11:30:02.836Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Stock',      href: '/dashboard/stock',    icon: Layers → 'Warehouses', href: '/dashboard/warehouses', icon: Building2, storeAdminOnly: true",
+      "fix": "Changed label: 'Stock',      href: '/dashboard/stock',    icon: Layers → 'Warehouses', href: '/dashboard/warehouses', icon: Building2, storeAdminOnly: true",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T11:30:02.836Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-06-03T11:46:05.194Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/views/livewire/products/product-sync-modal.blade.php",
+      "root_cause": "Had ', $store) }}\"",
+      "fix": "Changed to ') }}\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T11:46:05.194Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-06-03T12:13:41.075Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T12:13:41.075Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-06-03T12:13:49.836Z",
+      "error_message": "Missing error handling in syncFromPlatform",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-03T12:13:49.836Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-07-11T22:14:01.677Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/Store.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:14:01.677Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-07-11T22:14:11.464Z",
+      "error_message": "Wrong operator: ?? should be ||",
+      "file": "app/Models/Store.php",
+      "root_cause": "Used \"??\" instead of \"||\"",
+      "fix": "Changed operator ?? → ||",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:14:11.464Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-07-11T22:14:47.292Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/User.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:14:47.292Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-07-11T22:15:00.091Z",
+      "error_message": "Wrong reference: EnsureStoreAdmin should be EnsurePermission",
+      "file": "bootstrap/app.php",
+      "root_cause": "Used \"EnsureStoreAdmin\" instead of \"EnsurePermission\"",
+      "fix": "Changed EnsureStoreAdmin → EnsurePermission",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:15:00.091Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-07-11T22:16:30.653Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/StoreController.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→12 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:16:30.653Z"
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-07-11T22:17:06.862Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/TeamController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:17:06.862Z"
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-07-11T22:17:51.529Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Integrations',   href: '/dashboard/integrations', icon: Plug → 'Integrations',   href: '/dashboard/integrations', icon: Plug,      perm: 'integrations.manage'",
+      "fix": "Changed label: 'Integrations',   href: '/dashboard/integrations', icon: Plug → 'Integrations',   href: '/dashboard/integrations', icon: Plug,      perm: 'integrations.manage'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-11T22:17:59.049Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-07-11T22:18:09.304Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Team.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:18:09.304Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-07-11T22:18:18.614Z",
+      "error_message": "CSS fix: render",
+      "file": "resources/js/Pages/Dashboard/Team.jsx",
+      "root_cause": "render: (m) => { → (m) => <RoleBadge name={m.role_name ?? (m.role === 'store_admin' ? 'Administrator' : m.role)",
+      "fix": "Changed render: (m) => { → (m) => <RoleBadge name={m.role_name ?? (m.role === 'store_admin' ? 'Administrator' : m.role)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-11T22:18:25.808Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-07-11T22:18:37.578Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/InviteMember.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:18:37.578Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-07-11T22:36:26.217Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Onboarding/OnboardingController.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→10 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:36:26.217Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-07-11T22:41:51.186Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/User.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 17→33 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:41:51.186Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-07-11T22:42:31.576Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/TeamController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:42:31.576Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-07-11T22:58:27.970Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/TeamController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:58:27.970Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-07-11T22:58:52.932Z",
+      "error_message": "Wrong operator: || should be ===",
+      "file": "app/Http/Controllers/Pos/CashierAuthController.php",
+      "root_cause": "Used \"||\" instead of \"===\"",
+      "fix": "Changed operator || → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:58:52.932Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-07-11T22:59:09.222Z",
+      "error_message": "Wrong operator: === should be !==",
+      "file": "resources/js/Pages/Dashboard/Team.jsx",
+      "root_cause": "Used \"===\" instead of \"!==\"",
+      "fix": "Changed operator === → !==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T22:59:09.222Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-07-11T23:10:08.520Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Pos/CashierAuthController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-11T23:10:08.520Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-07-12T12:43:59.772Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Support/PermissionCatalog.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:43:59.772Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-07-12T12:46:38.865Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/Order.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:46:38.865Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-07-12T12:46:56.426Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/Order.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:46:56.426Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-07-12T12:47:25.501Z",
+      "error_message": "Missing error handling in generateInvoicePdf",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:47:25.501Z"
+    },
+    {
+      "id": "bug-094",
+      "timestamp": "2026-07-12T12:50:18.748Z",
+      "error_message": "Wrong reference: OrderController should be InvoiceController",
+      "file": "routes/dashboard.php",
+      "root_cause": "Used \"OrderController\" instead of \"InvoiceController\"",
+      "fix": "Changed OrderController → InvoiceController",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:50:18.748Z"
+    },
+    {
+      "id": "bug-095",
+      "timestamp": "2026-07-12T12:56:30.860Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/Facture.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→4 lines (5 removed) | Also: /** Inject the amendment reason into whichever act; public function tapActivity(Activity $activity, st",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-12T12:56:36.957Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-07-12T12:57:11.819Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Invoicing/InvoiceService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 30→53 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T12:57:11.820Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-07-12T13:20:21.418Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/FacturesController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T13:20:21.418Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-07-12T13:20:35.007Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T13:20:35.007Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-07-12T13:20:53.802Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Orders/Show.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→20 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T13:20:53.802Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-07-12T13:37:01+00:00",
+      "error_message": "SQLSTATE[01000]: Warning: 1265 Data truncated for column 'causer_id' at row 1 (mysql) when logging activity",
+      "file": "database/migrations/2026_07_12_124309_create_activity_log_table.php",
+      "root_cause": "spatie/laravel-activitylog published migration uses nullableMorphs() -> subject_id/causer_id are UNSIGNED BIGINT, but every model here uses ULID (char(26)) keys. MySQL truncates the ULID. SQLite (tests) is untyped so it silently accepted strings, hiding the bug until it hit the MySQL dev DB.",
+      "fix": "New migration 2026_07_12_140001 changes subject_id and causer_id to char(26) via ->change(). Column verified char(26) on MySQL; 16 invoicing tests still pass.",
+      "tags": [
+        "mysql",
+        "ulid",
+        "activitylog",
+        "spatie",
+        "morphs",
+        "truncation",
+        "migration"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-12T13:37:01+00:00"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-07-18T21:21:31.932Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:21:31.932Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-07-18T21:21:40.758Z",
+      "error_message": "Missing error handling in renderFactureReceipt",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:21:40.758Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-07-18T21:22:05.730Z",
+      "error_message": "Missing error handling in email",
+      "file": "app/Http/Controllers/Dashboard/InvoiceController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:22:05.730Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-07-18T21:22:16.333Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/InvoiceController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:22:16.333Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-07-18T21:22:37.564Z",
+      "error_message": "CSS fix: preserveScroll",
+      "file": "resources/js/Pages/Dashboard/FacturesDetail.jsx",
+      "root_cause": "preserveScroll: true → true,",
+      "fix": "Changed preserveScroll: true → true,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-18T21:22:50.634Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-07-18T21:45:38.233Z",
+      "error_message": "Significant refactor of ",
+      "file": "routes/dashboard.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:45:38.233Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-07-18T21:46:16.589Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Orders/Index.jsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 18→25 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:46:16.589Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-07-18T21:51:40.545Z",
+      "error_message": "Orders index had a leftover debug column labeled TEST rendering \"Found it!\"; POS order Print receipt used window.print() (prints dashboard, not receipt)",
+      "file": "resources/js/Pages/Dashboard/Orders/Index.jsx, resources/js/Pages/Dashboard/Orders/Show.jsx",
+      "root_cause": "Debug scaffolding left in columns array; no route existed to stream a POS order 80mm receipt so UI fell back to window.print()",
+      "fix": "Removed TEST column; added GET /dashboard/orders/{order}/receipt (OrderController::receipt) streaming 80mm PDF via DocumentGenerationService::generateReceipt; wired real View + Receipt buttons (links must use PosOrder id, not receipt_number)",
+      "tags": [
+        "pos",
+        "receipt",
+        "inertia",
+        "debug-leftover",
+        "orders"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T21:51:40.548Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-07-18T22:31:19.337Z",
+      "error_message": "Missing error handling in renderReceipt",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T22:31:19.337Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-07-18T22:36:30.764Z",
+      "error_message": "Clicking View Order shows an Inertia not-found popup (404)",
+      "file": "resources/js/Pages/Dashboard/Orders/Index.jsx, resources/js/Pages/Dashboard/Orders/Show.jsx",
+      "root_cause": "View/Receipt links used o.receipt_number, but PosOrder has NO getRouteKeyName() so /dashboard/orders/{order} binds by the default primary key (ULID id). The receipt_number (e.g. ANIQ-20260712-0001) never matches an id, so route-model binding 404s. Earlier assumption that the route key was receipt_number was wrong: line 90 return receipt_number belongs to invoiceReference(), not getRouteKeyName().",
+      "fix": "Changed all POS order links to use o.id / order.id: /dashboard/orders/{id} and /dashboard/orders/{id}/receipt",
+      "tags": [
+        "pos",
+        "orders",
+        "route-model-binding",
+        "404",
+        "inertia",
+        "ulid"
+      ],
+      "related_bugs": [
+        "bug-108"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T22:36:30.765Z"
+    },
+    {
+      "id": "bug-111",
+      "timestamp": "2026-07-18T22:42:28.638Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/PosOrder.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T22:42:28.638Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-07-18T22:42:42.762Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Orders/Show.jsx",
+      "root_cause": "Had `/dashboard/orders/${order.id}/receipt`",
+      "fix": "Changed to `/dashboard/orders/${order.receipt_number}/receipt",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T22:42:42.762Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-07-18T22:42:47.552Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Index.jsx",
+      "root_cause": "Had `/dashboard/orders/${o.id}`",
+      "fix": "Changed to `/dashboard/orders/${o.receipt_number}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-18T22:42:47.552Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-07-19T12:06:16.460Z",
+      "error_message": "Orphan audit nearly deleted AppLivewireActionsLogout, which IS used by the Volt verify-email page and the delete-user settings modal (via use-statement + method injection)",
+      "file": "app/Livewire/Actions/Logout.php",
+      "root_cause": "Automated reference-grep mis-escaped the backslashed namespace and falsely reported Logout as CLEAN. Blade/Volt files reference it via 'use AppLivewireActionsLogout;' + type-hinted method injection, not <livewire:> tags.",
+      "fix": "Restored Logout.php via git checkout before committing Stage 2. When auditing Livewire orphans, grep for 'use AppLivewire...' and type-hint injection in .blade.php, not just <livewire:> tags and ::class.",
+      "tags": [
+        "cleanup",
+        "livewire",
+        "volt",
+        "audit",
+        "false-positive",
+        "logout"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T12:06:16.461Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-07-19T12:40:27.344Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 16→28 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T12:40:27.344Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-07-19T12:41:15.165Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Layouts/PosLayout.jsx",
+      "root_cause": "Had \"min-h-screen bg-gray-950 text-slate-200 font-sans",
+      "fix": "Changed to \"h-dvh overflow-hidden bg-gray-950 text-slate-200 ",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T12:41:15.165Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-07-19T12:41:21.134Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "Had \"flex-1 flex flex-col text-white\"",
+      "fix": "Changed to \"flex-1 min-h-0 flex flex-col text-white\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T12:41:21.134Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-07-19T12:41:28.373Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Pos/Components/Cart.jsx",
+      "root_cause": "Had \"flex flex-col w-full lg:w-96 bg-gray-800 border-l",
+      "fix": "Changed to \"flex flex-col w-full lg:w-96 lg:h-full min-h-0 ma",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-19T12:41:40.350Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-07-19T12:50:28.937Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "resources/views/app.blade.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T12:50:28.937Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-07-19T13:08:35.876Z",
+      "error_message": "Wrong reference: 2A2D3A should be line",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Used \"2A2D3A\" instead of \"line\"",
+      "fix": "Changed 2A2D3A → line",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 12,
+      "last_seen": "2026-07-19T13:09:02.466Z"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-07-19T13:09:07.144Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Had \"font-bold text-white text-sm tracking-tight\"",
+      "fix": "Changed to \"font-bold text-content text-sm tracking-tight\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T13:09:07.144Z"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-07-19T13:13:16.434Z",
+      "error_message": "Wrong reference: 2A2D3A should be line",
+      "file": "resources/js/Pages/Dashboard/Index.jsx",
+      "root_cause": "Used \"2A2D3A\" instead of \"line\"",
+      "fix": "Changed 2A2D3A → line",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 20,
+      "last_seen": "2026-07-19T13:15:49.069Z"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-07-19T15:02:31.407Z",
+      "error_message": "Dark/light toggle does not work on POS view",
+      "file": "resources/js/Layouts/PosLayout.jsx, resources/js/Pages/Pos/**",
+      "root_cause": "The theme toggle flips .dark on <html> globally and works, but the entire POS view is hardcoded dark (bg-gray-950/900/800, text-white) with no dark:/token usage, so switching to light produces no visible change.",
+      "fix": "FIXED: tokenized PosLayout + all Pos/Components (Dashboard, Cart, CartItem, Checkout, SearchBar, ProductCard, ProductGrid, ProductViewControls, SessionStatus). Neutral gray buttons -> bg-content/10 text-content. InvoiceModal intentionally left light (it is a printable receipt/invoice document).",
+      "tags": [
+        "theme",
+        "dark-mode",
+        "pos",
+        "tokens",
+        "not-working"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:02:31.408Z"
+    },
+    {
+      "id": "bug-124",
+      "timestamp": "2026-07-19T15:05:31.286Z",
+      "error_message": "Wrong reference: gray should be line",
+      "file": "resources/js/Pages/Pos/Components/Cart.jsx",
+      "root_cause": "Used \"gray\" instead of \"line\"",
+      "fix": "Changed gray → line",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-19T15:05:47.323Z"
+    },
+    {
+      "id": "bug-125",
+      "timestamp": "2026-07-19T15:05:34.425Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Pages/Pos/Components/Cart.jsx",
+      "root_cause": "hover: bg-gray-600 → bg-content/20",
+      "fix": "Changed hover: bg-gray-600 → bg-content/20",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:05:34.425Z"
+    },
+    {
+      "id": "bug-126",
+      "timestamp": "2026-07-19T15:07:11.672Z",
+      "error_message": "Wrong reference: gray should be surface",
+      "file": "resources/js/Layouts/PosLayout.jsx",
+      "root_cause": "Used \"gray\" instead of \"surface\"",
+      "fix": "Changed gray → surface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 9,
+      "last_seen": "2026-07-19T15:07:30.102Z"
+    },
+    {
+      "id": "bug-127",
+      "timestamp": "2026-07-19T15:07:14.719Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Layouts/PosLayout.jsx",
+      "root_cause": "hover: bg-gray-800 → bg-surface-3",
+      "fix": "Changed hover: bg-gray-800 → bg-surface-3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:07:14.719Z"
+    },
+    {
+      "id": "bug-128",
+      "timestamp": "2026-07-19T15:07:42.288Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "Had \"px-4 py-2 bg-emerald-500/10 border-b border-emera",
+      "fix": "Changed to \"px-4 py-2 bg-emerald-500/10 border-b border-emera",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-07-19T15:08:03.882Z"
+    },
+    {
+      "id": "bug-129",
+      "timestamp": "2026-07-19T15:08:41.489Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Pos/Components/SessionStatus.jsx",
+      "root_cause": "Had 'bg-emerald-500/15 text-emerald-300 border border-",
+      "fix": "Changed to 'bg-emerald-500/15 text-emerald-700 dark:text-emer",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-19T15:08:46.619Z"
+    },
+    {
+      "id": "bug-130",
+      "timestamp": "2026-07-19T15:09:58.742Z",
+      "error_message": "Wrong reference: 22252F should be surface",
+      "file": "resources/js/Components/UserDropdown.jsx",
+      "root_cause": "Used \"22252F\" instead of \"surface\"",
+      "fix": "Changed 22252F → surface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-07-19T15:10:09.955Z"
+    },
+    {
+      "id": "bug-131",
+      "timestamp": "2026-07-19T15:10:16.405Z",
+      "error_message": "Wrong reference: 22252F should be surface",
+      "file": "resources/js/Components/StoreSwitcher.jsx",
+      "root_cause": "Used \"22252F\" instead of \"surface\"",
+      "fix": "Changed 22252F → surface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-07-19T15:10:27.986Z"
+    },
+    {
+      "id": "bug-132",
+      "timestamp": "2026-07-19T15:34:25.432Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Roles/Form.jsx",
+      "root_cause": "Had \"text-sm font-medium text-white\"",
+      "fix": "Changed to \"text-sm font-medium text-content\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:34:25.432Z"
+    },
+    {
+      "id": "bug-133",
+      "timestamp": "2026-07-19T15:41:14.615Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "Had \"p-1 text-content-muted hover:text-gray-700\"",
+      "fix": "Changed to \"p-1 text-content-muted hover:text-content\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-19T15:41:20.442Z"
+    },
+    {
+      "id": "bug-134",
+      "timestamp": "2026-07-19T15:42:40.720Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/SyncProductsModal.jsx",
+      "root_cause": "Had \"w-full mt-4 bg-surface-3 hover:bg-content/10 text",
+      "fix": "Changed to \"w-full mt-4 bg-surface-3 hover:bg-content/10 text",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:42:40.720Z"
+    },
+    {
+      "id": "bug-135",
+      "timestamp": "2026-07-19T15:56:07.780Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/Filters/FilterSidebar.jsx",
+      "root_cause": "Had \"hidden lg:block w-72 flex-shrink-0\"",
+      "fix": "Changed to `hidden lg:block w-72 flex-shrink-0 ${className}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:56:07.780Z"
+    },
+    {
+      "id": "bug-136",
+      "timestamp": "2026-07-19T15:56:55.750Z",
+      "error_message": "CSS fix: lg",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "lg: flex-row min-h-0\"> → hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-line text-sm font-medium text-content-muted hover:text-content\"",
+      "fix": "Changed lg: flex-row min-h-0\"> → hidden inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-2 border border-line text-sm font-medium text-content-muted hover:text-content\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-19T15:56:55.750Z"
+    },
+    {
+      "id": "bug-137",
+      "timestamp": "2026-07-22T15:33:33.972Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/PosOrder.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T15:33:33.972Z"
+    },
+    {
+      "id": "bug-138",
+      "timestamp": "2026-07-22T15:54:48.528Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T15:54:48.528Z"
+    },
+    {
+      "id": "bug-139",
+      "timestamp": "2026-07-22T15:55:21.253Z",
+      "error_message": "Significant refactor of ",
+      "file": "routes/dashboard.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T15:55:21.253Z"
+    },
+    {
+      "id": "bug-140",
+      "timestamp": "2026-07-23T10:23:54.007Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Had '/dashboard/orders'",
+      "fix": "Changed to '/dashboard/orders/manage'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-23T10:23:54.007Z"
+    },
+    {
+      "id": "bug-141",
+      "timestamp": "2026-07-24T10:35:22.179Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Pos/OrderProcessingService.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 10→17 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T10:35:22.179Z"
+    },
+    {
+      "id": "bug-142",
+      "timestamp": "2026-07-24T10:36:09.474Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T10:36:09.474Z"
+    },
+    {
+      "id": "bug-143",
+      "timestamp": "2026-07-24T10:36:49.452Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Pos/Components/Checkout.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→53 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T10:36:49.452Z"
+    },
+    {
+      "id": "bug-144",
+      "timestamp": "2026-07-24T10:36:57.217Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Pos/Components/Checkout.jsx",
+      "root_cause": "dark: text-red-400\">Company name is required to issue an A4 invoice.</p> → text-red-400\">A delivery address is required for delivery orders.</p>",
+      "fix": "Changed dark: text-red-400\">Company name is required to issue an A4 invoice.</p> → text-red-400\">A delivery address is required for delivery orders.</p>",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T10:36:57.217Z"
+    },
+    {
+      "id": "bug-145",
+      "timestamp": "2026-07-24T14:23:06.362Z",
+      "error_message": "Missing error handling in up",
+      "file": "database/migrations/2026_07_22_120000_add_fulfillment_status_to_orders.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:23:06.362Z"
+    },
+    {
+      "id": "bug-146",
+      "timestamp": "2026-07-24T14:25:31.134Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Enums/FulfillmentStatus.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:25:31.134Z"
+    },
+    {
+      "id": "bug-147",
+      "timestamp": "2026-07-24T14:29:34.804Z",
+      "error_message": "Wrong reference: withSum should be withSellableStock",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Used \"withSum\" instead of \"withSellableStock\"",
+      "fix": "Changed withSum → withSellableStock",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:29:34.804Z"
+    },
+    {
+      "id": "bug-148",
+      "timestamp": "2026-07-24T14:32:13.635Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/Product.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 10→10 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:32:13.635Z"
+    },
+    {
+      "id": "bug-149",
+      "timestamp": "2026-07-24T14:49:57.000Z",
+      "error_message": "Latent: MySQL 1265 Data truncated for column fulfillment_status (would fire on any state beyond the original 5); SQLite CHECK-constraint violation for the same values",
+      "file": "database/migrations/2026_07_22_120000_add_fulfillment_status_to_orders.php",
+      "root_cause": "fulfillment_status on orders + pos_orders was created as a native ENUM over 5 states. The order lifecycle needed 10 (confirmed, delivered, returned, under_inspection, return_completed). MySQL silently truncates values outside an ENUM; Laravel 13 SQLiteGrammar::typeEnum() compiles to varchar check(col in (...)), so the in-memory test DB rejects them too - the test suite would have failed differently rather than catching the production bug.",
+      "fix": "Amended 2026_07_22_120000 to use string(32) so fresh/test databases never create the constraint, and added 2026_07_24_130000_widen_fulfillment_status_columns: driver-aware raw ALTER TABLE ... MODIFY VARCHAR(32) for mysql/mariadb only (no-op on fresh DBs, skipped on SQLite) plus (store_id, fulfillment_status) indexes. App\\Enums\\FulfillmentStatus now does the validating. Verified by migrating a scratch SQLite DB and a test that persists all 10 states.",
+      "tags": [
+        "migration",
+        "mysql",
+        "enum",
+        "sqlite",
+        "fulfillment",
+        "order-lifecycle",
+        "error-1265"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T14:49:57.000Z"
+    },
+    {
+      "id": "bug-150",
+      "timestamp": "2026-07-24T15:04:14.409Z",
+      "error_message": "Wrong reference: OrderReturn should be PosOrder",
+      "file": "app/Services/Orders/OrderWorkflowService.php",
+      "root_cause": "Used \"OrderReturn\" instead of \"PosOrder\"",
+      "fix": "Changed OrderReturn → PosOrder",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:04:14.409Z"
+    },
+    {
+      "id": "bug-151",
+      "timestamp": "2026-07-24T15:05:32.789Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/Order.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:05:32.789Z"
+    },
+    {
+      "id": "bug-152",
+      "timestamp": "2026-07-24T15:10:35.758Z",
+      "error_message": "Missing error handling in updateStatus",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:10:35.758Z"
+    },
+    {
+      "id": "bug-153",
+      "timestamp": "2026-07-24T15:21:47.136Z",
+      "error_message": "Wrong reference: RoleController should be ReturnController",
+      "file": "routes/dashboard.php",
+      "root_cause": "Used \"RoleController\" instead of \"ReturnController\"",
+      "fix": "Changed RoleController → ReturnController",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:21:47.136Z"
+    },
+    {
+      "id": "bug-154",
+      "timestamp": "2026-07-24T15:52:03.000Z",
+      "error_message": "SQLSTATE[23000]: Integrity constraint violation: 19 CHECK constraint failed: source (insert into inventory_adjustments ... source = online_order)",
+      "file": "database/migrations/2026_07_24_130003_widen_inventory_adjustment_source.php",
+      "root_cause": "inventory_adjustments.source was created as a native ENUM(pos_sale,pos_refund,manual,import,webhook) in 2026_06_01_120004. The order lifecycle writes two new sources - online_order (stock committed on confirm / released on cancel) and return_restock (resellable goods put back after inspection) - which the ENUM rejects. Second instance of the same class of bug in one session; fulfillment_status was the first (bug-149).",
+      "fix": "Added 2026_07_24_130003: raw ALTER TABLE ... MODIFY source VARCHAR(32) on mysql/mariadb, and a Schema::table ->change() rebuild on SQLite (a CHECK constraint cannot be dropped in place there). 14 failing tests went green. Rule recorded in cerebrum: grep the migration for enum( before adding a value to any status/type/source column.",
+      "tags": [
+        "migration",
+        "mysql",
+        "sqlite",
+        "enum",
+        "check-constraint",
+        "inventory",
+        "order-lifecycle",
+        "stock"
+      ],
+      "related_bugs": [
+        "bug-149"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:52:03.000Z"
+    },
+    {
+      "id": "bug-155",
+      "timestamp": "2026-07-24T15:52:49.998Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "docs/order-lifecycle.md",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:52:49.998Z"
+    },
+    {
+      "id": "bug-156",
+      "timestamp": "2026-07-24T15:58:50.520Z",
+      "error_message": "CSS fix: pending",
+      "file": "resources/js/Components/StatusBadge.jsx",
+      "root_cause": "pending: 'amber', in_progress: 'blue', ready_for_delivery: 'cyan', → 'amber', confirmed: 'blue', in_progress: 'indigo',",
+      "fix": "Changed pending: 'amber', in_progress: 'blue', ready_for_delivery: 'cyan', → 'amber', confirmed: 'blue', in_progress: 'indigo',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T15:58:50.520Z"
+    },
+    {
+      "id": "bug-157",
+      "timestamp": "2026-07-24T16:02:31.064Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→17 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T16:02:31.064Z"
+    },
+    {
+      "id": "bug-158",
+      "timestamp": "2026-07-24T16:29:19.736Z",
+      "error_message": "CSS fix: value, amber",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "value: 'cancelled',          label: 'Cancelled',          color: 'slate' → 'closed',       label: 'Closed',       icon: Archive,         perm: 'orders.view',    phases: ['closed']; amber: 'bg-amber-400', blue: 'bg-blue-400', cyan: 'bg-cyan-400', → 'bg-amber-400', blue: 'bg-blue-400', cyan: 'bg-cyan-400', indigo: 'bg-indigo-400',",
+      "fix": "Changed value: 'cancelled',          label: 'Cancelled',          color: 'slate' → 'closed',       label: 'Closed',       icon: Archive,         perm: 'orders.view',    phases: ['closed']; amber: 'bg-amber-400', blue: 'bg-blue-400', cyan: 'bg-cyan-400', → 'bg-amber-400', blue: 'bg-blue-400', cyan: 'bg-cyan-400', indigo: 'bg-indigo-400',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-24T16:31:07.897Z"
+    },
+    {
+      "id": "bug-159",
+      "timestamp": "2026-07-24T16:32:26.408Z",
+      "error_message": "Missing guard clause",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "No early return/throw for edge case: ! allowed",
+      "fix": "Added guard clause: if (! allowed)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T16:32:26.408Z"
+    },
+    {
+      "id": "bug-160",
+      "timestamp": "2026-07-24T16:33:05.451Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: /* Tailwind needs whole class names, so the lane count maps ; const GRID_COLS = {",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T16:33:33.457Z"
+    },
+    {
+      "id": "bug-161",
+      "timestamp": "2026-07-24T16:36:31.930Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Orders',     href: '/dashboard/orders/manage', icon: ShoppingCart, perm: 'orders.view' → 'Returns',    href: '/dashboard/orders/returns', icon: Undo2,       perm: 'orders.inspect'",
+      "fix": "Changed label: 'Orders',     href: '/dashboard/orders/manage', icon: ShoppingCart, perm: 'orders.view' → 'Returns',    href: '/dashboard/orders/returns', icon: Undo2,       perm: 'orders.inspect'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T16:36:31.930Z"
+    },
+    {
+      "id": "bug-162",
+      "timestamp": "2026-07-24T17:02:24.970Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/order-lifecycle.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:02:24.970Z"
+    },
+    {
+      "id": "bug-163",
+      "timestamp": "2026-07-24T17:20:09.790Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Support/PermissionCatalog.php",
+      "root_cause": "Had 'Warehouse: pack, mark ready and mark delivered.'",
+      "fix": "Changed to 'Warehouse: pick, pack and mark orders ready for d",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:20:09.790Z"
+    },
+    {
+      "id": "bug-164",
+      "timestamp": "2026-07-24T17:20:38.165Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Enums/FulfillmentStatus.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 15→20 lines (4 removed) | Also: return ($from ?? self::Pending)->phase() === 'conf; ? 'orders.confirm'",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-24T17:20:51.363Z"
+    },
+    {
+      "id": "bug-165",
+      "timestamp": "2026-07-24T17:36:53.018Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "Had 'total'",
+      "fix": "Changed to 'delivery_address'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:36:53.018Z"
+    },
+    {
+      "id": "bug-166",
+      "timestamp": "2026-07-24T17:37:26.027Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ReturnController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→6 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:37:26.027Z"
+    },
+    {
+      "id": "bug-167",
+      "timestamp": "2026-07-24T17:38:36.349Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Returns',    href: '/dashboard/orders/returns', icon: Undo2,       perm: 'orders.inspect' → 'Returns',      href: '/dashboard/orders/returns',           icon: Undo2,          perm: 'orders.inspect'",
+      "fix": "Changed label: 'Returns',    href: '/dashboard/orders/returns', icon: Undo2,       perm: 'orders.inspect' → 'Returns',      href: '/dashboard/orders/returns',           icon: Undo2,          perm: 'orders.inspect'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:38:36.349Z"
+    },
+    {
+      "id": "bug-168",
+      "timestamp": "2026-07-24T17:40:28.536Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Models/PosOrder.php",
+      "root_cause": "Had 'customer_type'",
+      "fix": "Changed to 'assigned_at'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-24T17:40:28.536Z"
+    },
+    {
+      "id": "bug-169",
+      "timestamp": "2026-07-25T12:42:36.726Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/DispatchService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T12:42:36.726Z"
+    },
+    {
+      "id": "bug-170",
+      "timestamp": "2026-07-25T12:42:56.049Z",
+      "error_message": "Missing error handling in renderManifest",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T12:42:56.049Z"
+    },
+    {
+      "id": "bug-171",
+      "timestamp": "2026-07-25T13:14:40.529Z",
+      "error_message": "Wrong return value",
+      "file": "app/Enums/FulfillmentType.php",
+      "root_cause": "Was returning: $this === self::Delivery ? FulfillmentStatus::Pend",
+      "fix": "Now returns: $this === self::Delivery ? FulfillmentStatus::Conf",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T13:14:40.529Z"
+    },
+    {
+      "id": "bug-172",
+      "timestamp": "2026-07-25T13:57:01.318Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Support/PermissionCatalog.php",
+      "root_cause": "Had 'orders.return'",
+      "fix": "Changed to 'orders.deliver'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T13:57:01.318Z"
+    },
+    {
+      "id": "bug-173",
+      "timestamp": "2026-07-25T13:57:33.414Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Orders/DispatchService.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 32→40 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T13:57:33.414Z"
+    },
+    {
+      "id": "bug-174",
+      "timestamp": "2026-07-25T13:58:05.670Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/DispatchService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T13:58:05.670Z"
+    },
+    {
+      "id": "bug-175",
+      "timestamp": "2026-07-25T13:58:59.228Z",
+      "error_message": "Wrong reference: DepartmentController should be DeliveryController",
+      "file": "routes/dashboard.php",
+      "root_cause": "Used \"DepartmentController\" instead of \"DeliveryController\"",
+      "fix": "Changed DepartmentController → DeliveryController",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T13:58:59.228Z"
+    },
+    {
+      "id": "bug-176",
+      "timestamp": "2026-07-25T14:14:05.735Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/DispatchService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:14:05.735Z"
+    },
+    {
+      "id": "bug-177",
+      "timestamp": "2026-07-25T14:24:38.963Z",
+      "error_message": "Wrong reference: EnsureCanAccessDashboard should be ConfineDeliveryAgent",
+      "file": "bootstrap/app.php",
+      "root_cause": "Used \"EnsureCanAccessDashboard\" instead of \"ConfineDeliveryAgent\"",
+      "fix": "Changed EnsureCanAccessDashboard → ConfineDeliveryAgent",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:24:38.963Z"
+    },
+    {
+      "id": "bug-178",
+      "timestamp": "2026-07-25T14:24:53.110Z",
+      "error_message": "Incorrect value in code",
+      "file": "routes/dashboard.php",
+      "root_cause": "Had 'dashboard'",
+      "fix": "Changed to 'confine_driver'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:24:53.110Z"
+    },
+    {
+      "id": "bug-179",
+      "timestamp": "2026-07-25T14:25:12.456Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Layouts/DeliveryAgentLayout.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:25:12.456Z"
+    },
+    {
+      "id": "bug-180",
+      "timestamp": "2026-07-25T14:51:41.024Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Models/PosOrder.php",
+      "root_cause": "Had 'total_amount'",
+      "fix": "Changed to 'delivery_fee'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:51:41.024Z"
+    },
+    {
+      "id": "bug-181",
+      "timestamp": "2026-07-25T14:52:01.740Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Pos/CheckoutController.php",
+      "root_cause": "Had 'customer_type'",
+      "fix": "Changed to 'delivery_fee'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:52:01.740Z"
+    },
+    {
+      "id": "bug-182",
+      "timestamp": "2026-07-25T14:52:16.557Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:52:16.557Z"
+    },
+    {
+      "id": "bug-183",
+      "timestamp": "2026-07-25T14:52:32.683Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 17→22 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:52:32.683Z"
+    },
+    {
+      "id": "bug-184",
+      "timestamp": "2026-07-25T14:52:39.575Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "Had 'CLEAR_CART'",
+      "fix": "Changed to 'SET_DELIVERY'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T14:52:39.575Z"
+    },
+    {
+      "id": "bug-185",
+      "timestamp": "2026-07-25T15:06:20.033Z",
+      "error_message": "Wrong reference: MyDeliveries should be DeliveryAgentView",
+      "file": "resources/js/Pages/Delivery/DeliveryAgentView.jsx",
+      "root_cause": "Used \"MyDeliveries\" instead of \"DeliveryAgentView\"",
+      "fix": "Changed MyDeliveries → DeliveryAgentView",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T15:06:20.033Z"
+    },
+    {
+      "id": "bug-186",
+      "timestamp": "2026-07-25T15:06:27.237Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Dashboard/DeliveryController.php",
+      "root_cause": "Had 'Dashboard/Delivery/MyDeliveries'",
+      "fix": "Changed to 'Delivery/DeliveryAgentView'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T15:06:27.237Z"
+    },
+    {
+      "id": "bug-187",
+      "timestamp": "2026-07-25T15:06:33.601Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Orders/DeliveryAgentTest.php",
+      "root_cause": "Had 'Dashboard/Delivery/MyDeliveries'",
+      "fix": "Changed to 'Delivery/DeliveryAgentView'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T15:06:33.601Z"
+    },
+    {
+      "id": "bug-188",
+      "timestamp": "2026-07-25T15:06:48.342Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/User.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 19→38 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-25T15:06:48.342Z"
+    },
+    {
+      "id": "bug-190",
+      "timestamp": "2026-07-26T12:50:28.961Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/SyncService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 22→31 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:50:28.961Z"
+    },
+    {
+      "id": "bug-191",
+      "timestamp": "2026-07-26T12:50:47.100Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Jobs/SyncPlatformOrders.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T12:50:47.100Z"
+    },
+    {
+      "id": "bug-192",
+      "timestamp": "2026-07-26T12:56:17.766Z",
+      "error_message": "Significant refactor of ",
+      "file": "DEVELOPER_GUIDE.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→4 lines (4 removed) | Also: Use Tinker to invoke the exact same live code path; The return value is the `SyncLog` row — inspect `$",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T12:56:44.237Z"
+    },
+    {
+      "id": "bug-193",
+      "timestamp": "2026-07-26T13:10:53.060Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T13:10:53.060Z"
+    },
+    {
+      "id": "bug-195",
+      "timestamp": "2026-07-26T13:54:38.816Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T13:54:40.996Z"
+    },
+    {
+      "id": "bug-196",
+      "timestamp": "2026-07-26T13:54:41.966Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Connectors/BaseConnector.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T13:54:43.754Z"
+    },
+    {
+      "id": "bug-197",
+      "timestamp": "2026-07-26T13:54:44.808Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T13:54:46.691Z"
+    },
+    {
+      "id": "bug-198",
+      "timestamp": "2026-07-26T13:54:48.483Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T13:54:49.882Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-07-26T13:54:51.314Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Connectors/YouCanConnector.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T13:54:52.620Z"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-07-26T14:18:17.231Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T14:18:17.231Z"
+    },
+    {
+      "id": "bug-202",
+      "timestamp": "2026-07-26T14:18:26.387Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/BaseConnector.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T14:18:26.387Z"
+    },
+    {
+      "id": "bug-203",
+      "timestamp": "2026-07-26T14:18:56.703Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T14:18:56.703Z"
+    },
+    {
+      "id": "bug-207",
+      "timestamp": "2026-07-26T19:12:12.735Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Pos/PosController.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→130 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:12:12.735Z"
+    },
+    {
+      "id": "bug-208",
+      "timestamp": "2026-07-26T19:13:01.376Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:13:01.376Z"
+    },
+    {
+      "id": "bug-209",
+      "timestamp": "2026-07-26T19:13:11.547Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 4→8 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:13:11.547Z"
+    },
+    {
+      "id": "bug-210",
+      "timestamp": "2026-07-26T19:13:22.877Z",
+      "error_message": "Missing error handling in round2",
+      "file": "resources/js/Hooks/useCart.js",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "js"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:13:22.877Z"
+    },
+    {
+      "id": "bug-211",
+      "timestamp": "2026-07-26T19:14:39.369Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Pos/Components/ProductCard.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (3 removed) | Also: <div className=\"text-sm font-semibold text-content; <Plus className=\"w-4 h-4\" />",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T19:15:01.248Z"
+    },
+    {
+      "id": "bug-212",
+      "timestamp": "2026-07-26T19:15:24.041Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "Had './Components/InvoiceModal'",
+      "fix": "Changed to './Components/VariantModal'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:15:24.041Z"
+    },
+    {
+      "id": "bug-213",
+      "timestamp": "2026-07-26T19:15:40.081Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:15:40.081Z"
+    },
+    {
+      "id": "bug-214",
+      "timestamp": "2026-07-26T19:16:13.158Z",
+      "error_message": "Wrong reference: product_id should be line_id",
+      "file": "resources/js/Pages/Pos/Components/CartItem.jsx",
+      "root_cause": "Used \"product_id\" instead of \"line_id\"",
+      "fix": "Changed product_id → line_id",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-26T19:16:23.846Z"
+    },
+    {
+      "id": "bug-215",
+      "timestamp": "2026-07-26T19:17:03.683Z",
+      "error_message": "CSS fix: items",
+      "file": "resources/js/Pages/Pos/Dashboard.jsx",
+      "root_cause": "items: cart.items, // خديناهم من الكارت قبل ما تمسح → cart.items.map((row) => ({",
+      "fix": "Changed items: cart.items, // خديناهم من الكارت قبل ما تمسح → cart.items.map((row) => ({",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:17:03.683Z"
+    },
+    {
+      "id": "bug-217",
+      "timestamp": "2026-07-26T19:32:14.451Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: /**; * Eager-load each product's variants with their sellable sto",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-26T19:32:27.678Z"
+    },
+    {
+      "id": "bug-218",
+      "timestamp": "2026-07-26T19:53:20.964Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/StockMovements.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-26T19:53:20.964Z"
+    },
+    {
+      "id": "bug-220",
+      "timestamp": "2026-07-27T11:41:08.822Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 25→44 lines (3 removed) | Also: ->get(['id', 'price']);; $lowStockCount   = $productsWithStock->filter(fn ( | Also: 'reason'                       => ['required', 'in; 'notes'                        => ['nullable', 'st | Also: * Apply a single stock delta to the exact (product; * and write the matching ledger entry. Runs inside",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-07-27T11:42:00.481Z"
+    },
+    {
+      "id": "bug-221",
+      "timestamp": "2026-07-27T11:45:41.298Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Had 'info'",
+      "fix": "Changed to 'warning'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T11:45:41.298Z"
+    },
+    {
+      "id": "bug-stock-parent-total-variant-mismatch",
+      "timestamp": "2026-07-27T12:00:00.000Z",
+      "error_message": "Stock page: a variable product card shows total 11, but the Adjust modal shows variants summing to 1 (Black 0 + White 1). Parent total and per-variant totals disagree.",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "presentProduct() sent total_stock straight from Product::scopeWithSellableStock() (withSum over ALL standard-warehouse stock rows). For a VARIABLE product that also sums the legacy product-level row (variant_id = null) left behind by the old variant-blind adjuster (see bug-dashboard-stock-adjust-variant-blind), so total = product-level phantom (10) + variants (0+1). The modal only sums per-variant stock_sum (1).",
+      "fix": "Added StockController::displayStock(Product): for a variable product with its variants loaded it returns the exact sum of variants' sellable stock_sum; simple products keep total_stock. presentProduct() and computeStats() (low-stock count + inventory value) now both go through displayStock so the card, modal, and stat tiles always agree. index()'s having('total_stock') low-stock DB filter is unchanged (documented limitation).",
+      "tags": [
+        "stock",
+        "inventory",
+        "variants",
+        "discrepancy",
+        "dashboard",
+        "react",
+        "total-stock",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-dashboard-stock-adjust-variant-blind"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:00:00.000Z"
+    },
+    {
+      "id": "bug-223",
+      "timestamp": "2026-07-27T12:11:17.578Z",
+      "error_message": "Missing error handling in renderBonDeSortie",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:11:17.578Z"
+    },
+    {
+      "id": "bug-224",
+      "timestamp": "2026-07-27T12:12:30.733Z",
+      "error_message": "Wrong reference: StoreController should be StockTransferController",
+      "file": "routes/dashboard.php",
+      "root_cause": "Used \"StoreController\" instead of \"StockTransferController\"",
+      "fix": "Changed StoreController → StockTransferController",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:12:30.733Z"
+    },
+    {
+      "id": "bug-225",
+      "timestamp": "2026-07-27T12:12:42.297Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Had 'reason'",
+      "fix": "Changed to 'transfer'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:12:42.297Z"
+    },
+    {
+      "id": "bug-226",
+      "timestamp": "2026-07-27T12:13:05.772Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Stock.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:13:05.772Z"
+    },
+    {
+      "id": "bug-227",
+      "timestamp": "2026-07-27T12:13:17.832Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Pages/Dashboard/Stock.jsx",
+      "root_cause": "hover: bg-surface-3 hover:text-content transition\" → bg-indigo-500 transition\"",
+      "fix": "Changed hover: bg-surface-3 hover:text-content transition\" → bg-indigo-500 transition\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T12:13:17.832Z"
+    },
+    {
+      "id": "bug-php-stub-silent-noop",
+      "timestamp": "2026-07-27T13:30:00.000Z",
+      "error_message": "`php -l` and `php artisan test` returned exit 0 with NO output and did not actually run — lint/tests only appeared to pass.",
+      "file": "C:/WINDOWS/system32/php",
+      "root_cause": "`php` first on PATH (command -v php -> /c/WINDOWS/system32/php) is a 0-byte stub file. Executing it does nothing and returns exit 0, so php-based lint/test commands are silent no-ops that falsely look green.",
+      "fix": "Use the real Herd binary ~/.config/herd/bin/php84.bat (PHP 8.4.20) for all lint/artisan/test commands; it prints a real pest JSON result line. php.exe is not on PowerShell PATH.",
+      "tags": [
+        "environment",
+        "php",
+        "tooling",
+        "windows",
+        "false-pass",
+        "do-not-repeat"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T13:30:00.000Z"
+    },
+    {
+      "id": "bug-stock-transfer-module",
+      "timestamp": "2026-07-27T13:35:00.000Z",
+      "error_message": "Feature request: dedicated Stock Transfer & Outbound Movement (Bon de Sortie) module, separate from the quick adjust modal.",
+      "file": "app/Services/Stocks/StockTransferService.php",
+      "root_cause": "N/A - new feature. Transfers previously only existed as a 'transfer' reason in the quick adjust modal, which could not model source/destination, multi-item selection, or produce an exit slip.",
+      "fix": "Added stock_transfers + stock_transfer_items tables, models, StockTransferService (transactional double-entry into stock_ledger type=transfer), StockTransferController (index/create/store/slip), Bon de Sortie A4 PDF (documents.bon-de-sortie via DocumentGenerationService::renderBonDeSortie), routes under /dashboard/stock/transfers, and React pages StockTransfers.jsx + StockTransferCreate.jsx. Removed 'transfer' from the quick modal + adjustStock validation.",
+      "tags": [
+        "stock",
+        "transfer",
+        "bon-de-sortie",
+        "inventory",
+        "pdf",
+        "feature",
+        "react",
+        "inertia"
+      ],
+      "related_bugs": [
+        "bug-stock-parent-total-variant-mismatch"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T13:35:00.000Z"
+    },
+    {
+      "id": "bug-230",
+      "timestamp": "2026-07-27T13:15:22.136Z",
+      "error_message": "Wrong reference: Str should be Facades",
+      "file": "app/Models/Store.php",
+      "root_cause": "Used \"Str\" instead of \"Facades\"",
+      "fix": "Changed Str → Facades",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T13:15:22.136Z"
+    },
+    {
+      "id": "bug-231",
+      "timestamp": "2026-07-27T13:16:06.156Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/Store.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T13:16:06.156Z"
+    },
+    {
+      "id": "bug-232",
+      "timestamp": "2026-07-27T13:21:42.882Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/WarehouseController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T13:21:42.882Z"
+    },
+    {
+      "id": "bug-warehouse-not-in-transfer-dropdown",
+      "timestamp": "2026-07-27T14:10:00.000Z",
+      "error_message": "A newly created secondary warehouse does not appear in the Source/Destination dropdowns of the Stock Transfer form — only the default warehouse shows.",
+      "file": "app/Http/Controllers/Dashboard/WarehouseController.php",
+      "root_cause": "Two competing notions of 'the store's warehouses'. WarehouseController::store() creates a Warehouse with user_id but NEVER attaches it to the warehouse_store pivot. The Warehouses list page queries by user_id (so it shows there), but all stock features — StockTransferController's warehousePayload/availability, Store::getPrimaryWarehouse/getDamagedWarehouse — read the pivot ($store->warehouses()). Only the auto-created default attaches itself, so a manually created warehouse is invisible to transfers. The frontend dropdown was already dynamic (warehouses.map) — not the cause.",
+      "fix": "Added Store::attachOwnerWarehouses() (idempotent; attaches warehouses owned by the store's user that are attached to NO store via whereDoesntHave('stores'), so it never steals another store's warehouse) and Store::markPrimaryWarehouse(). WarehouseController::store() now attaches the new warehouse to the active store (and honors is_default by marking it primary). StockTransferController::create() calls attachOwnerWarehouses() to self-heal already-orphaned warehouses on page load. Tests: 3 new in StockTransferTest (7 total).",
+      "tags": [
+        "warehouse",
+        "pivot",
+        "warehouse_store",
+        "stock",
+        "transfer",
+        "multi-tenancy",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-stock-transfer-module"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T14:10:00.000Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-07-27T13:56:04.695Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * Eager-load each product's variants with the attribute valu; * display names. Per-warehouse quantities come from loadBrea",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-27T13:59:06.911Z"
+    },
+    {
+      "id": "bug-235",
+      "timestamp": "2026-07-27T14:01:03.758Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {warehouse?.name && (; <p className=\"mt-1 inline-flex items-center gap-1 px-1.5 py-",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-27T14:02:44.419Z"
+    },
+    {
+      "id": "bug-236",
+      "timestamp": "2026-07-27T14:01:33.041Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→10 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T14:01:33.041Z"
+    },
+    {
+      "id": "bug-237",
+      "timestamp": "2026-07-27T14:11:04.300Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Stocks/StockDashboardTest.php",
+      "root_cause": "Had 'user_id'",
+      "fix": "Changed to 'role'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T14:11:04.300Z"
+    },
+    {
+      "id": "bug-238",
+      "timestamp": "2026-07-27T15:03:36.945Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "resources/js/Pages/Dashboard/Stock.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T15:03:36.945Z"
+    },
+    {
+      "id": "bug-239",
+      "timestamp": "2026-07-27T15:05:05.699Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Stock.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T15:05:05.699Z"
+    },
+    {
+      "id": "bug-240",
+      "timestamp": "2026-07-27T23:05:30.055Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:05:30.055Z"
+    },
+    {
+      "id": "bug-241",
+      "timestamp": "2026-07-27T23:06:03.917Z",
+      "error_message": "Wrong reference: PosOrder should be Order",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Used \"PosOrder\" instead of \"Order\"",
+      "fix": "Changed PosOrder → Order",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:06:03.917Z"
+    },
+    {
+      "id": "bug-242",
+      "timestamp": "2026-07-27T23:06:12.507Z",
+      "error_message": "Missing error handling in renderOnlineReceipt",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:06:12.507Z"
+    },
+    {
+      "id": "bug-243",
+      "timestamp": "2026-07-27T23:07:15.565Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 45→94 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:07:15.565Z"
+    },
+    {
+      "id": "bug-244",
+      "timestamp": "2026-07-27T23:07:31.881Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:07:31.881Z"
+    },
+    {
+      "id": "bug-245",
+      "timestamp": "2026-07-27T23:07:46.897Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "routes/dashboard.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:07:46.897Z"
+    },
+    {
+      "id": "bug-246",
+      "timestamp": "2026-07-27T23:08:04.323Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/DashboardController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:08:04.323Z"
+    },
+    {
+      "id": "bug-247",
+      "timestamp": "2026-07-27T23:08:33.516Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:08:33.516Z"
+    },
+    {
+      "id": "bug-248",
+      "timestamp": "2026-07-27T23:11:24.745Z",
+      "error_message": "CSS fix: sm",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "sm: grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-4' → grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-5'",
+      "fix": "Changed sm: grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-4' → grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-5'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:11:24.745Z"
+    },
+    {
+      "id": "bug-manage-board-pos-filter-hides-orders",
+      "timestamp": "2026-07-28T00:00:00.000Z",
+      "error_message": "On the Order management board (/dashboard/orders/manage) clicking the 'Direct POS' source tab returns no orders even though test POS orders exist",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "The board filters orders by the active department's phases BEFORE the source tab applies. The default 'All open' department only included phases ['confirmation','fulfillment','returns']. Instant POS sales are created as FulfillmentStatus::Completed whose phase() is 'closed', so every completed POS order was filtered out before the POS source tab could match. A second latent bug: COLUMNS mislabelled ready_for_delivery/delivered as phase 'fulfillment' while the enum phase() returns 'delivery', and no department listed the 'delivery' phase, so delivery-stage orders were dropped from the source/department tallies too.",
+      "fix": "Renamed the default department to 'All orders' and gave it every phase ['confirmation','fulfillment','delivery','returns','closed'] so completed POS sales are visible and the Direct POS tab returns them. Corrected COLUMNS phase for ready_for_delivery/delivered to 'delivery' and added 'delivery' to the Fulfillment + All departments (matches App\\Enums\\FulfillmentStatus::phase). Bumped the board grid fallback to xl:grid-cols-5 so the wider 'All orders' view wraps cleanly. Also added a unified server-filtered orders LIST at /dashboard/orders (OrderController@index) merging POS+Online with a working Source filter as the canonical browse view.",
+      "tags": [
+        "orders",
+        "pos",
+        "online",
+        "filtering",
+        "fulfillment-status",
+        "phase",
+        "manage-board",
+        "react",
+        "inertia",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-28T00:00:00.000Z"
+    },
+    {
+      "id": "bug-250",
+      "timestamp": "2026-07-27T23:42:22.998Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:42:22.998Z"
+    },
+    {
+      "id": "bug-251",
+      "timestamp": "2026-07-27T23:42:53.362Z",
+      "error_message": "CSS fix: value",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "value: 'delivery', label: 'Pending / delivery', icon: Truck → 'online', label: 'Online store', icon: Globe",
+      "fix": "Changed value: 'delivery', label: 'Pending / delivery', icon: Truck → 'online', label: 'Online store', icon: Globe",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-27T23:42:55.475Z"
+    },
+    {
+      "id": "bug-252",
+      "timestamp": "2026-07-27T23:42:57.094Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:42:57.094Z"
+    },
+    {
+      "id": "bug-253",
+      "timestamp": "2026-07-27T23:43:06.918Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "root_cause": "Had 'delivery'",
+      "fix": "Changed to 'pos'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:43:06.918Z"
+    },
+    {
+      "id": "bug-254",
+      "timestamp": "2026-07-27T23:43:18.221Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Orders/PosDeliveryRoutingTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T23:43:18.221Z"
+    },
+    {
+      "id": "bug-order-source-status-conflation",
+      "timestamp": "2026-07-28T00:00:00.000Z",
+      "error_message": "Order management UI: 'Pending / delivery' (a workflow stage) shows in the SOURCE column; clicking the 'Direct POS' source tab shows 0 orders / 'No orders match this view' even though POS orders exist",
+      "file": "app/Support/OrderPresenter.php, resources/js/Pages/Dashboard/Orders/Manage.jsx, resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "root_cause": "OrderPresenter::pos() overloaded the `source` field with the delivery FULFILLMENT concept: for a POS delivery order (status==='pending_delivery') it emitted source='delivery' + source_label='Pending / delivery' instead of the real channel. Two consequences: (1) the Source column/badge rendered the workflow stage 'Pending / delivery' — a status, not a channel; (2) the board's Direct POS tab filters `o.source !== 'pos'`, and POS delivery orders carried source='delivery', so they were excluded — a store whose POS orders are all delivery-type showed 0 under Direct POS. This sat on top of the earlier bug-manage-board-pos-filter-hides-orders (department-phase) fix; this is the deeper modeling defect.",
+      "fix": "Made `source` strictly the sales channel: OrderPresenter::pos() now always emits source='pos'/source_label='Direct POS' and moves the delivery signal to new dedicated fields is_delivery/fulfillment_type/fulfillment_label; online() gained the same fulfillment_* fields. Manage.jsx: dropped the 'delivery' source tab (source tabs are now All/Direct POS/Online store), removed delivery from SOURCE_TONE and the bySource tally, and the drawer 'Fulfillment' row now reads fulfillment_label (Instant pickup / Delivery / later) instead of source_label. Packing.jsx: its 'POS delivery' queue tab now filters on source='pos' (in the packing phase the only POS orders present are delivery ones) instead of the retired source='delivery'. useQueue.js source-union comment updated. POS creation (OrderProcessingService) already sets status/fulfillment_status correctly via FulfillmentType and a pos_orders row is inherently the POS channel, so no schema/source column was added. PosDeliveryRoutingTest updated to assert source==='pos'/source_label==='Direct POS'/is_delivery. Tests: PosDeliveryRouting 5/5, OrderChannelViews+Department 39/39 green (9 OrderManagementTest failures are pre-existing orphaned-Livewire-view errors on the cleanup branch, unrelated).",
+      "tags": [
+        "orders",
+        "pos",
+        "online",
+        "source",
+        "status",
+        "fulfillment",
+        "delivery",
+        "manage-board",
+        "presenter",
+        "react",
+        "inertia",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-manage-board-pos-filter-hides-orders"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-28T00:00:00.000Z"
+    },
+    {
+      "id": "bug-256",
+      "timestamp": "2026-08-19T00:19:09.700Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 14→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:19:09.700Z"
+    },
+    {
+      "id": "bug-257",
+      "timestamp": "2026-08-19T00:34:04.017Z",
+      "error_message": "Missing import: , null, $user);\n    $engine->setOnHand($item, $casa, 10, ",
+      "file": "tests/Feature/Orders/OperationalQueueTest.php",
+      "root_cause": "Module(s) not imported: , null, $user);\n    $engine->setOnHand($item, $casa, 10, ",
+      "fix": "Added import(s) for , null, $user);\n    $engine->setOnHand($item, $casa, 10, ",
+      "tags": [
+        "auto-detected",
+        "missing-import",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:34:04.017Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-08-19T00:34:17.300Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Orders/OperationalQueueTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→5 lines (2 removed) | Also: /** Grant $user a StoreRole (by slug) on $store — ; 'role'          => $roleSlug,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T00:35:22.647Z"
+    },
+    {
+      "id": "bug-259",
+      "timestamp": "2026-08-19T00:41:15.852Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Orders/OperationsQueueService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 14→23 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:41:15.852Z"
+    },
+    {
+      "id": "bug-260",
+      "timestamp": "2026-08-19T00:42:28.851Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Orders/OperationalQueueTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 38→55 lines (4 removed) | Also: // The picker only holds a store role on Client A ; // them team access, even though the same warehous",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T00:43:00.388Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-08-19T10:34:12.511Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Agency/AgencyWorkspaceService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T10:34:12.512Z"
+    },
+    {
+      "id": "bug-262",
+      "timestamp": "2026-08-19T10:35:38.675Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Onboarding/OnboardingController.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 16→29 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T10:35:38.675Z"
+    },
+    {
+      "id": "bug-263",
+      "timestamp": "2026-08-19T10:36:40.710Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Onboarding/MerchantOnboardingController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T10:36:40.710Z"
+    },
+    {
+      "id": "bug-264",
+      "timestamp": "2026-08-19T11:57:16.562Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Providers/FortifyServiceProvider.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 13→32 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T11:57:16.562Z"
+    },
+    {
+      "id": "bug-265",
+      "timestamp": "2026-08-19T11:57:32.618Z",
+      "error_message": "Significant refactor of ",
+      "file": "routes/auth.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T11:57:32.618Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-08-19T12:02:11.569Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Auth/EmailVerificationTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T12:02:11.569Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-08-19T12:44:27.315Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Middleware/HandleInertiaRequests.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T12:44:27.315Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-08-19T12:45:41.113Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/StoreSwitcher.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: <div className=\"w-6 h-6 rounded-md bg-gradient-to-br from-in; <span className=\"flex-1 min-w-0 text-left\">",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T12:46:13.237Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-08-19T12:46:22.692Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/WarehouseController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→12 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T12:46:22.692Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-08-19T12:46:46.625Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Warehouses/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T12:46:46.625Z"
+    },
+    {
+      "id": "bug-271",
+      "timestamp": "2026-08-19T13:25:53.555Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/StoreController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T13:25:53.555Z"
+    },
+    {
+      "id": "bug-272",
+      "timestamp": "2026-08-19T13:26:06.506Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/StoreController.php",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 11→5 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T13:26:06.506Z"
+    },
+    {
+      "id": "bug-273",
+      "timestamp": "2026-08-19T13:27:07.463Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Stores/Edit.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T13:27:07.463Z"
+    },
+    {
+      "id": "bug-274",
+      "timestamp": "2026-08-19T13:27:43.911Z",
+      "error_message": "Wrong return value",
+      "file": "resources/js/app.jsx",
+      "root_cause": "Was returning: pages[`./Pages/${name}.jsx`];",
+      "fix": "Now returns: page;",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T13:27:43.911Z"
     }
   ]
 }

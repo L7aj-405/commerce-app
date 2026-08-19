@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -42,16 +43,42 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Configure Fortify views.
+     *
+     * The project is React/Inertia — these render Inertia pages instead of
+     * Blade/Volt views. All seven Fortify-reachable views are converted now
+     * (login, verify-email, two-factor challenge, confirm-password, register
+     * — the last is dead code today since /register is served by
+     * Auth\RegisterController, kept in sync here for when that ever changes
+     * — plus reset-password and request-password-reset-link, completing the
+     * migration). Fortify passes the current Request into
+     * resetPasswordView's closure so the token/email query params can be
+     * forwarded as props.
      */
     private function configureViews(): void
     {
-        Fortify::loginView(fn () => view('pages.auth.login'));
-        Fortify::verifyEmailView(fn () => view('pages.auth.verify-email'));
-        Fortify::twoFactorChallengeView(fn () => view('pages.auth.two-factor-challenge'));
-        Fortify::confirmPasswordView(fn () => view('pages.auth.confirm-password'));
-        Fortify::registerView(fn () => view('pages.auth.register'));
-        Fortify::resetPasswordView(fn () => view('pages.auth.reset-password'));
-        Fortify::requestPasswordResetLinkView(fn () => view('pages.auth.forgot-password'));
+        Fortify::loginView(fn () => Inertia::render('Auth/Login', [
+            'status' => session('status'),
+            'canResetPassword' => true,
+        ]));
+
+        Fortify::verifyEmailView(fn () => Inertia::render('Auth/VerifyEmail', [
+            'status' => session('status'),
+        ]));
+
+        Fortify::twoFactorChallengeView(fn () => Inertia::render('Auth/TwoFactorChallenge'));
+
+        Fortify::confirmPasswordView(fn () => Inertia::render('Auth/ConfirmPassword'));
+
+        Fortify::registerView(fn () => Inertia::render('Auth/Register'));
+
+        Fortify::requestPasswordResetLinkView(fn () => Inertia::render('Auth/ForgotPassword', [
+            'status' => session('status'),
+        ]));
+
+        Fortify::resetPasswordView(fn (Request $request) => Inertia::render('Auth/ResetPassword', [
+            'token' => $request->route('token'),
+            'email' => $request->query('email'),
+        ]));
     }
 
     /**

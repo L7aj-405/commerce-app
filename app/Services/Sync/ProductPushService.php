@@ -9,7 +9,9 @@ use App\Connectors\WooCommerceConnector;
 use App\Connectors\YouCanConnector;
 use App\Models\PlatformConnection;
 use App\Models\Product;
+use App\Models\ProductChannelListing;
 use App\Models\ProductVariant;
+use App\Models\ProductVariantChannelListing;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\SyncLog;
@@ -19,10 +21,10 @@ use Illuminate\Support\Facades\Log;
 class ProductPushService
 {
     /**
-     * Create a brand-new product on every connected platform and save the returned
-     * external_id (+ platform slug) back to the product row (first success wins).
+     * Create a local product on every selected channel that does not already
+     * have a listing. The returned remote id is stored per connection.
      *
-     * @return array<int, array{success: bool, platform: string, external_id: string, message: string}>
+     * @return array<int, array<string, mixed>>
      */
     public function createProduct(Product $product, ?string $platform = null): array
     {
@@ -33,100 +35,148 @@ class ProductPushService
         $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            try {
-                $connector = $this->makeConnector($connection);
-                $result    = $connector->createProduct($product);
+            $existingListing = $product->listingForConnection($connection);
+            $existingExternalId = $existingListing?->external_product_id
+                ?? $product->externalIdForConnection($connection);
 
-                // Persist the external_id from the first successful platform
-                if ($result['success'] && !empty($result['external_id']) && empty($product->external_id)) {
-                    $product->update([
-                        'external_id' => $result['external_id'],
-                        'platform'    => $connection->platform,
-                    ]);
-                    $product->refresh();
+            if ($existingExternalId !== null) {
+                // Self-heal legacy products whose old external_id/platform mapping
+                // exists but could not be backfilled when the migration ran.
+                if ($existingListing === null) {
+                    $this->recordProductListing($product, $connection, $existingExternalId);
                 }
 
-                $this->log($connection, 'product', $product->id, $result['success'], $result['external_id'] ?? null, $result['error'] ?? null);
+                $results[] = [
+                    'success' => true,
+                    'platform' => $connection->platform,
+                    'external_id' => $existingExternalId,
+                    'message' => 'Product is already linked to this channel.',
+                    'error' => null,
+                ];
+                continue;
+            }
+
+            try {
+                $connector = $this->makeConnector($connection);
+                $result = $connector->createProduct($product);
+
+                if (($result['success'] ?? false) && ! empty($result['external_id'])) {
+                    $this->recordProductListing($product, $connection, (string) $result['external_id']);
+                }
+
+                $this->log(
+                    $connection,
+                    'product',
+                    $product->id,
+                    (bool) ($result['success'] ?? false),
+                    $result['external_id'] ?? null,
+                    $result['error'] ?? null,
+                );
+
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
                 $this->log($connection, 'product', $product->id, false, null, $e->getMessage());
-                $results[] = ['success' => false, 'platform' => $connection->platform, 'external_id' => '', 'message' => $e->getMessage(), 'error' => $e->getMessage()];
-                Log::warning('ProductPushService::createProduct failed', ['product' => $product->id, 'platform' => $connection->platform, 'error' => $e->getMessage()]);
+                $results[] = [
+                    'success' => false,
+                    'platform' => $connection->platform,
+                    'external_id' => '',
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                ];
             }
         }
 
         return $results;
     }
 
-    /**
-     * Create a variable product with all its variants on every connected platform in one shot.
-     * Product and variant external_ids are persisted (first-platform-wins for the model fields;
-     * per-platform IDs are always available via SyncLog).
-     *
-     * @return array<int, array{success: bool, platform: string, external_id: string, message: string, variant_ids: array<string,string>}>
-     */
+    /** @return array<int, array<string, mixed>> */
     public function createVariableProduct(Product $product, ?string $platform = null): array
     {
-        if (!$product->variants()->exists()) {
+        if (! $product->variants()->exists()) {
             return [[
-                'success'     => false,
-                'platform'    => $platform ?? 'all',
+                'success' => false,
+                'platform' => $platform ?? 'all',
                 'external_id' => '',
                 'variant_ids' => [],
-                'message'     => 'Variable product has no variants — add variants before pushing',
-                'error'       => 'no_variants',
+                'message' => 'Variable product has no variants — add variants before pushing',
+                'error' => 'no_variants',
             ]];
         }
 
         $productData = $this->gatherVariableProductData($product);
-        $results     = [];
+        $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
+            $existingListing = $product->listingForConnection($connection);
+            $existingExternalId = $existingListing?->external_product_id
+                ?? $product->externalIdForConnection($connection);
+
+            if ($existingExternalId !== null) {
+                if ($existingListing === null) {
+                    $this->recordProductListing($product, $connection, $existingExternalId);
+                }
+
+                $results[] = [
+                    'success' => true,
+                    'platform' => $connection->platform,
+                    'external_id' => $existingExternalId,
+                    'variant_ids' => [],
+                    'message' => 'Product is already linked to this channel.',
+                    'error' => null,
+                ];
+                continue;
+            }
+
             try {
                 $connector = $this->makeConnector($connection);
-                $result    = $connector->createVariableProduct($productData);
+                $result = $connector->createVariableProduct($productData);
 
-                if ($result['success']) {
-                    if (!empty($result['external_id']) && empty($product->external_id)) {
-                        $product->update([
-                            'external_id' => $result['external_id'],
-                            'platform'    => $connection->platform,
-                        ]);
-                        $product->refresh();
-                    }
+                if (($result['success'] ?? false) && ! empty($result['external_id'])) {
+                    $productListing = $this->recordProductListing(
+                        $product,
+                        $connection,
+                        (string) $result['external_id'],
+                    );
 
                     foreach ($result['variant_ids'] ?? [] as $localId => $platformVariantId) {
                         if (empty($platformVariantId)) {
                             continue;
                         }
 
-                        $variant = ProductVariant::find($localId);
-
-                        if ($variant && empty($variant->external_id)) {
-                            $variant->update(['external_id' => $platformVariantId]);
+                        $variant = $product->variants()->whereKey((string) $localId)->first();
+                        if ($variant === null) {
+                            continue;
                         }
 
-                        $this->log($connection, 'variant_create', $localId, true, $platformVariantId, null);
+                        $this->recordVariantListing(
+                            $variant,
+                            $productListing,
+                            $connection,
+                            (string) $platformVariantId,
+                        );
+                        $this->log($connection, 'variant_create', $variant->id, true, (string) $platformVariantId, null);
                     }
                 }
 
-                $this->log($connection, 'product', $product->id, $result['success'], $result['external_id'] ?? null, $result['error'] ?? null);
+                $this->log(
+                    $connection,
+                    'product',
+                    $product->id,
+                    (bool) ($result['success'] ?? false),
+                    $result['external_id'] ?? null,
+                    $result['error'] ?? null,
+                );
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
                 $this->log($connection, 'product', $product->id, false, null, $e->getMessage());
                 $results[] = [
-                    'success'     => false,
-                    'platform'    => $connection->platform,
+                    'success' => false,
+                    'platform' => $connection->platform,
                     'external_id' => '',
                     'variant_ids' => [],
-                    'message'     => $e->getMessage(),
-                    'error'       => $e->getMessage(),
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ];
-                Log::warning('ProductPushService::createVariableProduct failed', [
-                    'product'  => $product->id,
-                    'platform' => $connection->platform,
-                    'error'    => $e->getMessage(),
-                ]);
             }
         }
 
@@ -134,42 +184,39 @@ class ProductPushService
     }
 
     /**
-     * Collect all product + attribute + variant data needed for a full variable-product push.
-     *
-     * @return array{type: string, name: string, sku: string, price: float, description: string, status: string, attributes: array<string, list<string>>, variants: list<array{local_id: string, name: string, sku: string, price: float, attributes: array<string,mixed>, stock: int}>}
+     * @return array{type: string, name: string, sku: string, price: float, description: string, status: string, attributes: array<string, list<string>>, variants: list<array<string, mixed>>}
      */
     private function gatherVariableProductData(Product $product): array
     {
-        $warehouse    = $product->store->getPrimaryWarehouse();
+        $warehouse = $product->store->getPrimaryWarehouse();
         $attributeMap = [];
 
         $variantData = $product->variants()->get()->map(function (ProductVariant $variant) use ($product, $warehouse, &$attributeMap): array {
             $attrs = $variant->getAttribute('attributes') ?? [];
 
             foreach ($attrs as $name => $value) {
-                $values = is_array($value) ? $value : [(string) $value];
-
-                foreach ($values as $v) {
-                    if ($v !== '') {
-                        $attributeMap[$name][] = $v;
+                foreach (is_array($value) ? $value : [(string) $value] as $item) {
+                    if ($item !== '') {
+                        $attributeMap[$name][] = $item;
                     }
                 }
             }
 
             $qty = $warehouse
-                ? (int) Stock::where('product_id', $product->id)
+                ? (int) Stock::query()
+                    ->where('product_id', $product->id)
                     ->where('variant_id', $variant->id)
                     ->where('warehouse_id', $warehouse->id)
                     ->value('quantity')
                 : $variant->getTotalStock();
 
             return [
-                'local_id'   => $variant->id,
-                'name'       => $variant->getDisplayName(),
-                'sku'        => $variant->sku ?? '',
-                'price'      => (float) $variant->price,
+                'local_id' => $variant->id,
+                'name' => $variant->getDisplayName(),
+                'sku' => $variant->sku ?? '',
+                'price' => (float) $variant->price,
                 'attributes' => $attrs,
-                'stock'      => $qty,
+                'stock' => $qty,
             ];
         })->all();
 
@@ -178,58 +225,74 @@ class ProductPushService
         }
 
         return [
-            'type'        => 'variable',
-            'name'        => $product->name,
-            'sku'         => $product->sku ?? '',
-            'price'       => (float) $product->price,
+            'type' => 'variable',
+            'name' => $product->name,
+            'sku' => $product->sku ?? '',
+            'price' => (float) $product->price,
             'description' => $product->description ?? '',
-            'status'      => $product->status === 'active' ? 'active' : 'draft',
-            'attributes'  => $attributeMap,
-            'variants'    => $variantData,
+            'status' => $product->status === 'active' ? 'active' : 'draft',
+            'attributes' => $attributeMap,
+            'variants' => $variantData,
         ];
     }
 
-    /**
-     * Push a product's field changes (name, price, status…) to a single platform.
-     *
-     * @return array{success: bool, message: string, error: ?string}
-     */
+    /** @return array<int, array<string, mixed>> */
     public function pushProduct(Product $product, ?string $platform = null): array
     {
-        $results          = [];
-        $effectivePlatform = $platform ?? $product->platform ?? null;
+        $results = [];
 
-        foreach ($this->getConnections($product->store, $effectivePlatform) as $connection) {
+        foreach ($this->getConnections($product->store, $platform) as $connection) {
+            $externalId = $product->externalIdForConnection($connection);
+
+            if ($externalId === null) {
+                $results[] = [
+                    'success' => false,
+                    'platform' => $connection->platform,
+                    'message' => 'Product not linked to this channel',
+                    'error' => 'missing_external_id',
+                ];
+                continue;
+            }
+
             try {
                 $connector = $this->makeConnector($connection);
-                $result    = $connector->pushProduct($product);
+                $result = $connector->pushProduct($product, $externalId);
 
-                $this->log($connection, 'product', $product->id, $result['success'], $product->external_id, $result['error'] ?? null);
-                $results[] = $result;
+                if ($result['success'] ?? false) {
+                    $listing = $this->recordProductListing(
+                        $product,
+                        $connection,
+                        (string) ($result['external_id'] ?? $externalId),
+                    );
+                    $listing->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                }
+
+                $this->log($connection, 'product', $product->id, (bool) ($result['success'] ?? false), $externalId, $result['error'] ?? null);
+                $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
-                $this->log($connection, 'product', $product->id, false, $product->external_id, $e->getMessage());
-                $results[] = ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
-                Log::warning('ProductPushService::pushProduct failed', ['product' => $product->id, 'platform' => $connection->platform, 'error' => $e->getMessage()]);
+                $this->log($connection, 'product', $product->id, false, $externalId, $e->getMessage());
+                $results[] = ['success' => false, 'platform' => $connection->platform, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
             }
         }
 
         return $results;
     }
 
-    /**
-     * Push stock quantity for a product to one or all platforms.
-     * For variable products, delegates to per-variant stock push.
-     *
-     * @return array{success: bool, message: string, platform?: string}
-     */
+    /** @return array<int, array<string, mixed>> */
     public function pushStock(Product $product, ?string $platform = null): array
     {
-        $results           = [];
-        $effectivePlatform = $platform ?? $product->platform ?? null;
+        $results = [];
 
-        foreach ($this->getConnections($product->store, $effectivePlatform) as $connection) {
-            if (empty($product->external_id)) {
-                $results[] = ['success' => false, 'message' => 'Product not linked to platform', 'platform' => $connection->platform];
+        foreach ($this->getConnections($product->store, $platform) as $connection) {
+            $productExternalId = $product->externalIdForConnection($connection);
+
+            if ($productExternalId === null) {
+                $results[] = [
+                    'success' => false,
+                    'message' => 'Product not linked to this channel',
+                    'platform' => $connection->platform,
+                    'error' => 'missing_external_id',
+                ];
                 continue;
             }
 
@@ -238,226 +301,311 @@ class ProductPushService
                 $warehouse = $product->store->getPrimaryWarehouse();
 
                 if ($product->isVariable()) {
-                    $result = $this->pushVariableStock($connector, $product, $connection, $warehouse);
+                    $result = $this->pushVariableStock($connector, $product, $connection, $warehouse, $productExternalId);
                 } else {
                     $qty = $warehouse
-                        ? (int) Stock::where('product_id', $product->id)->where('warehouse_id', $warehouse->id)->value('quantity')
+                        ? (int) Stock::query()
+                            ->where('product_id', $product->id)
+                            ->where('warehouse_id', $warehouse->id)
+                            ->whereNull('variant_id')
+                            ->value('quantity')
                         : $product->getTotalStock();
 
-                    $result = $connector->pushStock($product, $qty);
-                    $this->log($connection, 'stock', $product->id, $result['success'], $product->external_id, $result['error'] ?? null);
+                    $result = $connector->pushStock($product, $qty, $productExternalId);
+                    $this->log($connection, 'stock', $product->id, (bool) ($result['success'] ?? false), $productExternalId, $result['error'] ?? null);
+                }
+
+                if ($result['success'] ?? false) {
+                    $product->listingForConnection($connection)?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
                 }
 
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
-                $this->log($connection, 'stock', $product->id, false, $product->external_id, $e->getMessage());
-                $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform];
-                Log::warning('ProductPushService::pushStock failed', ['product' => $product->id, 'platform' => $connection->platform, 'error' => $e->getMessage()]);
+                $this->log($connection, 'stock', $product->id, false, $productExternalId, $e->getMessage());
+                $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform, 'error' => $e->getMessage()];
             }
         }
 
         return $results;
     }
 
-    /**
-     * Push a single variant's stock to all platforms.
-     *
-     * @return array<int, array{success: bool, message: string, platform: string}>
-     */
+    /** @return array<int, array<string, mixed>> */
     public function pushVariantStock(ProductVariant $variant, ?string $platform = null): array
     {
         $product = $variant->product;
         $results = [];
 
         foreach ($this->getConnections($product->store, $platform) as $connection) {
-            if (empty($variant->external_id)) {
-                $results[] = ['success' => false, 'message' => 'Variant not linked to platform', 'platform' => $connection->platform];
+            $productExternalId = $product->externalIdForConnection($connection);
+            $variantExternalId = $variant->externalIdForConnection($connection);
+
+            if ($productExternalId === null || $variantExternalId === null) {
+                $results[] = [
+                    'success' => false,
+                    'message' => 'Variant not linked to this channel',
+                    'platform' => $connection->platform,
+                    'error' => 'missing_external_id',
+                ];
                 continue;
             }
 
             try {
                 $warehouse = $product->store->getPrimaryWarehouse();
-                $qty       = $warehouse
-                    ? (int) Stock::where('product_id', $product->id)->where('variant_id', $variant->id)->where('warehouse_id', $warehouse->id)->value('quantity')
+                $qty = $warehouse
+                    ? (int) Stock::query()
+                        ->where('product_id', $product->id)
+                        ->where('variant_id', $variant->id)
+                        ->where('warehouse_id', $warehouse->id)
+                        ->value('quantity')
                     : 0;
 
                 $connector = $this->makeConnector($connection);
-                $result    = $this->pushVariantStockViaConnector($connector, $product, $variant, $qty, $connection);
+                $result = $this->pushVariantStockViaConnector(
+                    $connector,
+                    $product,
+                    $variant,
+                    $qty,
+                    $connection,
+                    $productExternalId,
+                    $variantExternalId,
+                );
+
+                if ($result['success'] ?? false) {
+                    $variant->listingForConnection($connection)?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                }
 
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
-                $this->log($connection, 'stock', $variant->id, false, $variant->external_id, $e->getMessage());
-                $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform];
-                Log::warning('ProductPushService::pushVariantStock failed', ['variant' => $variant->id, 'platform' => $connection->platform, 'error' => $e->getMessage()]);
+                $this->log($connection, 'stock', $variant->id, false, $variantExternalId, $e->getMessage());
+                $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform, 'error' => $e->getMessage()];
             }
         }
 
         return $results;
     }
 
-    /**
-     * Push all changes for a product (fields + stock) to every active connected platform.
-     *
-     * @return array{product: array, stock: array}
-     */
+    /** @return array{product: array, stock: array} */
     public function pushAllPlatforms(Product $product): array
     {
         return [
             'product' => $this->pushProduct($product),
-            'stock'   => $this->pushStock($product),
+            'stock' => $this->pushStock($product),
         ];
     }
 
-    /**
-     * @deprecated Use pushAllPlatforms() — kept for backwards compatibility.
-     */
+    /** @deprecated Use pushAllPlatforms(). */
     public function pushAllChanges(Product $product): array
     {
-        $productResults = $this->pushProduct($product);
-        $stockResults   = $this->pushStock($product);
-
         $variantResults = [];
         foreach ($product->variants as $variant) {
             $variantResults[] = $this->pushVariantStock($variant);
         }
 
         return [
-            'product'  => $productResults,
+            'product' => $this->pushProduct($product),
             'variants' => $variantResults,
-            'stock'    => $stockResults,
+            'stock' => $this->pushStock($product),
         ];
     }
 
-    // ──────────────────────────────────────────────
-    // Private helpers
-    // ──────────────────────────────────────────────
-
-    /**
-     * Push stock for each variant of a variable product.
-     *
-     * @return array{success: bool, message: string}
-     */
-    private function pushVariableStock(object $connector, Product $product, PlatformConnection $connection, mixed $warehouse): array
-    {
-        $allOk  = true;
+    private function pushVariableStock(
+        object $connector,
+        Product $product,
+        PlatformConnection $connection,
+        mixed $warehouse,
+        string $productExternalId,
+    ): array {
+        $allOk = true;
         $pushed = 0;
 
         foreach ($product->variants as $variant) {
-            if (empty($variant->external_id)) {
+            $variantExternalId = $variant->externalIdForConnection($connection);
+            if ($variantExternalId === null) {
                 continue;
             }
 
             $qty = $warehouse
-                ? (int) Stock::where('product_id', $product->id)->where('variant_id', $variant->id)->where('warehouse_id', $warehouse->id)->value('quantity')
+                ? (int) Stock::query()
+                    ->where('product_id', $product->id)
+                    ->where('variant_id', $variant->id)
+                    ->where('warehouse_id', $warehouse->id)
+                    ->value('quantity')
                 : 0;
 
-            $result = $this->pushVariantStockViaConnector($connector, $product, $variant, $qty, $connection);
+            $result = $this->pushVariantStockViaConnector(
+                $connector,
+                $product,
+                $variant,
+                $qty,
+                $connection,
+                $productExternalId,
+                $variantExternalId,
+            );
 
-            if (!$result['success']) {
+            if (! ($result['success'] ?? false)) {
                 $allOk = false;
             } else {
                 $pushed++;
+                $variant->listingForConnection($connection)?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
             }
         }
 
         return [
             'success' => $allOk,
             'message' => $allOk ? "Pushed stock for {$pushed} variant(s)" : 'Some variant stock pushes failed',
+            'error' => $allOk ? null : 'variant_stock_failed',
         ];
     }
 
-    /**
-     * Push a single variant's quantity using the connector's platform-specific method.
-     *
-     * @return array{success: bool, message: string}
-     */
-    private function pushVariantStockViaConnector(object $connector, Product $product, ProductVariant $variant, int $qty, PlatformConnection $connection): array
-    {
+    private function pushVariantStockViaConnector(
+        object $connector,
+        Product $product,
+        ProductVariant $variant,
+        int $qty,
+        PlatformConnection $connection,
+        string $productExternalId,
+        string $variantExternalId,
+    ): array {
         $result = match (true) {
-            $connector instanceof WooCommerceConnector => $this->wooVariantStock($connector, $product, $variant, $qty),
-            $connector instanceof ShopifyConnector     => $this->shopifyVariantStock($connector, $variant, $qty),
-            $connector instanceof YouCanConnector      => $this->youcanVariantStock($connector, $product, $variant, $qty),
-            default                                    => ['success' => false, 'message' => 'Unknown connector type'],
+            $connector instanceof WooCommerceConnector => $this->wooVariantStock($connector, $qty, $productExternalId, $variantExternalId),
+            $connector instanceof ShopifyConnector => $this->shopifyVariantStock($connector, $variant, $qty, $connection, $variantExternalId),
+            $connector instanceof YouCanConnector => $this->youcanVariantStock($connector, $qty, $productExternalId, $variantExternalId),
+            default => ['success' => false, 'message' => 'Unknown connector type', 'error' => 'unknown_connector'],
         };
 
-        $this->log($connection, 'stock', $variant->id, $result['success'], $variant->external_id, $result['success'] ? null : ($result['message'] ?? null));
+        $this->log($connection, 'stock', $variant->id, (bool) ($result['success'] ?? false), $variantExternalId, $result['error'] ?? null);
 
         return $result;
     }
 
-    /** WooCommerce: PUT /products/{parent}/variations/{variantId} */
-    private function wooVariantStock(WooCommerceConnector $connector, Product $product, ProductVariant $variant, int $qty): array
+    private function wooVariantStock(WooCommerceConnector $connector, int $qty, string $productExternalId, string $variantExternalId): array
     {
         try {
             $response = $connector->client()->put(
-                "/products/{$product->external_id}/variations/{$variant->external_id}",
-                ['stock_quantity' => $qty, 'manage_stock' => true]
+                "/products/{$productExternalId}/variations/{$variantExternalId}",
+                ['stock_quantity' => $qty, 'manage_stock' => true],
             );
 
             return $response->successful()
-                ? ['success' => true,  'message' => "WooCommerce variant stock set to {$qty}"]
-                : ['success' => false, 'message' => 'WooCommerce returned ' . $response->status()];
+                ? ['success' => true, 'message' => "WooCommerce variant stock set to {$qty}", 'error' => null]
+                : ['success' => false, 'message' => 'WooCommerce returned ' . $response->status(), 'error' => 'http_error'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
         }
     }
 
-    /** Shopify: POST /inventory_levels/set.json for the variant's inventory_item_id */
-    private function shopifyVariantStock(ShopifyConnector $connector, ProductVariant $variant, int $qty): array
-    {
+    private function shopifyVariantStock(
+        ShopifyConnector $connector,
+        ProductVariant $variant,
+        int $qty,
+        PlatformConnection $connection,
+        string $variantExternalId,
+    ): array {
         try {
-            // Fetch the variant to get inventory_item_id
-            $variantResponse = $connector->client()->get("/variants/{$variant->external_id}.json");
-            $inventoryItemId = $variantResponse->json('variant.inventory_item_id');
+            $inventoryItemId = $variant->listingForConnection($connection)?->external_inventory_item_id;
 
-            if (!$inventoryItemId) {
-                return ['success' => false, 'message' => 'Shopify variant has no inventory_item_id'];
+            if (empty($inventoryItemId)) {
+                $variantResponse = $connector->client()->get("/variants/{$variantExternalId}.json");
+                $inventoryItemId = $variantResponse->json('variant.inventory_item_id');
+            }
+
+            if (! $inventoryItemId) {
+                return ['success' => false, 'message' => 'Shopify variant has no inventory_item_id', 'error' => 'missing_inventory_item'];
             }
 
             $locationResponse = $connector->client()->get('/locations.json');
-            $locationId       = $locationResponse->json('locations.0.id');
+            $locationId = $locationResponse->json('locations.0.id');
 
-            if (!$locationId) {
-                return ['success' => false, 'message' => 'No Shopify location found'];
+            if (! $locationId) {
+                return ['success' => false, 'message' => 'No Shopify location found', 'error' => 'missing_location'];
             }
 
-            $setResponse = $connector->client()->post('/inventory_levels/set.json', [
-                'location_id'       => $locationId,
+            $response = $connector->client()->post('/inventory_levels/set.json', [
+                'location_id' => $locationId,
                 'inventory_item_id' => $inventoryItemId,
-                'available'         => $qty,
+                'available' => $qty,
             ]);
 
-            return $setResponse->successful()
-                ? ['success' => true,  'message' => "Shopify variant stock set to {$qty}"]
-                : ['success' => false, 'message' => 'Shopify returned ' . $setResponse->status()];
+            return $response->successful()
+                ? ['success' => true, 'message' => "Shopify variant stock set to {$qty}", 'error' => null]
+                : ['success' => false, 'message' => 'Shopify returned ' . $response->status(), 'error' => 'http_error'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
         }
     }
 
-    /** YouCan: PUT /api/products/{productId}/variants/{variantId} */
-    private function youcanVariantStock(YouCanConnector $connector, Product $product, ProductVariant $variant, int $qty): array
+    private function youcanVariantStock(YouCanConnector $connector, int $qty, string $productExternalId, string $variantExternalId): array
     {
         try {
             $response = $connector->client()->put(
-                "/api/products/{$product->external_id}/variants/{$variant->external_id}",
-                ['quantity' => $qty]
+                "/api/products/{$productExternalId}/variants/{$variantExternalId}",
+                ['quantity' => $qty],
             );
 
             return $response->successful()
-                ? ['success' => true,  'message' => "YouCan variant stock set to {$qty}"]
-                : ['success' => false, 'message' => 'YouCan returned ' . $response->status()];
+                ? ['success' => true, 'message' => "YouCan variant stock set to {$qty}", 'error' => null]
+                : ['success' => false, 'message' => 'YouCan returned ' . $response->status(), 'error' => 'http_error'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
         }
     }
 
-    /** Return active platform connections for a store, optionally filtered to one platform. */
+    private function recordProductListing(Product $product, PlatformConnection $connection, string $externalId): ProductChannelListing
+    {
+        $listing = ProductChannelListing::updateOrCreate(
+            [
+                'product_id' => $product->id,
+                'platform_connection_id' => $connection->id,
+            ],
+            [
+                'external_product_id' => $externalId,
+                'sync_mode' => 'bidirectional',
+                'sync_status' => 'synced',
+                'last_pushed_at' => now(),
+            ],
+        );
+
+        // Temporary compatibility for legacy code that has not yet moved to the
+        // listing tables. Never overwrite the first mapping with another channel.
+        if (empty($product->external_id)) {
+            $product->forceFill(['external_id' => $externalId, 'platform' => $connection->platform])->save();
+        }
+
+        return $listing;
+    }
+
+    private function recordVariantListing(
+        ProductVariant $variant,
+        ProductChannelListing $productListing,
+        PlatformConnection $connection,
+        string $externalId,
+    ): ProductVariantChannelListing {
+        $listing = ProductVariantChannelListing::updateOrCreate(
+            [
+                'product_variant_id' => $variant->id,
+                'platform_connection_id' => $connection->id,
+            ],
+            [
+                'product_id' => $variant->product_id,
+                'product_channel_listing_id' => $productListing->id,
+                'external_variant_id' => $externalId,
+                'sync_status' => 'synced',
+                'last_pushed_at' => now(),
+            ],
+        );
+
+        if (empty($variant->external_id)) {
+            $variant->forceFill(['external_id' => $externalId])->save();
+        }
+
+        return $listing;
+    }
+
     private function getConnections(Store $store, ?string $platform): Collection
     {
         return $store->connections()
             ->where('status', 'active')
-            ->when($platform, fn ($q) => $q->where('platform', $platform))
+            ->when($platform, fn ($query) => $query->where('platform', $platform))
             ->get();
     }
 
@@ -465,9 +613,9 @@ class ProductPushService
     {
         return match ($connection->platform) {
             'woocommerce' => new WooCommerceConnector($connection),
-            'shopify'     => new ShopifyConnector($connection),
-            'youcan'      => new YouCanConnector($connection),
-            default       => throw new \InvalidArgumentException("Unknown platform: {$connection->platform}"),
+            'shopify' => new ShopifyConnector($connection),
+            'youcan' => new YouCanConnector($connection),
+            default => throw new \InvalidArgumentException("Unknown platform: {$connection->platform}"),
         };
     }
 
@@ -477,21 +625,21 @@ class ProductPushService
         string $entityId,
         bool $success,
         ?string $externalId,
-        ?string $error
+        ?string $error,
     ): void {
         try {
             SyncLog::create([
-                'store_id'               => $connection->store_id,
+                'store_id' => $connection->store_id,
                 'platform_connection_id' => $connection->id,
-                'platform'               => $connection->platform,
-                'type'                   => 'push',
-                'direction'              => 'push',
-                'action'                 => $action,
-                'entity_id'              => $entityId,
-                'external_id'            => $externalId,
-                'status'                 => $success ? 'success' : 'failed',
-                'error_message'          => $error,
-                'completed_at'           => now(),
+                'platform' => $connection->platform,
+                'type' => 'push',
+                'direction' => 'push',
+                'action' => $action,
+                'entity_id' => $entityId,
+                'external_id' => $externalId,
+                'status' => $success ? 'success' : 'failed',
+                'error_message' => $error,
+                'completed_at' => now(),
             ]);
         } catch (\Throwable $e) {
             Log::warning('ProductPushService: failed to write SyncLog', ['error' => $e->getMessage()]);

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Inventory\InventoryCompatibilityBridge;
+
+use App\Models\Concerns\BelongsToTenantThroughInventory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Stock extends Model
 {
-    use HasUlids;
+    use BelongsToTenantThroughInventory, HasUlids;
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -31,6 +34,13 @@ class Stock extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (Stock $stock): void {
+            app(InventoryCompatibilityBridge::class)->fromLegacyStock($stock);
+        });
+    }
 
     public function product(): BelongsTo
     {

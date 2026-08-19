@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenantThroughProduct;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
 
 class ProductAttribute extends Model
 {
-    use HasUlids;
+    use BelongsToTenantThroughProduct, HasUlids;
 
     protected $keyType = 'string';
     public $incrementing = false;

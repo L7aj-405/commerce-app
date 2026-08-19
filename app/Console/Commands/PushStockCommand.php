@@ -41,11 +41,12 @@ class PushStockCommand extends Command
         foreach ($stores as $store) {
             $this->line("Store: {$store->name}");
 
-            $productQuery = $store->products()->whereNotNull('external_id');
-
-            if ($platform !== null) {
-                $productQuery->where('platform', $platform);
-            }
+            $productQuery = $store->products()
+                ->whereHas('channelListings', function ($query) use ($platform): void {
+                    if ($platform !== null) {
+                        $query->whereHas('connection', fn ($connection) => $connection->where('platform', $platform));
+                    }
+                });
 
             $products = $productQuery->with('stocks')->get();
 
@@ -58,8 +59,7 @@ class PushStockCommand extends Command
             $bar->start();
 
             foreach ($products as $product) {
-                $totalStock = $product->getTotalStock();
-                $results    = $pushService->pushStock($product, $totalStock, $platform);
+                $results = $pushService->pushStock($product, $platform);
 
                 foreach ($results as $result) {
                     $result['success'] ? $pushed++ : $failed++;

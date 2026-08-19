@@ -68,7 +68,8 @@ class SyncVariantsCommand extends Command
                 // Loop all variable products for this store
                 $variableProducts = $store->products()
                     ->where('type', 'variable')
-                    ->where('platform', $connection->platform)
+                    ->whereHas('channelListings', fn ($query) => $query
+                        ->where('platform_connection_id', $connection->id))
                     ->get();
 
                 if ($variableProducts->isEmpty()) {
@@ -83,10 +84,17 @@ class SyncVariantsCommand extends Command
                         $variantPage  = 1;
                         $perPage      = 100;
                         $variantCount = 0;
+                        $seenPages    = [];
 
                         while (true) {
+                            $externalProductId = $product->externalIdForConnection($connection);
+
+                            if ($externalProductId === null) {
+                                break;
+                            }
+
                             $variants = $connector->getProductVariants(
-                                $product->external_id,
+                                $externalProductId,
                                 $variantPage,
                                 $perPage
                             );
@@ -95,7 +103,18 @@ class SyncVariantsCommand extends Command
                                 break;
                             }
 
-                            $syncService->createVariants($product, $variants);
+                            $fingerprint = hash('sha256', json_encode(array_map(
+                                static fn (array $variant): string => (string) ($variant['external_id'] ?? ''),
+                                $variants,
+                            )) ?: '');
+
+                            if (isset($seenPages[$fingerprint])) {
+                                $this->warn('    Repeated page detected; stopping this product to avoid an infinite loop.');
+                                break;
+                            }
+                            $seenPages[$fingerprint] = true;
+
+                            $syncService->createVariants($product, $variants, $connection);
                             $variantCount += count($variants);
 
                             if (count($variants) < $perPage) {

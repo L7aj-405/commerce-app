@@ -10,16 +10,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sync_logs', function (Blueprint $table): void {
-            $table->char('id', 26)->primary();
-            $table->char('platform_connection_id', 26);
-            $table->foreign('platform_connection_id')
-                ->references('id')
-                ->on('platform_connections')
-                ->cascadeOnDelete();
+        Schema::create('sync_logs', function (Blueprint $table) {
+            $table->ulid('id')->primary();
+            $table->ulid('store_id')->nullable();
+            $table->string('platform', 50)->nullable();
+            $table->ulid('platform_connection_id');
 
-            $table->string('type');
+            $table->enum('direction', ['pull', 'push'])->default('pull');
+            $table->enum('action', [
+                'product', 'variant', 'variant_create', 'variant_delete', 'stock', 'order', 'customer',
+            ])->nullable();
+
+            $table->string('entity_id')->nullable();
+            $table->string('external_id')->nullable();
+            $table->string('type')->default('');
             $table->string('status');
+
             $table->timestamp('started_at')->useCurrent();
             $table->timestamp('completed_at')->nullable();
             $table->unsignedInteger('records_processed')->default(0);
@@ -28,6 +34,10 @@ return new class extends Migration
             $table->json('summary')->nullable();
 
             $table->timestamps();
+
+            $table->foreign('store_id')->references('id')->on('stores')->cascadeOnDelete();
+            $table->foreign('platform_connection_id')->references('id')->on('platform_connections')->cascadeOnDelete();
+            $table->index('entity_id');
         });
     }
 

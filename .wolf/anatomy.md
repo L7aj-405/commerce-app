@@ -1,37 +1,35 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-05-29T20:27:56.706Z
-> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T13:29:42.768Z
+> Files: 108 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
-- `php.ini` (~62 tok)
+
+## ../../../../.claude/jobs/a866b444/tmp/
+
+
+## ../../../../.claude/plans/
+
+- `tidy-frolicking-moler.md` — Phase 1 / Step 8 — Onboarding UI (~4260 tok)
 
 ## ../../../../AppData/Local/Temp/
 
-- `drop_pvav.php` (~92 tok)
+
+## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/
+
+
+## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/ebce23f8-360d-4515-aec0-3074dd0ec06b/scratchpad/
+
 
 ## ./
 
-- `.npmrc` (~6 tok)
-- `check_enum_temp.php` (~212 tok)
-- `drop_pvav.php` (~74 tok)
-- `nixpacks.toml` (~88 tok)
-- `package.json` — Node.js package manifest (~174 tok)
-- `phpunit.xml` (~378 tok)
-- `pint.json` (~8 tok)
-- `Procfile` (~14 tok)
-- `railway.json` (~100 tok)
-- `tailwind.config.js` (~161 tok)
 
 ## .claude/
 
-- `settings.json` (~441 tok)
-- `settings.local.json` (~547 tok)
 
 ## .claude/rules/
 
-- `openwolf.md` (~313 tok)
 
 ## .github/workflows/
 
@@ -47,9 +45,6 @@
 
 ## app/Connectors/
 
-- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~8268 tok)
-- `WooCommerceConnector.php` — Parse WooCommerce product to normalized format (~7716 tok)
-- `YouCanConnector.php` — YouCan Shop REST API connector. (~6257 tok)
 
 ## app/Console/Commands/
 
@@ -72,22 +67,48 @@
 ## app/Http/Controllers/
 
 
+## app/Http/Controllers/Admin/
+
+
 ## app/Http/Controllers/Api/
 
 
 ## app/Http/Controllers/Auth/
 
-- `MetaOAuthController.php` — handleMetaCallback, showAccountSelector, handleAccountSelection, showNumberSelector, handleNumberSel (~1804 tok)
+
+## app/Http/Controllers/Dashboard/
+
+- `DashboardController.php` — index (~1906 tok)
+- `OperationsController.php` — Focused, single-station queues layered over the existing department (~837 tok)
+- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~3362 tok)
+- `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~5223 tok)
+- `StockTransferController.php` — index, create, store, slip (~2839 tok)
+- `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
+- `WarehouseController.php` — index, create, store, edit, update (~1879 tok)
+
+## app/Http/Controllers/Onboarding/
+
+- `AgencyOnboardingController.php` — show, storeOrganization, storeServices, storeWarehouses, storeClient + 4 more (~2385 tok)
+- `MerchantOnboardingController.php` — show, storeOrganization, storeStore, storeWarehouses, storeSetup + 1 more (~1564 tok)
+- `OnboardingController.php` — The literal first onboarding question: "How will you use the (~2042 tok)
+
+## app/Http/Controllers/Pos/
+
+- `CheckoutController.php` — store (~1233 tok)
+- `PosController.php` — Eager loads needed to present a product with its variants in one query set: (~1924 tok)
 
 ## app/Http/Middleware/
 
+- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~933 tok)
 
 ## app/Http/Requests/Auth/
 
 
 ## app/Jobs/
 
-- `SendWhatsAppConfirmation.php` — SendWhatsAppConfirmation: handle, failed (~290 tok)
+
+## app/Jobs/Pos/
+
 
 ## app/Livewire/
 
@@ -103,26 +124,34 @@
 
 ## app/Livewire/Products/
 
-- `ProductCreationWizard.php` — ProductCreationWizard: mount, nextStep, prevStep, goToStep + 14 more (~5629 tok)
-- `ProductEditWizard.php` — ProductEditWizard: mount, changeProductType, cancelTypeChange, confirmTypeChange + 4 more (~6668 tok)
 
 ## app/Livewire/Profile/
 
 
 ## app/Livewire/Stores/
 
-- `WhatsAppSetupWizard.php` — WhatsAppSetupWizard: mount, selectMethod, nextStep, prevStep + 1 more (~1003 tok)
-- `WhatsAppUserSetup.php` — WhatsAppUserSetup: mount, validateToken, selectAccount, selectPhone + 1 more (~1075 tok)
 
 ## app/Livewire/Stores/Connections/
 
 
 ## app/Livewire/Stores/Settings/
 
-- `WhatsappSettings.php` — WhatsappSettings: mount, save, testConnection, stats + 2 more (~1003 tok)
-- `WhatsAppTemplates.php` — WhatsAppTemplates: mount, select, save, preview + 2 more (~486 tok)
+
+## app/Mail/
+
 
 ## app/Models/
+
+- `PosOrderItem.php` — Model — 13 fields, 3 rels (~369 tok)
+- `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
+- `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
+- `StockTransferItem.php` — Model — 8 fields, 3 rels (~270 tok)
+- `Store.php` — Model — 18 fields, 16 rels (~3193 tok)
+
+## app/Models/Concerns/
+
+
+## app/Models/Scopes/
 
 
 ## app/Notifications/
@@ -133,57 +162,65 @@
 
 ## app/Providers/
 
+- `FortifyServiceProvider.php` — Register any application services. (~839 tok)
+
+## app/Repositories/
+
 
 ## app/Services/
 
-- `WhatsAppWebhookHandler.php` — Extract phone, body, and timestamp from Meta's nested webhook payload. (~1436 tok)
 
-## app/Services/Connectors/
+## app/Services/Agency/
+
+- `AgencyWorkspaceService.php` — AgencyWorkspaceService: createClient, createAgencyWarehouse, assignWarehouse, assignService (~1276 tok)
+
+## app/Services/Invoicing/
 
 
 ## app/Services/Meta/
 
-- `MetaMessageService.php` — Send a WhatsApp interactive message with quick-reply buttons. (~1218 tok)
+
+## app/Services/Onboarding/
+
+- `AgencyOnboardingService.php` — Backs the agency onboarding wizard (Step 8 / A1-A10). Reuses (~1765 tok)
+- `MerchantOnboardingService.php` — Backs the merchant onboarding wizard (Step 8 / M1-M6). Each method is one (~1964 tok)
+
+## app/Services/Orders/
+
+- `OperationsQueueService.php` — Cross-store operational queues, scoped by warehouse OPERATOR rather than the (~2334 tok)
+
+## app/Services/Pos/
+
+- `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~2978 tok)
+- `OrderProcessingService.php` — Create a POS order with its line items. Runs in a single transaction so (~2940 tok)
 
 ## app/Services/Stocks/
 
+- `StockTransferService.php` — Record a stock transfer / Bon de Sortie and move the goods atomically. (~2656 tok)
 
 ## app/Services/Sync/
 
-- `OrderSyncService.php` — Page through all orders on the platform and persist them to the store. (~1397 tok)
-- `ProductPushService.php` — Create a brand-new product on every connected platform and save the returned (~5690 tok)
 
 ## app/Services/WhatsApp/
 
-- `MessageTemplates.php` — MessageTemplates: all, get, keys, render, renderPreview (~1030 tok)
-- `WhatsAppMessageService.php` — WhatsAppMessageService: sendOrderConfirmation (~597 tok)
+
+## app/Support/
+
+- `OnboardingOptions.php` — Static option lists shared by every onboarding controller/page — kept in (~1309 tok)
+- `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~1996 tok)
+- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~2960 tok)
 
 ## app/View/Components/
 
 
 ## bootstrap/
 
-- `app.php` (~185 tok)
-- `providers.php` (~44 tok)
 
 ## bootstrap/cache/
 
-- `packages.php` (~500 tok)
-- `services.php` (~6191 tok)
 
 ## config/
 
-- `app.php` (~1140 tok)
-- `auth.php` (~1078 tok)
-- `cache.php` (~1108 tok)
-- `database.php` (~1862 tok)
-- `filesystems.php` (~676 tok)
-- `fortify.php` (~1426 tok)
-- `logging.php` (~1158 tok)
-- `meta.php` (~54 tok)
-- `queue.php` (~1120 tok)
-- `session.php` (~2247 tok)
-- `whatsapp.php` (~167 tok)
 
 ## database/
 
@@ -193,30 +230,175 @@
 
 ## database/migrations/
 
-- `2026_05_25_300000_make_product_attributes_per_product.php` — Migration: change product_attributes.store_id -> product_id (per-product scoping) (~195 tok)
-- `2026_05_26_000001_scope_product_variant_sku_unique_to_product.php` — Migration: alter product_variants table (~195 tok)
+- `2026_07_26_000001_add_variant_id_to_pos_order_items_table.php` — Migration: alter pos_order_items table (~294 tok)
+- `2026_07_26_000002_add_variant_id_to_stock_ledger_table.php` — Migration: alter stock_ledger table (~276 tok)
+- `2026_07_27_000001_create_stock_transfers_table.php` — Migration: create stock_transfers table (~719 tok)
+- `2026_07_27_000002_create_stock_transfer_items_table.php` — Migration: create stock_transfer_items table (~391 tok)
 
 ## database/seeders/
 
 
+## docs/
+
+
 ## public/
 
-- `hot` (~9 tok)
-- `index.php` (~145 tok)
-- `robots.txt` (~6 tok)
 
 ## resources/css/
 
-- `app.css` — Styles: 5 rules (~1699 tok)
 
 ## resources/js/
 
-- `app.js` (~0 tok)
+- `app.jsx` — /*.jsx', { eager: true }); (~174 tok)
+
+## resources/js/Components/
+
+- `StoreSwitcher.jsx` — Small "merchant / agency / client" pill — falls back to nothing when organization data isn't loaded. (~1921 tok)
+
+## resources/js/Components/Dashboard/
+
+- `AdjustStockModal.jsx` — Each tab is a distinct inventory workflow. `mode` maps to the backend contract (~6108 tok)
+
+## resources/js/Components/Departments/
+
+- `OperationsFilterBar.jsx` — Warehouse / city / assignee / client-org select filters for an operations queue. (~377 tok)
+- `OperationsNav.jsx` — Switcher across the five single-station operations queues. (~955 tok)
+- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1294 tok)
+
+## resources/js/Components/Filters/
+
+
+## resources/js/Components/Onboarding/
+
+- `Field.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~360 tok)
+- `OnboardingShell.jsx` — Shared page chrome for every onboarding screen — header, step circles, (~1141 tok)
+- `Select.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~404 tok)
+- `WizardFooter.jsx` — Back / Skip / Continue row shared by every onboarding step. (~552 tok)
+
+## resources/js/Hooks/
+
+- `useCart.js` — initialState: reducer, clampPercent, lineSubtotal + 5 more (~2931 tok)
+- `useOperationsFilters.js` — Warehouse / city / assigned-employee / client-organization filters layered (~432 tok)
+- `useQueue.js` — Shared state for a department work queue. (~1013 tok)
+
+## resources/js/Layouts/
+
+- `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
+- `SaasLayout.jsx` — NAV_SECTIONS (~4582 tok)
+
+## resources/js/Pages/
+
+
+## resources/js/Pages/Admin/
+
+
+## resources/js/Pages/Auth/
+
+- `ConfirmPassword.jsx` — Fortify's GET/POST /user/confirm-password. (~720 tok)
+- `ForgotPassword.jsx` — Fortify's GET/POST /forgot-password (PasswordResetLinkController). (~864 tok)
+- `Login.jsx` — Full-page login — Fortify's own POST /login (AuthenticatedSessionController), (~2845 tok)
+- `ResetPassword.jsx` — Fortify's GET /reset-password/{token}, POST /reset-password (NewPasswordController). (~1520 tok)
+- `TwoFactorChallenge.jsx` — Fortify's GET/POST /two-factor-challenge. (~1254 tok)
+- `VerifyEmail.jsx` — Fortify's GET /email/verify — resend hits POST /email/verification-notification. (~646 tok)
+
+## resources/js/Pages/Dashboard/
+
+- `Index.jsx` — Index (~6538 tok)
+- `Stock.jsx` — Stock (~6364 tok)
+- `StockMovements.jsx` — TYPE_STYLES — renders table (~1675 tok)
+- `StockTransferCreate.jsx` — KINDS — renders form (~7323 tok)
+- `StockTransfers.jsx` — KIND_BADGE — renders table (~2880 tok)
+
+## resources/js/Pages/Dashboard/Delivery/
+
+
+## resources/js/Pages/Dashboard/Departments/
+
+- `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~4769 tok)
+- `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~4717 tok)
+
+## resources/js/Pages/Dashboard/Integrations/
+
+- `Index.jsx` — ICONS (~1603 tok)
+
+## resources/js/Pages/Dashboard/Integrations/Platforms/
+
+
+## resources/js/Pages/Dashboard/Operations/
+
+- `Packing.jsx` — Picked orders being boxed up for handover — status = packing only. (~1150 tok)
+- `Picking.jsx` — Orders ready to pick, plus those currently being picked. (~1712 tok)
+- `ReadyForDelivery.jsx` — Packed orders staged for handover. Carrier assignment stays on the existing (~1296 tok)
+- `TransferReceiving.jsx` — Inbound InventoryTransfer rows awaiting receipt at a warehouse this org runs. (~1642 tok)
+- `WaitingForStock.jsx` — Read-only monitoring queue: confirmed orders held back because a transfer is (~855 tok)
+
+## resources/js/Pages/Dashboard/Orders/
+
+- `Index.jsx` — STATUS_OPTIONS — renders table (~2226 tok)
+- `Index.jsx` — Unified POS+online orders list; Source/Status filters, origin badges, view/receipt actions (~1600 tok)
+- `Manage.jsx` — COLUMNS (~12464 tok)
+- `Manage.jsx` — Multi-channel fulfillment board (Kanban+table); dept/source tabs, drawer transitions (~7000 tok)
+- `Show.jsx` — POS order detail (invoice + thermal receipt) (~1900 tok)
+- `ShowOnline.jsx` — ShowOnline — renders table (~3073 tok)
+- `ShowOnline.jsx` — Online order detail: generate/view A4 invoice + print thermal receipt (~1700 tok)
+
+## resources/js/Pages/Dashboard/Orders/Returns/
+
+
+## resources/js/Pages/Dashboard/Products/
+
+
+## resources/js/Pages/Dashboard/Roles/
+
+
+## resources/js/Pages/Dashboard/Settings/
+
+
+## resources/js/Pages/Dashboard/Stores/
+
+- `Create.jsx` — Organization-first "Add Store": the workspace is never invented here — it (~2696 tok)
+- `Edit.jsx` — Edit — renders form (~1753 tok)
+- `Index.jsx` — TYPE_LABELS (~1932 tok)
+
+## resources/js/Pages/Dashboard/Warehouses/
+
+- `Index.jsx` — Owner vs. operator organization — the two are often the same org (a (~1687 tok)
+
+## resources/js/Pages/Delivery/
+
+
+## resources/js/Pages/Onboarding/
+
+- `Agency.jsx` — TITLES (~6878 tok)
+- `Merchant.jsx` — STEPS (~4478 tok)
+- `ModeSelect.jsx` — The literal first onboarding question — "How will you use the platform?" (~639 tok)
+
+## resources/js/Pages/Pos/
+
+- `Dashboard.jsx` — stockStatus (~4035 tok)
+
+## resources/js/Pages/Pos/Components/
+
+- `Cart.jsx` — Cart (~2199 tok)
+- `CartItem.jsx` — CartItem (~1230 tok)
+- `CheckoutPreviewModal.jsx` — Final confirmation before the sale is committed. Shows a clean summary of (~3024 tok)
+- `ProductCard.jsx` — Pull the first image out of an array, JSON string, or plain string. (~1726 tok)
+- `VariantModal.jsx` — Variant picker for a variable product. The cashier chooses one value per (~4036 tok)
 
 ## resources/views/
 
+- `app.blade.php` — Blade template (~309 tok)
 
 ## resources/views/components/
+
+
+## resources/views/documents/
+
+- `bon-de-sortie.blade.php` — Blade template (~2277 tok)
+- `online-receipt.blade.php` — 80mm thermal receipt for an online Order (delivery slip); reads invoiceLineItems/invoiceTotals (~600 tok)
+- `online-receipt.blade.php` — Blade template (~850 tok)
+
+## resources/views/emails/
 
 
 ## resources/views/flux/icon/
@@ -227,62 +409,39 @@
 
 ## resources/views/layouts/
 
-- `app.blade.php` — Blade template (~515 tok)
 
 ## resources/views/layouts/app/
 
-- `header.blade.php` — Blade template (~2088 tok)
-- `sidebar.blade.php` — Blade template (~3971 tok)
 
 ## resources/views/layouts/auth/
 
 
 ## resources/views/livewire/
 
-- `.gitkeep` (~0 tok)
-- `dashboard.blade.php` — Blade template (~2612 tok)
 
 ## resources/views/livewire/layout/
 
 
 ## resources/views/livewire/orders/
 
-- `order-details.blade.php` — Blade template (~3564 tok)
-- `order-index.blade.php` — Blade template (~2331 tok)
 
 ## resources/views/livewire/pages/auth/
 
 
 ## resources/views/livewire/products/
 
-- `product-creation-wizard.blade.php` — Blade template (~15527 tok)
-- `product-edit-wizard.blade.php` — Blade template (~19335 tok)
-- `product-edit.blade.php` — Blade template (~6264 tok)
-- `product-index.blade.php` — Blade template (~2884 tok)
-- `product-stock.blade.php` — Blade template (~2759 tok)
-- `product-variants.blade.php` — Blade template (~4399 tok)
 
 ## resources/views/livewire/stores/
 
-- `create-store.blade.php` — Blade template (~1852 tok)
-- `edit-store.blade.php` — Blade template (~1994 tok)
-- `settings-layout.blade.php` — Blade template (~942 tok)
-- `store-index.blade.php` — Blade template (~2904 tok)
-- `whatsapp-setup-wizard.blade.php` — Blade template (~9727 tok)
-- `whatsapp-user-setup.blade.php` — Blade template (~5472 tok)
 
 ## resources/views/livewire/stores/settings/
 
-- `whatsapp-settings.blade.php` — Blade template (~4068 tok)
-- `whatsapp-templates.blade.php` — Blade template (~1966 tok)
 
 ## resources/views/livewire/welcome/
 
 
 ## resources/views/meta/
 
-- `account-selector.blade.php` — Blade template (~1439 tok)
-- `number-selector.blade.php` — Blade template (~1853 tok)
 
 ## resources/views/pages/auth/
 
@@ -296,13 +455,13 @@
 ## resources/views/partials/
 
 
+## resources/views/pos/documents/
+
+
 ## routes/
 
-- `api.php` (~171 tok)
-- `auth.php` (~203 tok)
-- `console.php` (~56 tok)
-- `settings.php` (~239 tok)
-- `web.php` (~1525 tok)
+- `auth.php` (~1236 tok)
+- `dashboard.php` (~4457 tok)
 
 ## storage/app/
 
@@ -330,74 +489,68 @@
 
 ## storage/framework/views/
 
-- `0e0711aab3effe5aa15752ebd07c5fcf.php` (~3880 tok)
-- `172cdc0be751d37c3834dc6000ab6eb1.php` (~3917 tok)
-- `2b2e634cdd48e2dca60b191f4e59cbce.php` (~5564 tok)
-- `2cf985fd10086b0a9580592b10a23670.php` (~5914 tok)
-- `318410bb52da036d44fbe2338860a157.php` (~5312 tok)
-- `3383041526ead821defdd3e1ef2aff03.php` (~5967 tok)
-- `41e2c9fce789d19c110da358c629db3e.php` (~4622 tok)
-- `42477f8093ba3c62c72eccba81921e9a.php` (~4396 tok)
-- `4853a5de36a82f48a96458df9f96d472.php` (~3459 tok)
-- `59a19dabd9095c16d89d55715a07bae7.php` (~12463 tok)
-- `63236015cf932338260ec53015f77eab.php` (~4226 tok)
-- `6c2bb0d951bd1acccc73fc67a688fc20.php` (~4583 tok)
-- `78ea6f9eedffcddacac0f089633701dc.php` (~3917 tok)
-- `989072af0f76b6982836130cde5ae1f7.php` (~8592 tok)
-- `9e3dd3e6b732ee585383922d0bb75175.php` (~11807 tok)
-- `b19233f2993944ca104d39efda628436.php` (~5967 tok)
-- `b1d909a2b112cae55714f8e2aea3c2a3.php` (~4575 tok)
-- `b77428be402b5865bd6ce58659b5338b.php` (~4038 tok)
-- `b7d639b75966a3496beaf3610821d13f.php` (~6324 tok)
-- `cccde12253f4cf8b46e59be108e15ddd.php` (~4595 tok)
-- `d31b2ce44d44cc7de4228190c0e3d058.php` (~7250 tok)
-- `d987c91298550c76c5d75c6d3b217bf7.php` (~4315 tok)
 
 ## storage/logs/
 
-- `whatsapp-webhooks-2026-05-05.log` (~1652 tok)
 
 ## tests/
 
 
 ## tests/Feature/
 
-- `DashboardTest.php` (~108 tok)
-- `ExampleTest.php` (~35 tok)
-- `ProfileTest.php` (~614 tok)
 
 ## tests/Feature/Api/
 
 
 ## tests/Feature/Auth/
 
-- `AuthenticationTest.php` (~425 tok)
-- `EmailVerificationTest.php` (~354 tok)
-- `PasswordConfirmationTest.php` (~288 tok)
-- `PasswordResetTest.php` (~540 tok)
-- `PasswordUpdateTest.php` (~299 tok)
-- `RegistrationTest.php` (~176 tok)
-- `TwoFactorChallengeTest.php` (~198 tok)
+- `AuthenticationTest.php` (~406 tok)
+- `EmailVerificationTest.php` (~376 tok)
+- `PasswordConfirmationTest.php` (~248 tok)
+- `PasswordResetTest.php` (~500 tok)
+- `RegistrationTest.php` (~164 tok)
+
+## tests/Feature/Foundation/
+
+- `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
+
+## tests/Feature/Invoicing/
+
+
+## tests/Feature/Onboarding/
+
+- `AgencyOnboardingTest.php` — Declares completeAgencyOrganizationStep (~1641 tok)
+- `MerchantOnboardingTest.php` — completeMerchantOrganizationStep: completeMerchantStoreStep (~1199 tok)
+- `OnboardingFlowTest.php` (~631 tok)
 
 ## tests/Feature/Orders/
 
-- `OrderManagementTest.php` (~1318 tok)
+- `OperationalQueueTest.php` — Same merchant/product helpers as FulfillmentWorkflowTest — one org, one (~5167 tok)
+- `OrderChannelViewsTest.php` (~1510 tok)
+- `PosDeliveryRoutingTest.php` (~1315 tok)
+
+## tests/Feature/Roles/
+
 
 ## tests/Feature/Settings/
 
-- `ProfileUpdateTest.php` (~530 tok)
-- `SecurityTest.php` (~817 tok)
+
+## tests/Feature/Stocks/
+
+- `StockDashboardTest.php` (~1433 tok)
+- `StockTransferTest.php` — Declares transferData (~2029 tok)
+
+## tests/Feature/Team/
+
 
 ## tests/Unit/
 
-- `ExampleTest.php` (~22 tok)
 
 ## tests/Unit/Models/
 
 
 ## vendor/
 
-- `pest-plugins.json` (~211 tok)
 
 ## vendor/bacon/bacon-qr-code/
 
@@ -440,27 +593,12 @@
 
 ## vendor/bin/
 
-- `carbon.bat` (~36 tok)
-- `paratest_for_phpstorm.bat` (~40 tok)
-- `paratest.bat` (~36 tok)
-- `patch-type-declarations.bat` (~40 tok)
-- `pest.bat` (~35 tok)
-- `php-parse.bat` (~37 tok)
-- `phpunit.bat` (~36 tok)
-- `pint.bat` (~35 tok)
-- `psysh.bat` (~36 tok)
-- `sail.bat` (~41 tok)
-- `var-dump-server.bat` (~38 tok)
-- `yaml-lint.bat` (~37 tok)
 
 ## vendor/brianium/paratest/
 
 
 ## vendor/brianium/paratest/bin/
 
-- `paratest` (~265 tok)
-- `paratest_for_phpstorm` (~84 tok)
-- `phpunit-wrapper.php` (~724 tok)
 
 ## vendor/brianium/paratest/src/
 
