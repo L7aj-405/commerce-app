@@ -2,13 +2,96 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-shopify-test-connection-scope-string-false-negative",
+      "timestamp": "2026-08-20T00:00:00.000Z",
+      "error_message": "Shopify connection page showed \"Failed — Missing read_products scope\" even though product import/sync was actually working",
+      "file": "app/Services/Shopify/ShopifyAuthService.php (unchanged, left alone), app/Services/Shopify/ShopifyCapabilityDiagnosticsService.php (new)",
+      "root_cause": "ShopifyAuthService::testConnection() hard-gated the ENTIRE result on `str_contains($token['scope'], 'read_products')` — a check against the OAuth token response's self-reported scope STRING — before ever attempting the real GET /products.json call. If Shopify's client_credentials grant response formats/omits the scope string differently than expected, this false-negatived the whole connection even when the real API call would have succeeded.",
+      "fix": "Did not touch ShopifyAuthService (task: don't rewrite Shopify auth architecture; also has its own passing test suite). Added a new, separate ShopifyCapabilityDiagnosticsService + \"Run diagnostics\" UI/endpoint that determines every READ capability from a real, safe (non-mutating) Shopify Admin API call's actual HTTP status (200/401/403) — never from the scope string. Write capabilities are reported from scopes only (never mutation-tested, per explicit safety requirement) and are surfaced as their own 'configured'/'not_configured' status, never folded into a pass/fail gate. Connection-level status is now 3-way (connected/partially_configured/failed) and is explicitly never 'failed' when products.read passed.",
+      "tags": [
+        "shopify",
+        "diagnostics",
+        "false-negative",
+        "ui-state",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-shopify-verification-panel-inconsistent-state"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:00:00.000Z"
+    },
+    {
+      "id": "bug-products-index-publish-auto-pushed-every-connection",
+      "timestamp": "2026-08-19T00:00:00.000Z",
+      "error_message": "Clicking Publish on a product imported from WooCommerce also pushed it to Shopify whenever the store had an active Shopify connection, even though the user never selected Shopify",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php, app/Services/Sync/ProductPushService.php",
+      "root_cause": "ProductController::push() (now removed) grabbed every active PlatformConnection for the store (`$store->connections()->where('status','active')->get()`), grouped by platform, and pushed to all of them unconditionally — there was no concept of a user-selected target at all. The Edit page's \"Publish to platforms\" button called this route with an empty body.",
+      "fix": "Replaced push()/`/push` with publish()+bulkPublish() (`/publish`, `/bulk-publish`), both requiring an explicit, validated `connection_ids` array. New App\\Services\\Sync\\ProductPublishService orchestrates: resolves only connections that belong to the product's own store, checks ProductChannelListing per connection (update if linked, skip with `not_linked_to_channel` unless `create_missing_listings` is true), and never touches a platform the caller didn't name. ProductPushService::pushProduct()/createProduct()/createVariableProduct() gained an optional `$connectionIds` param (defaults to null = old behavior, for any other existing caller) so the orchestrator can scope to exact connections instead of \"every connection for a platform\". Frontend: both Edit.jsx and Index.jsx now open a PublishTargetModal (default selection: none) instead of posting immediately.",
+      "tags": [
+        "products",
+        "publish",
+        "woocommerce",
+        "shopify",
+        "targeting",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-product-push-legacy-external-id-branching"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:00:00.000Z"
+    },
+    {
+      "id": "bug-shopify-verification-panel-inconsistent-state",
+      "timestamp": "2026-08-19T00:00:00.000Z",
+      "error_message": "Shopify integration page could show a green \"Synced\" badge and a red \"Token is missing the read_products scope\" error at the same time",
+      "file": "app/Services/Shopify/ShopifyAuthService.php, resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "Two independent bugs compounded: (1) backend — ShopifyAuthService::requestToken() called markValid() as soon as ANY non-empty scope came back, before testConnection() went on to check for the specific read_products scope or make the real products.json call; those later checks returned ok:false to the caller but never called markFailed() to correct the already-persisted token_status:'valid'. (2) frontend — the verification panel rendered its StatusBadge from the stale page-load `connection.token_status` prop while rendering the error message from a separately-sourced, ephemeral `testResult` state set only by the just-completed axios response; the two had no way to agree with each other.",
+      "fix": "Backend: every exit path of testConnection() (domain invalid, credentials rejected/401, empty scope, missing read_products, products-endpoint 403/401/other, and true success) now calls markValid()/markFailed() with the task-specified exact wording, so exactly one final state is ever persisted per test run. Frontend: dropped the separate testResult state entirely; after a test-connection call, the page does `router.reload({only:['connection']})` and the badge+message are both derived from one computed `state` variable (untested/connected/failed) off the freshly-reloaded `connection` prop — structurally impossible to show both at once. Badge label also renamed Synced->Connected/Failed/Untested.",
+      "tags": [
+        "shopify",
+        "integration",
+        "ui-state",
+        "consistency",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:00:00.000Z"
+    },
+    {
+      "id": "bug-product-push-legacy-external-id-branching",
+      "timestamp": "2026-08-19T00:00:00.000Z",
+      "error_message": "Clicking 'Publish to platforms' on a product that IS linked via ProductChannelListing but never had the deprecated Product.external_id column set silently no-ops (\"Product is already linked to this channel\") instead of pushing the edited fields to WooCommerce/Shopify/YouCan",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "push() decided create-vs-update per PLATFORM GROUP using the single legacy Product.external_id flag ($product->external_id ? pushProduct() : createProduct()), not the per-connection ProductChannelListing. createProduct() correctly detects an existing listing and skips (by design, that's pushProduct()'s job) but returns success without pushing any field changes — so a product whose only mapping is the modern channel-listing table (the normal state after Option B2's product migration, or any product synced without external_id ever being backfilled) always took the create branch and never actually updated the remote product.",
+      "fix": "push() now decides per platform group via $product->listingForConnection()/externalIdForConnection() on that platform's connection (unique per store+platform) instead of the global legacy flag. Discovered while writing WooCommerceOutboundSyncTest's 'publishes product changes using the existing remote product id' test — Http::assertSent() found zero requests because createProduct() had short-circuited.",
+      "tags": [
+        "products",
+        "woocommerce",
+        "sync",
+        "push",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T00:00:00.000Z"
+    },
+    {
       "id": "bug-product-controller-undefined-optional-key",
       "timestamp": "2026-08-19T00:00:00.000Z",
       "error_message": "\"Something went wrong: Undefined array key \\\"description\\\"\" flashed on product create/update whenever an optional field (description/category/compare_price/cost/featured_image) is omitted from the request",
       "file": "app/Http/Controllers/Dashboard/ProductController.php",
       "root_cause": "store()/update() read $validated['description'] etc. directly instead of with a ?? fallback, even though those keys are validated as 'nullable' — Laravel's $request->validate() omits a nullable key entirely from the returned array when it isn't present in the request at all (as opposed to present-but-null). It was latent because Create.jsx/Edit.jsx's useForm() always initializes those fields to '' so the browser always sends them; a minimal API-style POST (e.g. from tests) without those keys hit it immediately.",
       "fix": "Changed every optional field read to '$validated[\"x\"] ?? null' (and the compare_price/cost ternaries to check '($validated[\"x\"] ?? null)' before casting) in both store() and update().",
-      "tags": ["products", "validation", "undefined-array-key", "inertia", "root-cause"],
+      "tags": [
+        "products",
+        "validation",
+        "undefined-array-key",
+        "inertia",
+        "root-cause"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-19T00:00:00.000Z"
@@ -4805,6 +4888,566 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-08-19T14:52:49.075Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-08-19T15:22:11.773Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: $method = $request->input('connection_method', PlatformConne; if ($method === PlatformConnection::CONNECTION_METHOD_WEBHOO",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T15:22:24.932Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-08-19T15:22:34.931Z",
+      "error_message": "Missing error handling in testConnection",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:22:34.931Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-08-19T15:23:25.553Z",
+      "error_message": "CSS fix: sync",
+      "file": "resources/js/Components/StatusBadge.jsx",
+      "root_cause": "sync: { pending: 'amber', synced: 'emerald', error: 'red' → { pending: 'amber', synced: 'emerald', error: 'red', verified: 'emerald', failed: 'red'",
+      "fix": "Changed sync: { pending: 'amber', synced: 'emerald', error: 'red' → { pending: 'amber', synced: 'emerald', error: 'red', verified: 'emerald', failed: 'red'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:23:25.553Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-08-19T15:23:52.094Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/SyncProductsModal.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:23:52.094Z"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-08-19T15:47:24.472Z",
+      "error_message": "Missing error handling in webhook",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:47:24.472Z"
+    },
+    {
+      "id": "bug-296",
+      "timestamp": "2026-08-19T15:48:32.478Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Read-only — quantity is no longer editable from the prod; form. Use \"Adjust stock\" so changes go through the inventory",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T15:48:55.179Z"
+    },
+    {
+      "id": "bug-297",
+      "timestamp": "2026-08-19T15:48:37.534Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (2 removed) | Also: // ✨ الـ Sync ديال كونتيتي الـ Simple Product من ا; qty: product.total_stock ?? 0,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T15:48:43.197Z"
+    },
+    {
+      "id": "bug-298",
+      "timestamp": "2026-08-19T15:49:02.602Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "dark: text-emerald-400 w-24 focus:outline-none focus:border-indigo-500 font-bold\" /> → text-emerald-400 font-bold tabular-nums\">{v.qty ?? 0",
+      "fix": "Changed dark: text-emerald-400 w-24 focus:outline-none focus:border-indigo-500 font-bold\" /> → text-emerald-400 font-bold tabular-nums\">{v.qty ?? 0",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:49:02.602Z"
+    },
+    {
+      "id": "bug-299",
+      "timestamp": "2026-08-19T15:50:09.463Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:50:09.463Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-08-19T15:50:16.533Z",
+      "error_message": "CSS fix: only",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "only: ['products'] → ['products'],",
+      "fix": "Changed only: ['products'] → ['products'],",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:50:16.533Z"
+    },
+    {
+      "id": "bug-301",
+      "timestamp": "2026-08-19T15:50:25.156Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→11 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:50:25.156Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-08-19T15:52:14.187Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T15:52:14.187Z"
+    },
+    {
+      "id": "bug-304",
+      "timestamp": "2026-08-19T17:10:28.673Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 41→61 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:10:28.673Z"
+    },
+    {
+      "id": "bug-305",
+      "timestamp": "2026-08-19T17:11:35.643Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:11:35.643Z"
+    },
+    {
+      "id": "bug-306",
+      "timestamp": "2026-08-19T17:11:44.160Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Condition was: if ($platform === 'shopify' && filled($conn->access_to)",
+      "fix": "Changed to: if ($platform === 'shopify' && $conn->connection_metho)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:11:44.160Z"
+    },
+    {
+      "id": "bug-307",
+      "timestamp": "2026-08-19T17:12:03.840Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "Had 'admin_token'",
+      "fix": "Changed to 'admin_client_credentials'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:12:03.840Z"
+    },
+    {
+      "id": "bug-308",
+      "timestamp": "2026-08-19T17:12:35.647Z",
+      "error_message": "CSS fix: connection_method, shop_domain, hover",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "connection_method: 'admin_token', → 'admin_client_credentials',; shop_domain: connection?.connection_method === 'admin_token' ? (connection?.shop_domain ?? '') : '', → isThisMethod ? (connection?.shop_domain ?? '') : '',; hover: bg-indigo-500 disabled:opacity-50\"> → bg-content/10 disabled:opacity-50\"",
+      "fix": "Changed connection_method: 'admin_token', → 'admin_client_credentials',; shop_domain: connection?.connection_method === 'admin_token' ? (connection?.shop_domain ?? '') : '', → isThisMethod ? (connection?.shop_domain ?? '') : '',; hover: bg-indigo-500 disabled:opacity-50\"> → bg-content/10 disabled:opacity-50\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:12:35.647Z"
+    },
+    {
+      "id": "bug-309",
+      "timestamp": "2026-08-19T17:12:54.188Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:12:54.188Z"
+    },
+    {
+      "id": "bug-310",
+      "timestamp": "2026-08-19T17:13:57.300Z",
+      "error_message": "Wrong reference: $conn should be shopify",
+      "file": "tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php",
+      "root_cause": "Used \"$conn\" instead of \"shopify\"",
+      "fix": "Changed $conn → shopify",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T17:13:57.300Z"
+    },
+    {
+      "id": "bug-311",
+      "timestamp": "2026-08-19T21:33:23.395Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Shopify/ShopifyAuthService.php",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 46→81 lines (14 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T21:33:23.395Z"
+    },
+    {
+      "id": "bug-312",
+      "timestamp": "2026-08-19T21:38:52.714Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "dark: text-emerald-400' : 'text-red-600 dark:text-red-400' → text-emerald-400' : state === 'failed' ? 'text-red-600 dark:text-red-400' : 'text-content-muted'",
+      "fix": "Changed dark: text-emerald-400' : 'text-red-600 dark:text-red-400' → text-emerald-400' : state === 'failed' ? 'text-red-600 dark:text-red-400' : 'text-content-muted'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T21:38:52.714Z"
+    },
+    {
+      "id": "bug-313",
+      "timestamp": "2026-08-19T21:43:11.431Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T21:43:11.431Z"
+    },
+    {
+      "id": "bug-315",
+      "timestamp": "2026-08-19T22:01:21.654Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:01:21.654Z"
+    },
+    {
+      "id": "bug-316",
+      "timestamp": "2026-08-19T22:01:54.478Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 48→66 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:01:54.478Z"
+    },
+    {
+      "id": "bug-317",
+      "timestamp": "2026-08-19T22:09:35.487Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:09:35.487Z"
+    },
+    {
+      "id": "bug-318",
+      "timestamp": "2026-08-19T22:27:26.823Z",
+      "error_message": "CSS fix: only",
+      "file": "resources/js/Pages/Dashboard/Products/Index.jsx",
+      "root_cause": "only: ['products'], → ['products']",
+      "fix": "Changed only: ['products'], → ['products']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-19T22:30:18.277Z"
+    },
+    {
+      "id": "bug-320",
+      "timestamp": "2026-08-19T22:57:34.500Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 23→12 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:57:34.500Z"
+    },
+    {
+      "id": "bug-321",
+      "timestamp": "2026-08-19T22:58:11.155Z",
+      "error_message": "Missing error handling in DiagnosticsPanel",
+      "file": "resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-19T22:58:11.155Z"
+    },
+    {
+      "id": "bug-323",
+      "timestamp": "2026-08-20T00:08:26.570Z",
+      "error_message": "Wrong return value",
+      "file": "app/Models/Product.php",
+      "root_cause": "Was returning: $this->hasMany(ProductAttribute::class)->orderBy('",
+      "fix": "Now returns: $this->hasMany(ProductAttribute::class)->orderBy('",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:08:26.570Z"
+    },
+    {
+      "id": "bug-324",
+      "timestamp": "2026-08-20T00:17:34.168Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "25 lines replaced/restructured",
+      "fix": "Rewrote 37→24 lines (25 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:17:34.168Z"
+    },
+    {
+      "id": "bug-325",
+      "timestamp": "2026-08-20T00:18:32.550Z",
+      "error_message": "Wrong return value",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Was returning: redirect()->route('dashboard.products.index')",
+      "fix": "Now returns: $redirect;",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:18:32.550Z"
+    },
+    {
+      "id": "bug-326",
+      "timestamp": "2026-08-20T00:25:16.765Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:25:16.765Z"
+    },
+    {
+      "id": "bug-327",
+      "timestamp": "2026-08-20T00:26:44.728Z",
+      "error_message": "CSS fix: name, values, selected",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "name: Object.values(options).join(' / '), → trimmed; values: valuesArray → o.values.filter((_, vi) => vi !== valueIndex); selected: true → true,",
+      "fix": "Changed name: Object.values(options).join(' / '), → trimmed; values: valuesArray → o.values.filter((_, vi) => vi !== valueIndex); selected: true → true,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T00:27:59.544Z"
+    },
+    {
+      "id": "bug-328",
+      "timestamp": "2026-08-20T00:31:18.618Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T00:31:18.618Z"
+    },
+    {
+      "id": "bug-329",
+      "timestamp": "2026-08-20T00:39:40.927Z",
+      "error_message": "CSS fix: name, options, values",
+      "file": "resources/js/Pages/Dashboard/Products/Create.jsx",
+      "root_cause": "name: currentAttrName.trim(), → trimmed; options: options // هادا هو الـ JSON column لي غايتحفظ ف الـ variants table → options // هادا هو الـ combination map لي غايتصدر مع الطلب; values: valuesArray → o.values.filter((_, vi) => vi !== valueIndex)",
+      "fix": "Changed name: currentAttrName.trim(), → trimmed; options: options // هادا هو الـ JSON column لي غايتحفظ ف الـ variants table → options // هادا هو الـ combination map لي غايتصدر مع الطلب; values: valuesArray → o.values.filter((_, vi) => vi !== valueIndex)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T00:39:59.263Z"
     }
   ]
 }

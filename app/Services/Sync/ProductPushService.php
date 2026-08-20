@@ -26,15 +26,15 @@ class ProductPushService
      *
      * @return array<int, array<string, mixed>>
      */
-    public function createProduct(Product $product, ?string $platform = null): array
+    public function createProduct(Product $product, ?string $platform = null, ?array $connectionIds = null): array
     {
         if ($product->isVariable()) {
-            return $this->createVariableProduct($product, $platform);
+            return $this->createVariableProduct($product, $platform, $connectionIds);
         }
 
         $results = [];
 
-        foreach ($this->getConnections($product->store, $platform) as $connection) {
+        foreach ($this->getConnections($product->store, $platform, $connectionIds) as $connection) {
             $existingListing = $product->listingForConnection($connection);
             $existingExternalId = $existingListing?->external_product_id
                 ?? $product->externalIdForConnection($connection);
@@ -43,12 +43,14 @@ class ProductPushService
                 // Self-heal legacy products whose old external_id/platform mapping
                 // exists but could not be backfilled when the migration ran.
                 if ($existingListing === null) {
-                    $this->recordProductListing($product, $connection, $existingExternalId);
+                    $existingListing = $this->recordProductListing($product, $connection, $existingExternalId);
                 }
 
                 $results[] = [
                     'success' => true,
+                    'connection_id' => $connection->id,
                     'platform' => $connection->platform,
+                    'listing_id' => $existingListing->id,
                     'external_id' => $existingExternalId,
                     'message' => 'Product is already linked to this channel.',
                     'error' => null,
@@ -59,9 +61,10 @@ class ProductPushService
             try {
                 $connector = $this->makeConnector($connection);
                 $result = $connector->createProduct($product);
+                $listingId = null;
 
                 if (($result['success'] ?? false) && ! empty($result['external_id'])) {
-                    $this->recordProductListing($product, $connection, (string) $result['external_id']);
+                    $listingId = $this->recordProductListing($product, $connection, (string) $result['external_id'])->id;
                 }
 
                 $this->log(
@@ -73,12 +76,14 @@ class ProductPushService
                     $result['error'] ?? null,
                 );
 
-                $results[] = array_merge($result, ['platform' => $connection->platform]);
+                $results[] = array_merge($result, ['connection_id' => $connection->id, 'platform' => $connection->platform, 'listing_id' => $listingId]);
             } catch (\Throwable $e) {
                 $this->log($connection, 'product', $product->id, false, null, $e->getMessage());
                 $results[] = [
                     'success' => false,
+                    'connection_id' => $connection->id,
                     'platform' => $connection->platform,
+                    'listing_id' => null,
                     'external_id' => '',
                     'message' => $e->getMessage(),
                     'error' => $e->getMessage(),
@@ -90,7 +95,7 @@ class ProductPushService
     }
 
     /** @return array<int, array<string, mixed>> */
-    public function createVariableProduct(Product $product, ?string $platform = null): array
+    public function createVariableProduct(Product $product, ?string $platform = null, ?array $connectionIds = null): array
     {
         if (! $product->variants()->exists()) {
             return [[
@@ -106,19 +111,21 @@ class ProductPushService
         $productData = $this->gatherVariableProductData($product);
         $results = [];
 
-        foreach ($this->getConnections($product->store, $platform) as $connection) {
+        foreach ($this->getConnections($product->store, $platform, $connectionIds) as $connection) {
             $existingListing = $product->listingForConnection($connection);
             $existingExternalId = $existingListing?->external_product_id
                 ?? $product->externalIdForConnection($connection);
 
             if ($existingExternalId !== null) {
                 if ($existingListing === null) {
-                    $this->recordProductListing($product, $connection, $existingExternalId);
+                    $existingListing = $this->recordProductListing($product, $connection, $existingExternalId);
                 }
 
                 $results[] = [
                     'success' => true,
+                    'connection_id' => $connection->id,
                     'platform' => $connection->platform,
+                    'listing_id' => $existingListing->id,
                     'external_id' => $existingExternalId,
                     'variant_ids' => [],
                     'message' => 'Product is already linked to this channel.',
@@ -126,6 +133,8 @@ class ProductPushService
                 ];
                 continue;
             }
+
+            $listingId = null;
 
             try {
                 $connector = $this->makeConnector($connection);
@@ -137,6 +146,7 @@ class ProductPushService
                         $connection,
                         (string) $result['external_id'],
                     );
+                    $listingId = $productListing->id;
 
                     foreach ($result['variant_ids'] ?? [] as $localId => $platformVariantId) {
                         if (empty($platformVariantId)) {
@@ -166,12 +176,14 @@ class ProductPushService
                     $result['external_id'] ?? null,
                     $result['error'] ?? null,
                 );
-                $results[] = array_merge($result, ['platform' => $connection->platform]);
+                $results[] = array_merge($result, ['connection_id' => $connection->id, 'platform' => $connection->platform, 'listing_id' => $listingId]);
             } catch (\Throwable $e) {
                 $this->log($connection, 'product', $product->id, false, null, $e->getMessage());
                 $results[] = [
                     'success' => false,
+                    'connection_id' => $connection->id,
                     'platform' => $connection->platform,
+                    'listing_id' => null,
                     'external_id' => '',
                     'variant_ids' => [],
                     'message' => $e->getMessage(),
@@ -236,18 +248,26 @@ class ProductPushService
         ];
     }
 
-    /** @return array<int, array<string, mixed>> */
-    public function pushProduct(Product $product, ?string $platform = null): array
+    /**
+     * @param  array<int, string>|null  $connectionIds  Explicit target connections.
+     *         null keeps the legacy "every active connection for the platform"
+     *         behavior for existing callers (pushAllPlatforms/pushAllChanges) —
+     *         ProductPublishService always passes an explicit list.
+     * @return array<int, array<string, mixed>>
+     */
+    public function pushProduct(Product $product, ?string $platform = null, ?array $connectionIds = null): array
     {
         $results = [];
 
-        foreach ($this->getConnections($product->store, $platform) as $connection) {
+        foreach ($this->getConnections($product->store, $platform, $connectionIds) as $connection) {
             $externalId = $product->externalIdForConnection($connection);
 
             if ($externalId === null) {
                 $results[] = [
                     'success' => false,
+                    'connection_id' => $connection->id,
                     'platform' => $connection->platform,
+                    'listing_id' => null,
                     'message' => 'Product not linked to this channel',
                     'error' => 'missing_external_id',
                 ];
@@ -257,6 +277,7 @@ class ProductPushService
             try {
                 $connector = $this->makeConnector($connection);
                 $result = $connector->pushProduct($product, $externalId);
+                $listingId = null;
 
                 if ($result['success'] ?? false) {
                     $listing = $this->recordProductListing(
@@ -265,17 +286,100 @@ class ProductPushService
                         (string) ($result['external_id'] ?? $externalId),
                     );
                     $listing->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                    $listingId = $listing->id;
+
+                    // WooCommerce-only: parent fields are pushed above; variant
+                    // fields (sku/price) still need their own PUT per variation.
+                    // Never reachable for Shopify/YouCan connectors.
+                    if ($connector instanceof WooCommerceConnector && $product->isVariable()) {
+                        $this->pushVariantFields($connector, $product, $connection, $externalId);
+                    }
+                } else {
+                    $this->markListingFailed($product, $connection, (string) ($result['error'] ?? $result['message'] ?? 'push_failed'));
+                    $listingId = $product->listingForConnection($connection)?->id;
                 }
 
                 $this->log($connection, 'product', $product->id, (bool) ($result['success'] ?? false), $externalId, $result['error'] ?? null);
-                $results[] = array_merge($result, ['platform' => $connection->platform]);
+                $results[] = array_merge($result, ['connection_id' => $connection->id, 'platform' => $connection->platform, 'listing_id' => $listingId]);
             } catch (\Throwable $e) {
+                $this->markListingFailed($product, $connection, $e->getMessage());
                 $this->log($connection, 'product', $product->id, false, $externalId, $e->getMessage());
-                $results[] = ['success' => false, 'platform' => $connection->platform, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
+                $results[] = [
+                    'success' => false,
+                    'connection_id' => $connection->id,
+                    'platform' => $connection->platform,
+                    'listing_id' => $product->listingForConnection($connection)?->id,
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                ];
             }
         }
 
         return $results;
+    }
+
+    /**
+     * Push each variant's sku/price to its WooCommerce variation. Only called
+     * for WooCommerce connections after a successful parent-product push —
+     * WooCommerceConnector::pushProductVariant() already exists and already
+     * does the right thing, it was simply never invoked from here.
+     */
+    private function pushVariantFields(
+        WooCommerceConnector $connector,
+        Product $product,
+        PlatformConnection $connection,
+        string $productExternalId,
+    ): void {
+        foreach ($product->variants as $variant) {
+            $variantExternalId = $variant->externalIdForConnection($connection);
+
+            if ($variantExternalId === null) {
+                continue;
+            }
+
+            try {
+                $result = $connector->pushProductVariant($variant, $productExternalId, $variantExternalId);
+
+                $listing = $variant->listingForConnection($connection);
+
+                if ($result['success'] ?? false) {
+                    $listing?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                } else {
+                    $listing?->update([
+                        'sync_status' => 'failed',
+                        'metadata' => array_merge($listing->metadata ?? [], ['last_push_error' => $result['error'] ?? $result['message'] ?? 'push_failed']),
+                    ]);
+                }
+
+                $this->log($connection, 'variant', $variant->id, (bool) ($result['success'] ?? false), $variantExternalId, $result['error'] ?? null);
+            } catch (\Throwable $e) {
+                $variant->listingForConnection($connection)?->update([
+                    'sync_status' => 'failed',
+                    'metadata' => array_merge($variant->listingForConnection($connection)->metadata ?? [], ['last_push_error' => $e->getMessage()]),
+                ]);
+                $this->log($connection, 'variant', $variant->id, false, $variantExternalId, $e->getMessage());
+            }
+        }
+    }
+
+    private function markListingFailed(Product $product, PlatformConnection $connection, string $error): void
+    {
+        $listing = $product->listingForConnection($connection);
+
+        $listing?->update([
+            'sync_status' => 'failed',
+            'metadata' => array_merge($listing->metadata ?? [], ['last_push_error' => $error]),
+        ]);
+    }
+
+    private function markVariantListingFailed(ProductVariant $variant, PlatformConnection $connection, string $error): void
+    {
+        $listing = $variant->listingForConnection($connection);
+
+        $listing?->update([
+            'sync_status' => 'failed',
+            'metadata' => array_merge($listing->metadata ?? [], ['last_push_error' => $error]),
+        ]);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -317,10 +421,13 @@ class ProductPushService
 
                 if ($result['success'] ?? false) {
                     $product->listingForConnection($connection)?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                } else {
+                    $this->markListingFailed($product, $connection, (string) ($result['error'] ?? $result['message'] ?? 'stock_push_failed'));
                 }
 
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
+                $this->markListingFailed($product, $connection, $e->getMessage());
                 $this->log($connection, 'stock', $product->id, false, $productExternalId, $e->getMessage());
                 $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform, 'error' => $e->getMessage()];
             }
@@ -372,10 +479,13 @@ class ProductPushService
 
                 if ($result['success'] ?? false) {
                     $variant->listingForConnection($connection)?->update(['last_pushed_at' => now(), 'sync_status' => 'synced']);
+                } else {
+                    $this->markVariantListingFailed($variant, $connection, (string) ($result['error'] ?? $result['message'] ?? 'stock_push_failed'));
                 }
 
                 $results[] = array_merge($result, ['platform' => $connection->platform]);
             } catch (\Throwable $e) {
+                $this->markVariantListingFailed($variant, $connection, $e->getMessage());
                 $this->log($connection, 'stock', $variant->id, false, $variantExternalId, $e->getMessage());
                 $results[] = ['success' => false, 'message' => $e->getMessage(), 'platform' => $connection->platform, 'error' => $e->getMessage()];
             }
@@ -601,11 +711,18 @@ class ProductPushService
         return $listing;
     }
 
-    private function getConnections(Store $store, ?string $platform): Collection
+    /**
+     * @param  array<int, string>|null  $connectionIds  When given, scopes to
+     *         EXACTLY these connections — the explicit-targeting primitive
+     *         ProductPublishService relies on. Never used to silently widen
+     *         a request to "every connected platform".
+     */
+    private function getConnections(Store $store, ?string $platform, ?array $connectionIds = null): Collection
     {
         return $store->connections()
             ->where('status', 'active')
             ->when($platform, fn ($query) => $query->where('platform', $platform))
+            ->when($connectionIds !== null, fn ($query) => $query->whereIn('id', $connectionIds))
             ->get();
     }
 

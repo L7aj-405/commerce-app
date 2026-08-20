@@ -38,8 +38,9 @@ const TYPE_MAPS = {
     condition: { resellable: 'emerald', damaged: 'red', missing: 'slate' },
     session:  { open: 'emerald', closed: 'slate' },
     stock:    { ok: 'emerald', low: 'amber', critical: 'red' },
-    // ProductChannelListing/ProductVariantChannelListing.sync_status
-    sync:     { pending: 'amber', synced: 'emerald', error: 'red' },
+    // ProductChannelListing/ProductVariantChannelListing.sync_status, and
+    // PlatformConnection.webhook_status (pending/verified/failed)
+    sync:     { pending: 'amber', synced: 'emerald', error: 'red', verified: 'emerald', failed: 'red' },
 };
 
 export default function StatusBadge({ status, type = 'invoice', label }) {

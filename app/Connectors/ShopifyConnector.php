@@ -8,6 +8,7 @@ use App\Exceptions\ConnectorException;
 use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\Shopify\ShopifyAuthService;
 use Carbon\CarbonInterface;
 use Exception;
 use Illuminate\Http\Client\PendingRequest;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Log;
  */
 class ShopifyConnector extends BaseConnector
 {
+    public const API_VERSION = '2024-01';
+
     public function __construct(PlatformConnection $connection)
     {
         if ($connection->platform !== PlatformConnection::PLATFORM_SHOPIFY) {
@@ -35,15 +38,32 @@ class ShopifyConnector extends BaseConnector
 
     public function getBaseUrl(): string
     {
-        return 'https://' . $this->connection->shop_domain . '/admin/api/2024-01';
+        return 'https://' . $this->connection->shop_domain . '/admin/api/' . self::API_VERSION;
     }
 
+    /**
+     * Shopify's Admin REST API requires X-Shopify-Access-Token — it does not
+     * accept Authorization: Bearer. The token source depends on the
+     * connection method: admin_client_credentials generates/caches a
+     * short-lived token via ShopifyAuthService; the legacy admin_token
+     * method (a manually pasted token) still reads access_token directly,
+     * unchanged.
+     */
     public function client(): PendingRequest
     {
-        return Http::withToken((string) $this->connection->access_token)
+        return Http::withHeaders(['X-Shopify-Access-Token' => $this->resolveAccessToken()])
             ->baseUrl($this->getBaseUrl())
             ->timeout(30)
             ->acceptJson();
+    }
+
+    private function resolveAccessToken(): string
+    {
+        if ($this->connection->connection_method === PlatformConnection::CONNECTION_METHOD_ADMIN_CLIENT_CREDENTIALS) {
+            return app(ShopifyAuthService::class)->getToken($this->connection);
+        }
+
+        return (string) $this->connection->access_token;
     }
 
     private function guard(Response $response): Response
@@ -168,6 +188,26 @@ class ShopifyConnector extends BaseConnector
             'variants'      => $variants,
             'platform_data' => $product,
         ];
+    }
+
+    /**
+     * Map a raw Shopify webhook product payload (same JSON shape as one item
+     * from GET /products.json) to the normalized array ProductSyncService
+     * expects. Widened to public deliberately — the parent's parseProduct()
+     * stays protected; only this override is exposed, for webhook mappers.
+     */
+    public function mapWebhookProduct(array $raw): array
+    {
+        return $this->normalizeProduct($this->parseProduct($raw));
+    }
+
+    /**
+     * Map a raw Shopify webhook order payload (same JSON shape as one item
+     * from GET /orders.json) to the normalized array OrderSyncService expects.
+     */
+    public function mapWebhookOrder(array $raw): array
+    {
+        return $this->normalizeOrder($this->parseOrder($raw));
     }
 
     protected function parseOrder(array $order): array

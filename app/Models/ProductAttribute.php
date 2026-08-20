@@ -19,7 +19,9 @@ class ProductAttribute extends Model
     public $incrementing = false;
     protected $primaryKey = 'id';
 
-    protected $fillable = ['product_id', 'name', 'slug'];
+    protected $fillable = ['product_id', 'name', 'slug', 'position'];
+
+    protected $casts = ['position' => 'integer'];
 
     public function product(): BelongsTo
     {
@@ -28,7 +30,7 @@ class ProductAttribute extends Model
 
     public function values(): HasMany
     {
-        return $this->hasMany(ProductAttributeValue::class, 'attribute_id')->orderBy('value');
+        return $this->hasMany(ProductAttributeValue::class, 'attribute_id')->orderBy('position');
     }
 
     public static function findOrCreateForProduct(string $productId, string $name): self

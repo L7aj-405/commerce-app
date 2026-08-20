@@ -95,7 +95,7 @@ class Product extends Model
 
     public function attributes(): HasMany
     {
-        return $this->hasMany(ProductAttribute::class)->orderBy('name');
+        return $this->hasMany(ProductAttribute::class)->orderBy('position');
     }
 
     public function inventoryLink(): \Illuminate\Database\Eloquent\Relations\HasOne

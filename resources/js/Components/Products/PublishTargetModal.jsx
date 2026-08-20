@@ -1,0 +1,213 @@
+import { useState } from 'react';
+import axios from 'axios';
+import { X, Loader2, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import StatusBadge from '@/Components/StatusBadge';
+
+/**
+ * Explicit publish-target selection — the fix for "clicking Publish pushes
+ * to every connected platform". Nothing is selected by default; the user
+ * must check at least one connection before "Publish selected" is enabled.
+ *
+ * mode="single": product = { id, name, sku, channel_listings }
+ * mode="bulk":   productIds = [...], productCount = N
+ */
+export default function PublishTargetModal({ mode = 'single', product, productIds, productCount, connections = [], onClose, onPublished }) {
+    const [selected, setSelected] = useState([]);
+    const [createMissing, setCreateMissing] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [outcome, setOutcome] = useState(null); // { results } | { summary, results }
+    const [submitError, setSubmitError] = useState(null);
+
+    const linkedConnectionIds = mode === 'single'
+        ? new Set((product?.channel_listings ?? []).map((l) => l.platform_connection_id))
+        : null;
+
+    const toggle = (id) => {
+        setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    };
+
+    const hasUnlinkedSelected = mode === 'single'
+        ? selected.some((id) => !linkedConnectionIds.has(id))
+        : selected.length > 0; // bulk: linkage is per-product, unknown up front
+
+    const submit = () => {
+        if (selected.length === 0) return;
+        setSubmitting(true);
+        setSubmitError(null);
+
+        const payload = { connection_ids: selected, create_missing_listings: createMissing };
+        const url = mode === 'single'
+            ? `/dashboard/products/${product.id}/publish`
+            : '/dashboard/products/bulk-publish';
+        const body = mode === 'single' ? payload : { ...payload, product_ids: productIds };
+
+        axios.post(url, body)
+            .then((res) => {
+                setOutcome(res.data);
+                onPublished?.();
+            })
+            .catch((err) => setSubmitError(err.response?.data?.message ?? 'Publish request failed.'))
+            .finally(() => setSubmitting(false));
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col text-left">
+                <div className="p-4 border-b border-line flex justify-between items-center bg-surface flex-shrink-0">
+                    <div>
+                        <h3 className="font-semibold text-content">Choose publish target</h3>
+                        <p className="text-xs text-content-muted mt-0.5">
+                            {mode === 'single' ? (
+                                <>{product?.name} <span className="font-mono">({product?.sku})</span></>
+                            ) : (
+                                `${productCount} product${productCount === 1 ? '' : 's'} selected`
+                            )}
+                        </p>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-content-muted hover:text-content flex-shrink-0">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="p-4 overflow-y-auto space-y-4">
+                    {outcome ? (
+                        <ResultsView mode={mode} outcome={outcome} connections={connections} />
+                    ) : (
+                        <>
+                            {mode === 'bulk' && (
+                                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
+                                    Only products with existing mappings for the selected channel will be updated. Unlinked products will be skipped unless create-on-publish is explicitly supported.
+                                </p>
+                            )}
+
+                            {connections.length === 0 ? (
+                                <p className="text-sm text-content-muted">No platform connections for this store yet.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {connections.map((conn) => {
+                                        const linked = mode === 'single' ? linkedConnectionIds.has(conn.id) : null;
+                                        const listing = mode === 'single'
+                                            ? (product?.channel_listings ?? []).find((l) => l.platform_connection_id === conn.id)
+                                            : null;
+
+                                        return (
+                                            <label key={conn.id} className="flex items-start gap-3 p-3 rounded-lg border border-line bg-surface hover:bg-surface-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selected.includes(conn.id)}
+                                                    onChange={() => toggle(conn.id)}
+                                                    className="mt-0.5 rounded border-line"
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-sm font-medium text-content uppercase">{conn.platform}</span>
+                                                        {conn.label && <span className="text-xs text-content-muted">{conn.label}</span>}
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${conn.status === 'active' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-500/15 text-content-muted'}`}>
+                                                            {conn.status}
+                                                        </span>
+                                                    </div>
+                                                    {mode === 'single' && (
+                                                        linked ? (
+                                                            <div className="mt-1 flex items-center gap-1.5">
+                                                                <span className="text-xs text-content-muted">Linked</span>
+                                                                {listing?.sync_status && <StatusBadge type="sync" status={listing.sync_status} />}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                                                This product is not linked to this channel yet.
+                                                            </p>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {hasUnlinkedSelected && (
+                                <label className="flex items-start gap-2 text-xs text-content-muted p-2.5 rounded-lg border border-line bg-surface">
+                                    <input type="checkbox" checked={createMissing} onChange={(e) => setCreateMissing(e.target.checked)} className="mt-0.5 rounded border-line" />
+                                    Create new product on channels without an existing link.
+                                </label>
+                            )}
+
+                            {submitError && <p className="text-xs text-red-600 dark:text-red-400">{submitError}</p>}
+                        </>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-line flex items-center justify-between gap-3 flex-shrink-0 bg-surface">
+                    {outcome ? (
+                        <button type="button" onClick={onClose} className="ml-auto px-4 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                            Close
+                        </button>
+                    ) : (
+                        <>
+                            <span className="text-xs text-content-muted">
+                                {selected.length === 0 ? 'Choose at least one channel.' : `${selected.length} channel${selected.length === 1 ? '' : 's'} selected`}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={submit}
+                                    disabled={selected.length === 0 || submitting}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Publish selected
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ResultsView({ mode, outcome, connections }) {
+    const platformFor = (connectionId) => connections.find((c) => c.id === connectionId)?.platform ?? '—';
+    const icon = { succeeded: CheckCircle2, failed: XCircle, skipped: MinusCircle };
+    const tone = { succeeded: 'text-emerald-600 dark:text-emerald-400', failed: 'text-red-600 dark:text-red-400', skipped: 'text-content-muted' };
+
+    return (
+        <div className="space-y-4">
+            {mode === 'bulk' && outcome.summary && (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <SummaryStat label="Succeeded" value={outcome.summary.succeeded} tone="text-emerald-600 dark:text-emerald-400" />
+                    <SummaryStat label="Failed" value={outcome.summary.failed} tone="text-red-600 dark:text-red-400" />
+                    <SummaryStat label="Skipped" value={outcome.summary.skipped} tone="text-content-muted" />
+                </div>
+            )}
+
+            <div className="space-y-1.5">
+                {(outcome.results ?? []).map((r, i) => {
+                    const Icon = icon[r.status] ?? MinusCircle;
+                    return (
+                        <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
+                            <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${tone[r.status] ?? 'text-content-muted'}`} />
+                            <div className="min-w-0">
+                                <span className="font-medium text-content uppercase">{r.platform ?? platformFor(r.connection_id)}</span>
+                                {mode === 'bulk' && r.product_id && <span className="text-content-muted"> · {r.product_id}</span>}
+                                <p className="text-content-muted mt-0.5">{r.message}</p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function SummaryStat({ label, value, tone }) {
+    return (
+        <div className="p-2 rounded-lg bg-surface border border-line">
+            <div className={`text-lg font-bold tabular-nums ${tone}`}>{value}</div>
+            <div className="text-[10px] uppercase text-content-muted">{label}</div>
+        </div>
+    );
+}

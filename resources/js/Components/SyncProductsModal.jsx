@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
 
-export default function SyncProductsModal({ connections = [], onSyncCompleted }) {
-    const [isOpen, setIsOpen] = useState(false);
+export default function SyncProductsModal({ connections = [], onSyncCompleted, open: controlledOpen, onOpenChange }) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    // Controlled when a parent passes `open`/`onOpenChange` (e.g. the Import
+    // modal opening this one for a WooCommerce import) — otherwise falls back
+    // to its own internal state exactly as before.
+    const isOpen = controlledOpen ?? internalOpen;
+    const setIsOpen = onOpenChange ?? setInternalOpen;
     const [selectedIds, setSelectedIds] = useState([]);
     const [syncState, setSyncState] = useState({
         in_progress: false,

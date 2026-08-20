@@ -2019,3 +2019,167 @@
 | 15:52 | Edited app/Http/Controllers/Dashboard/ProductController.php | added nullish coalescing | ~156 |
 | 15:54 | Created tests/Feature/_SmokeCheck.php | — | ~546 |
 | 15:54 | Session end: 29 writes across 10 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 13 reads | ~21585 tok |
+| 16:18 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~3990 |
+| 16:19 | Created database/migrations/2026_08_19_000001_add_shopify_webhook_fields_to_platform_connections_table.php | — | ~216 |
+| 16:20 | Edited app/Models/PlatformConnection.php | modified casts() | ~384 |
+| 16:20 | Edited app/Models/PlatformConnection.php | modified isConnected() | ~96 |
+| 16:20 | Edited app/Connectors/ShopifyConnector.php | modified mapWebhookProduct() | ~220 |
+| 16:20 | Created app/Services/Shopify/ShopifyWebhookVerifier.php | — | ~203 |
+| 16:20 | Created app/Services/Shopify/ShopifyProductMapper.php | — | ~241 |
+| 16:20 | Created app/Services/Shopify/ShopifyOrderMapper.php | — | ~271 |
+| 16:21 | Created app/Http/Controllers/Api/ShopifyWebhookController.php | — | ~1497 |
+| 16:21 | Edited routes/api.php | added 1 import(s) | ~48 |
+| 16:21 | Edited routes/api.php | 3→7 lines | ~91 |
+| 16:22 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | expanded (+7 lines) | ~139 |
+| 16:22 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added nullish coalescing | ~299 |
+| 16:22 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added nullish coalescing | ~684 |
+| 16:22 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added error handling | ~460 |
+| 16:23 | Created resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | — | ~4211 |
+| 16:23 | Edited resources/js/Components/StatusBadge.jsx | CSS: verified, failed | ~71 |
+| 16:23 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | CSS: dark, dark, dark | ~274 |
+| 16:23 | Edited resources/js/Components/SyncProductsModal.jsx | added nullish coalescing | ~142 |
+| 16:24 | Created resources/js/Components/Products/ImportProductsModal.jsx | — | ~1527 |
+| 16:24 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | added 1 import(s) | ~154 |
+| 16:24 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | expanded (+7 lines) | ~170 |
+| 16:25 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | 4→7 lines | ~111 |
+| 16:25 | Created tests/Feature/Foundation/ShopifyWebhookTest.php | — | ~2169 |
+| 16:26 | Created tests/Feature/Foundation/ShopifyConnectionWorkflowTest.php | — | ~1163 |
+| 16:26 | Created tests/Feature/Foundation/ProductImportEntryPointTest.php | — | ~583 |
+| 16:29 | Created tests/Feature/_SmokeCheck.php | — | ~323 |
+| 16:30 | Session end: 56 writes across 25 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 17 reads | ~44394 tok |
+| 16:38 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~3096 |
+| 16:45 | Edited app/Services/Sync/ProductPushService.php | added 3 condition(s) | ~1120 |
+| 16:46 | Edited app/Services/Sync/ProductPushService.php | modified pushVariantStock() | ~278 |
+| 16:46 | Edited app/Services/Sync/ProductPushService.php | modified if() | ~257 |
+| 16:46 | Edited app/Services/Sync/ProductPushService.php | modified markListingFailed() | ~197 |
+| 16:46 | Edited app/Http/Controllers/Dashboard/ProductController.php | 13→11 lines | ~169 |
+| 16:46 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified if() | ~672 |
+| 16:47 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 5 import(s) | ~174 |
+| 16:47 | Edited app/Http/Controllers/Dashboard/ProductController.php | 7→8 lines | ~96 |
+| 16:47 | Edited app/Http/Controllers/Dashboard/ProductController.php | added error handling | ~1164 |
+| 16:47 | Edited routes/dashboard.php | modified group() | ~123 |
+| 16:48 | Edited routes/dashboard.php | modified group() | ~294 |
+| 16:48 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added optional chaining | ~226 |
+| 16:48 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | modified trim() | ~46 |
+| 16:48 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | modified trim() | ~64 |
+| 16:48 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added optional chaining | ~508 |
+| 16:49 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | handleVariantChange() → setAdjusting() | ~497 |
+| 16:49 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | expanded (+10 lines) | ~119 |
+| 16:49 | Created resources/js/Components/Products/AdjustStockModal.jsx | — | ~1977 |
+| 16:49 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified use() | ~75 |
+| 16:49 | Edited app/Http/Controllers/Dashboard/ProductController.php | inline fix | ~35 |
+| 16:49 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | added 1 import(s) | ~144 |
+| 16:50 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | added optional chaining | ~567 |
+| 16:50 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | CSS: preserveScroll, onFinish | ~146 |
+| 16:50 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 8→11 lines | ~185 |
+| 16:51 | Created tests/Feature/Foundation/WooCommerceOutboundSyncTest.php | — | ~2722 |
+| 16:52 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified pushProduct() | ~237 |
+| 16:54 | Created tests/Feature/_SmokeCheck.php | — | ~617 |
+| 16:55 | Session end: 84 writes across 28 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 20 reads | ~79509 tok |
+| 18:09 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~3329 |
+| 18:09 | Edited app/Models/PlatformConnection.php | 3→4 lines | ~66 |
+| 18:10 | Created app/Services/Shopify/ShopifyAuthException.php | — | ~39 |
+| 18:10 | Edited app/Connectors/ShopifyConnector.php | added 1 condition(s) | ~579 |
+| 18:11 | Created app/Services/Shopify/ShopifyAuthService.php | — | ~2269 |
+| 18:11 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 3 import(s) | ~108 |
+| 18:11 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | modified if() | ~263 |
+| 18:11 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added error handling | ~698 |
+| 18:11 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 1 condition(s) | ~82 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | modified Shopify() | ~70 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | 9→9 lines | ~155 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | 5→5 lines | ~83 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | modified AdminClientCredentialsForm() | ~1577 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | added 1 import(s) | ~34 |
+| 18:12 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | CSS: ok, message | ~97 |
+| 18:13 | Created tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php | — | ~2087 |
+| 18:13 | Edited tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php | inline fix | ~20 |
+| 18:16 | Created tests/Feature/_SmokeCheck.php | — | ~461 |
+| 18:17 | Edited tests/Feature/_SmokeCheck.php | added 1 import(s) | ~42 |
+| 18:17 | Edited tests/Feature/_SmokeCheck.php | 6→10 lines | ~130 |
+| 18:18 | Session end: 104 writes across 31 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 21 reads | ~105151 tok |
+| 22:33 | Edited app/Services/Shopify/ShopifyAuthService.php | added 1 condition(s) | ~947 |
+| 22:35 | Edited app/Services/Shopify/ShopifyAuthService.php | 4→4 lines | ~65 |
+| 22:38 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | CSS: fix, only, onFinish | ~179 |
+| 22:38 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | expanded (+17 lines) | ~778 |
+| 22:41 | Edited tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php | 5→6 lines | ~82 |
+| 22:43 | Edited tests/Feature/Foundation/ShopifyClientCredentialsAuthTest.php | added nullish coalescing | ~730 |
+| 22:44 | Edited tests/Feature/Foundation/ShopifyConnectionWorkflowTest.php | added 1 import(s) | ~50 |
+| 22:44 | Edited tests/Feature/Foundation/ShopifyConnectionWorkflowTest.php | modified it() | ~879 |
+| 22:49 | Session end: 112 writes across 31 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 24 reads | ~115770 tok |
+| 23:01 | Edited app/Services/Sync/ProductPushService.php | modified getConnections() | ~188 |
+| 23:01 | Edited app/Services/Sync/ProductPushService.php | modified pushProduct() | ~910 |
+| 23:02 | Edited app/Services/Sync/ProductPushService.php | modified createProduct() | ~824 |
+| 23:03 | Edited app/Services/Sync/ProductPushService.php | modified if() | ~430 |
+| 23:03 | Edited app/Services/Sync/ProductPushService.php | modified catch() | ~206 |
+| 23:05 | Created app/Services/Sync/ProductPublishService.php | — | ~1769 |
+| 23:09 | Edited app/Http/Controllers/Dashboard/ProductController.php | added nullish coalescing | ~660 |
+| 23:10 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 import(s) | ~35 |
+| 23:13 | Edited routes/dashboard.php | 2→6 lines | ~154 |
+| 23:15 | Created resources/js/Components/Products/PublishTargetModal.jsx | — | ~3642 |
+| 23:17 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 10→5 lines | ~103 |
+| 23:17 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 10→10 lines | ~194 |
+| 23:18 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added 1 import(s) | ~42 |
+| 23:20 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: only | ~210 |
+| 23:25 | Edited app/Http/Controllers/Dashboard/ProductController.php | 4→4 lines | ~67 |
+| 23:27 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | CSS: mode, mode | ~666 |
+| 23:28 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | CSS: label, width, render | ~225 |
+| 23:30 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | CSS: mode, product | ~173 |
+| 23:31 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | expanded (+18 lines) | ~350 |
+| 23:32 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | expanded (+12 lines) | ~247 |
+| 23:34 | Edited app/Http/Controllers/Dashboard/ProductController.php | 7→9 lines | ~149 |
+| 23:36 | Created tests/Feature/Foundation/ProductPublishTargetingTest.php | — | ~3899 |
+| 23:37 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | modified it() | ~210 |
+| 23:37 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | modified it() | ~149 |
+| 23:38 | Created tests/Feature/Foundation/ProductBulkPublishTest.php | — | ~1672 |
+| 23:39 | Created ../../../../.claude/projects/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/memory/feedback_implementation_first_no_test_runs.md | — | ~447 |
+| 23:41 | Created ../../../../.claude/projects/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/memory/MEMORY.md | — | ~50 |
+| 23:42 | Session end: 139 writes across 37 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 25 reads | ~137496 tok |
+| 23:50 | Created app/Services/Shopify/ShopifyCapabilityDiagnosticsService.php | — | ~2527 |
+| 23:51 | Edited app/Services/Shopify/ShopifyCapabilityDiagnosticsService.php | modified skippedReport() | ~403 |
+| 23:51 | Edited app/Services/Shopify/ShopifyCapabilityDiagnosticsService.php | 6→4 lines | ~23 |
+| 23:52 | Edited routes/dashboard.php | 2→6 lines | ~134 |
+| 23:53 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | 4→7 lines | ~157 |
+| 23:54 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 3 condition(s) | ~397 |
+| 23:55 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 1 import(s) | ~41 |
+| 23:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | modified AdminClientCredentialsForm() | ~157 |
+| 23:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | modified DiagnosticsPanel() | ~1635 |
+| 23:59 | Created tests/Feature/Foundation/ShopifyCapabilityDiagnosticsTest.php | — | ~3006 |
+| 00:00 | Edited tests/Feature/Foundation/ShopifyCapabilityDiagnosticsTest.php | 12→9 lines | ~133 |
+| 00:04 | Session end: 150 writes across 39 files (ProfileValidationRules.php, _SmokeCheck.php, tidy-frolicking-moler.md, web.php, ProductController.php) | 26 reads | ~151020 tok |
+| 01:04 | Created ../../../../.claude/plans/tidy-frolicking-moler.md | — | ~3610 |
+| 01:05 | Created database/migrations/2026_08_20_000001_add_position_to_product_attributes_tables.php | — | ~237 |
+| 01:07 | Edited app/Models/ProductAttribute.php | modified product() | ~100 |
+| 01:08 | Edited app/Models/Product.php | modified attributes() | ~35 |
+| 01:09 | Edited app/Models/ProductAttributeValue.php | 1→3 lines | ~33 |
+| 01:11 | Created app/Services/Catalog/ProductVariantWizardService.php | — | ~3145 |
+| 01:15 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 import(s) | ~52 |
+| 01:15 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified if() | ~1291 |
+| 01:16 | Edited app/Http/Controllers/Dashboard/ProductController.php | reduced (-6 lines) | ~297 |
+| 01:17 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified use() | ~482 |
+| 01:17 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified foreach() | ~285 |
+| 01:18 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 condition(s) | ~167 |
+| 01:18 | Edited app/Http/Controllers/Dashboard/ProductController.php | 7→3 lines | ~66 |
+| 01:18 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 condition(s) | ~76 |
+| 01:19 | Edited app/Http/Middleware/HandleInertiaRequests.php | 4→5 lines | ~70 |
+| 01:21 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified each() | ~423 |
+| 01:25 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added optional chaining | ~516 |
+| 01:25 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | buildAttributesFromProduct() → buildOptionsFromProduct() | ~60 |
+| 01:26 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | buildAttributesFromProduct() → buildOptionsFromProduct() | ~68 |
+| 01:26 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: channel_listings | ~1245 |
+| 01:27 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 84→89 lines | ~2423 |
+| 01:29 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: md | ~280 |
+| 01:31 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added optional chaining | ~1452 |
+| 01:33 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | added 1 import(s) | ~271 |
+
+## Session: 2026-08-20 01:36
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 01:39 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | added 8 condition(s) | ~1186 |
+| 01:39 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | 48→45 lines | ~990 |
+| 01:40 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | expanded (+6 lines) | ~185 |
+| 01:41 | Created tests/Feature/Foundation/ProductVariantCanonicalizationTest.php | — | ~2688 |
+| 01:43 | Created tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php | — | ~2161 |
+| 01:44 | Edited tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php | modified it() | ~708 |
+| 01:44 | Edited tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php | 5→6 lines | ~122 |
+| 01:46 | Session end: 7 writes across 3 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php) | 13 reads | ~37169 tok |
