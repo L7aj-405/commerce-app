@@ -71,7 +71,11 @@ it('publishes product changes to WooCommerce using the existing remote product i
         'woo-outbound-test.example.com/wp-json/wc/v3/products/501' => Http::response(['id' => 501], 200),
     ]);
 
-    $this->actingAs($owner)->post("/dashboard/products/{$product->id}/push")->assertRedirect();
+   $this->actingAs($owner)
+    ->post("/dashboard/products/{$product->id}/publish", [
+        'connection_ids' => [$connection->id],
+    ])
+    ->assertOk();
 
     Http::assertSent(fn ($request) => $request->method() === 'PUT'
         && str_contains($request->url(), '/products/501')
@@ -103,17 +107,25 @@ it('publishes a variant using its remote variation id', function (): void {
         'woo-outbound-test.example.com/wp-json/wc/v3/products/601/variations/7001' => Http::response(['id' => 7001], 200),
     ]);
 
-    $this->actingAs($owner)->post("/dashboard/products/{$product->id}/push")->assertRedirect();
+    $this->actingAs($owner)
+    ->post("/dashboard/products/{$product->id}/publish", [
+        'connection_ids' => [$connection->id],
+    ])
+    ->assertOk();
 
     Http::assertSent(fn ($request) => $request->method() === 'PUT' && str_contains($request->url(), '/products/601/variations/7001'));
 });
 
 it('does not let a product from Store A be pushed through Store Bs connection', function (): void {
     [, $storeA, $connectionA] = wooOutboundWorkspace('Store A Woo');
-    [$ownerB] = wooOutboundWorkspace('Store B Woo');
-    [$productA] = wooOutboundProduct($storeA, $connectionA);
+[$ownerB, , $connectionB] = wooOutboundWorkspace('Store B Woo');
+[$productA] = wooOutboundProduct($storeA, $connectionA);
 
-    $this->actingAs($ownerB)->post("/dashboard/products/{$productA->id}/push")->assertNotFound();
+$this->actingAs($ownerB)
+    ->post("/dashboard/products/{$productA->id}/publish", [
+        'connection_ids' => [$connectionB->id],
+    ])
+    ->assertNotFound();
 });
 
 it('cannot update quantity by blindly writing product.quantity through the edit form', function (): void {
