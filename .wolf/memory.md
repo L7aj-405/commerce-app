@@ -2183,3 +2183,88 @@
 | 01:44 | Edited tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php | modified it() | ~708 |
 | 01:44 | Edited tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php | 5→6 lines | ~122 |
 | 01:46 | Session end: 7 writes across 3 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php) | 13 reads | ~37169 tok |
+| 02:26 | Created app/Services/Publishing/ProductOptionSnapshot.php | — | ~545 |
+| 02:26 | Created app/Services/Publishing/ProductPublishReadinessService.php | — | ~1434 |
+| 02:27 | Created app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php | — | ~1333 |
+| 02:27 | Created app/Services/Publishing/WooCommerce/WooCommerceProductPayloadMapper.php | — | ~965 |
+| 02:27 | Edited app/Connectors/ShopifyConnector.php | modified client() | ~75 |
+| 02:28 | Edited app/Connectors/ShopifyConnector.php | added error handling | ~1054 |
+| 02:28 | Edited app/Connectors/WooCommerceConnector.php | 7→8 lines | ~77 |
+| 02:28 | Edited app/Connectors/WooCommerceConnector.php | added error handling | ~1218 |
+| 02:28 | Created database/migrations/2026_08_20_000002_create_product_publish_batches_and_results_tables.php | — | ~607 |
+| 02:29 | Created app/Models/ProductPublishBatch.php | — | ~627 |
+| 02:29 | Created app/Models/ProductPublishResult.php | — | ~383 |
+| 02:30 | Edited app/Connectors/ShopifyConnector.php | added error handling | ~389 |
+| 02:31 | Created app/Services/Publishing/ProductChannelPublisher.php | — | ~2991 |
+| 02:32 | Created app/Jobs/ProductPublishJob.php | — | ~1147 |
+| 02:33 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 4 condition(s) | ~1332 |
+| 02:33 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 4 import(s) | ~171 |
+| 02:34 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified foreach() | ~480 |
+| 02:34 | Edited app/Http/Controllers/Dashboard/ProductController.php | inline fix | ~12 |
+| 02:34 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified edit() | ~32 |
+| 02:34 | Edited app/Http/Controllers/Dashboard/ProductController.php | 8→11 lines | ~154 |
+| 02:35 | Edited routes/dashboard.php | 3→7 lines | ~206 |
+| 02:36 | Created tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php | — | ~2154 |
+| 02:36 | Edited tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php | added 2 import(s) | ~67 |
+| 02:36 | Edited tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php | 6→6 lines | ~72 |
+| 02:37 | Created tests/Feature/Foundation/WooCommerceCanonicalPublishMapperTest.php | — | ~2276 |
+| 02:37 | Edited tests/Feature/Foundation/WooCommerceCanonicalPublishMapperTest.php | modified it() | ~555 |
+| 02:38 | Created tests/Feature/Foundation/ProductPublishReadinessTest.php | — | ~1644 |
+| 02:38 | Edited tests/Feature/Foundation/ProductPublishReadinessTest.php | "product_attribute_values." → "id" | ~20 |
+| 02:39 | Edited tests/Feature/Foundation/ProductPublishReadinessTest.php | added 1 import(s) | ~26 |
+| 02:40 | Created tests/Feature/Foundation/ProductPublishJobTest.php | — | ~2695 |
+| 02:40 | Edited tests/Feature/Foundation/ProductPublishJobTest.php | added 1 import(s) | ~34 |
+| 02:40 | Edited tests/Feature/Foundation/ProductPublishJobTest.php | inline fix | ~35 |
+| 02:42 | Edited tests/Feature/Foundation/ProductPublishJobTest.php | modified it() | ~199 |
+| 02:42 | Edited tests/Feature/Foundation/ProductPublishJobTest.php | modified function() | ~131 |
+| 02:45 | Edited resources/js/Components/Products/PublishTargetModal.jsx | added 3 condition(s) | ~1146 |
+| 02:45 | Edited resources/js/Components/Products/PublishTargetModal.jsx | modified has() | ~1149 |
+| 02:46 | Edited resources/js/Components/Products/PublishTargetModal.jsx | 4→8 lines | ~132 |
+| 02:46 | Edited resources/js/Components/Products/PublishTargetModal.jsx | expanded (+12 lines) | ~482 |
+| 02:46 | Edited resources/js/Components/Products/PublishTargetModal.jsx | added optional chaining | ~798 |
+| 02:47 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 9→10 lines | ~116 |
+| 02:47 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | inline fix | ~27 |
+| 02:47 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 3→5 lines | ~51 |
+| 02:47 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added nullish coalescing | ~616 |
+| 02:50 | Session end: 50 writes across 22 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 32 reads | ~111184 tok |
+| 11:51 | Created database/migrations/2026_08_21_000001_add_is_active_to_product_attribute_values_table.php | — | ~159 |
+| 11:51 | Edited app/Models/ProductAttributeValue.php | 3→3 lines | ~44 |
+| 11:52 | Edited app/Models/ProductAttributeValue.php | added 1 import(s) | ~90 |
+| 11:52 | Edited app/Models/ProductAttributeValue.php | modified variants() | ~151 |
+| 11:52 | Edited app/Services/Publishing/ProductOptionSnapshot.php | modified build() | ~381 |
+| 11:55 | Created app/Services/Catalog/ProductVariantWizardService.php | — | ~4748 |
+| 11:56 | Edited app/Http/Controllers/Dashboard/ProductController.php | 13→17 lines | ~254 |
+| 11:56 | Edited app/Http/Controllers/Dashboard/ProductController.php | 3→7 lines | ~108 |
+| 11:56 | Edited app/Http/Controllers/Dashboard/ProductController.php | 5→6 lines | ~80 |
+| 11:58 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: regenerate_skus | ~186 |
+| 11:58 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: hover | ~281 |
+| 12:00 | Created tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php | — | ~3132 |
+| 12:00 | Edited tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php | 6→5 lines | ~84 |
+| 12:00 | Edited tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php | 6→7 lines | ~107 |
+| 12:01 | Created tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php | — | ~1607 |
+| 12:03 | Edited tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php | modified it() | ~407 |
+| 12:04 | Edited tests/Feature/Foundation/ProductVariantCanonicalizationTest.php | expanded (+6 lines) | ~206 |
+| 12:06 | Session end: 67 writes across 27 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 37 reads | ~130568 tok |
+| 14:28 | Edited resources/js/Components/Products/AdjustStockModal.jsx | CSS: id, preserveState | ~451 |
+| 14:29 | Edited resources/js/Components/Products/AdjustStockModal.jsx | 15→20 lines | ~395 |
+| 14:30 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | added optional chaining | ~440 |
+| 14:30 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 25→20 lines | ~182 |
+| 14:31 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 15→19 lines | ~587 |
+| 14:31 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | CSS: only | ~119 |
+| 14:33 | Created tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php | — | ~1151 |
+| 14:34 | Edited tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php | modified it() | ~55 |
+| 14:34 | Created tests/Feature/Foundation/ProductEditStockAdjustmentTest.php | — | ~1866 |
+| 14:37 | Session end: 76 writes across 30 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 39 reads | ~138465 tok |
+| 14:52 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/358ee1f2-0cee-456b-910c-65b6637b1237/scratchpad/ReproBugTest.php | — | ~886 |
+| 14:55 | Edited app/Services/Sync/ProductPushService.php | added 1 condition(s) | ~292 |
+| 14:56 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 1 condition(s) | ~226 |
+| 14:56 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 1 condition(s) | ~188 |
+| 14:56 | Edited app/Services/Sync/ProductSyncService.php | added 1 condition(s) | ~342 |
+| 14:57 | Edited app/Services/Sync/ProductSyncService.php | added 1 condition(s) | ~255 |
+| 14:58 | Created tests/Feature/Foundation/ProductCrossChannelMappingTest.php | — | ~3830 |
+| 14:59 | Created tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php | — | ~2204 |
+| 15:00 | Edited tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php | added 1 import(s) | ~58 |
+| 15:00 | Edited tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php | 11→11 lines | ~206 |
+| 15:04 | Edited app/Services/Sync/ProductSyncService.php | added 1 condition(s) | ~458 |
+| 15:06 | Edited tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php | modified it() | ~700 |
+| 15:09 | Session end: 88 writes across 35 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 43 reads | ~161442 tok |

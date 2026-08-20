@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-20T00:44:41.181Z
-> Files: 169 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-20T14:06:48.231Z
+> Files: 192 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -20,6 +20,10 @@
 
 ## ../../../../AppData/Local/Temp/
 
+
+## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/358ee1f2-0cee-456b-910c-65b6637b1237/scratchpad/
+
+- `ReproBugTest.php` (~886 tok)
 
 ## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/
 
@@ -51,7 +55,8 @@
 
 ## app/Connectors/
 
-- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~8744 tok)
+- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~10075 tok)
+- `WooCommerceConnector.php` — Parse WooCommerce product to normalized format (~9048 tok)
 
 ## app/Console/Commands/
 
@@ -90,7 +95,7 @@
 - `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~3947 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~837 tok)
 - `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~3362 tok)
-- `ProductController.php` — index, syncFromPlatform, create, store, edit (~6908 tok)
+- `ProductController.php` — index, syncFromPlatform, create, store, edit (~8446 tok)
 - `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~5223 tok)
 - `StockTransferController.php` — index, create, store, slip (~2839 tok)
 - `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
@@ -120,6 +125,7 @@
 
 ## app/Jobs/
 
+- `ProductPublishJob.php` — Publishes one canonical Product to one PlatformConnection and records the (~1147 tok)
 
 ## app/Jobs/Pos/
 
@@ -160,7 +166,9 @@
 - `PosOrderItem.php` — Model — 13 fields, 3 rels (~369 tok)
 - `Product.php` — Platform-specific identities for this canonical catalog product. (~1797 tok)
 - `ProductAttribute.php` — Model — 4 fields, 2 rels (~315 tok)
-- `ProductAttributeValue.php` — Model — 4 fields, 2 rels (~365 tok)
+- `ProductAttributeValue.php` — Values the wizard should treat as real options — never a user-archived one. (~441 tok)
+- `ProductPublishBatch.php` — Recompute counts/status from the batch's own result rows. (~627 tok)
+- `ProductPublishResult.php` — Model — 10 fields, 4 rels (~383 tok)
 - `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
 - `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
 - `StockTransferItem.php` — Model — 8 fields, 3 rels (~270 tok)
@@ -194,7 +202,7 @@
 
 ## app/Services/Catalog/
 
-- `ProductVariantWizardService.php` — Turns a product-edit-wizard submission (option definitions + variant (~3145 tok)
+- `ProductVariantWizardService.php` — Turns a product-edit-wizard submission (option definitions + variant (~4748 tok)
 
 ## app/Services/Invoicing/
 
@@ -216,6 +224,20 @@
 - `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~2978 tok)
 - `OrderProcessingService.php` — Create a POS order with its line items. Runs in a single transaction so (~2940 tok)
 
+## app/Services/Publishing/
+
+- `ProductChannelPublisher.php` — Publishes one canonical Product to one PlatformConnection using the (~3216 tok)
+- `ProductOptionSnapshot.php` — Reads a Product's canonical ProductAttribute/ProductAttributeValue/variant (~667 tok)
+- `ProductPublishReadinessService.php` — Read-only readiness checks — never mutates anything, never calls a (~1434 tok)
+
+## app/Services/Publishing/Shopify/
+
+- `ShopifyProductPayloadMapper.php` — Converts a canonical SaaS Product into a Shopify Admin REST product (~1333 tok)
+
+## app/Services/Publishing/WooCommerce/
+
+- `WooCommerceProductPayloadMapper.php` — Converts a canonical SaaS Product into WooCommerce REST payloads — a (~965 tok)
+
 ## app/Services/Shopify/
 
 - `ShopifyAuthException.php` — Declares ShopifyAuthException (~39 tok)
@@ -232,7 +254,8 @@
 ## app/Services/Sync/
 
 - `ProductPublishService.php` — Orchestrates explicit-target product publishing (SaaS -> platform). (~1769 tok)
-- `ProductPushService.php` — Create a local product on every selected channel that does not already (~8482 tok)
+- `ProductPushService.php` — Create a local product on every selected channel that does not already (~8656 tok)
+- `ProductSyncService.php` — Pull one remote product into the canonical Store catalog. (~7476 tok)
 
 ## app/Services/WhatsApp/
 
@@ -269,6 +292,8 @@
 - `2026_07_27_000002_create_stock_transfer_items_table.php` — Migration: create stock_transfer_items table (~391 tok)
 - `2026_08_19_000001_add_shopify_webhook_fields_to_platform_connections_table.php` — Migration: alter platform_connections table (~216 tok)
 - `2026_08_20_000001_add_position_to_product_attributes_tables.php` — Migration: alter product_attributes table (~237 tok)
+- `2026_08_20_000002_create_product_publish_batches_and_results_tables.php` — Migration: create product_publish_batches table (~607 tok)
+- `2026_08_21_000001_add_is_active_to_product_attribute_values_table.php` — Migration: alter product_attribute_values table (~159 tok)
 
 ## database/seeders/
 
@@ -317,9 +342,9 @@
 
 ## resources/js/Components/Products/
 
-- `AdjustStockModal.jsx` — Inventory-safe stock adjustment for the Product Edit page. Posts to (~1977 tok)
+- `AdjustStockModal.jsx` — Inventory-safe stock adjustment for the Product Edit page. Posts to (~2257 tok)
 - `ImportProductsModal.jsx` — Small import-choice modal shown next to Add product / Sync / Add platform. (~1527 tok)
-- `PublishTargetModal.jsx` — Explicit publish-target selection — the fix for "clicking Publish pushes (~3642 tok)
+- `PublishTargetModal.jsx` — Explicit publish-target selection — the fix for "clicking Publish pushes (~5446 tok)
 
 ## resources/js/Components/Settings/
 
@@ -406,7 +431,7 @@
 ## resources/js/Pages/Dashboard/Products/
 
 - `Create.jsx` — Create — renders form (~5309 tok)
-- `Edit.jsx` — Edit (~13105 tok)
+- `Edit.jsx` — Edit (~15346 tok)
 - `Index.jsx` — Index — renders table (~3698 tok)
 
 ## resources/js/Pages/Dashboard/Roles/
@@ -529,7 +554,7 @@
 
 - `api.php` (~251 tok)
 - `auth.php` (~1236 tok)
-- `dashboard.php` (~4775 tok)
+- `dashboard.php` (~4888 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -584,17 +609,27 @@
 ## tests/Feature/Foundation/
 
 - `ProductBulkPublishTest.php` — bpWorkspace: bpWooConnection, bpProduct, bpListing (~1672 tok)
+- `ProductCrossChannelMappingTest.php` — xchanWorkspace: xchanShopify, xchanWoo, xchanImportFromShopify, xchanImportFromWoo (~3830 tok)
+- `ProductEditStockAdjustmentTest.php` — Declares adjustStockWorkspace (~1866 tok)
 - `ProductImportEntryPointTest.php` — Declares importEntryPointWorkspace (~583 tok)
+- `ProductPublishJobTest.php` — publishJobWorkspace: publishJobProduct, publishJobWooConnection (~2797 tok)
+- `ProductPublishReadinessTest.php` — readinessWorkspace: readinessProduct (~1645 tok)
 - `ProductPublishTargetingTest.php` — ptWorkspace: ptWooConnection, ptShopifyConnection, ptProduct, ptListing (~3889 tok)
-- `ProductVariantCanonicalizationTest.php` — canonicalizationWorkspace: canonicalizationProduct (~2688 tok)
+- `ProductVariantCanonicalizationTest.php` — canonicalizationWorkspace: canonicalizationProduct (~2847 tok)
+- `ProductVariantCrossChannelMappingTest.php` — xchanVariantWorkspace: xchanVariantWoo, xchanVariableProduct (~2358 tok)
+- `ProductWizardDoesNotWriteStockTest.php` — Declares noWriteStockWorkspace (~1091 tok)
 - `ProductWizardMigrationTest.php` — Declares pwmWorkspace (~2277 tok)
+- `ProductWizardOptionValueRemovalTest.php` — removalWorkspace: removalProduct, removalSeedThreeColors (~3106 tok)
 - `ProductWizardVariantPersistenceTest.php` — Declares wizardPersistenceWorkspace (~2330 tok)
+- `ProductWizardVariantSkuGenerationTest.php` — skuGenWorkspace: skuGenProduct (~1836 tok)
 - `SettingsPageMigrationTest.php` (~381 tok)
+- `ShopifyCanonicalPublishMapperTest.php` — shopifyMapperWorkspace: shopifyMapperProduct (~2150 tok)
 - `ShopifyCapabilityDiagnosticsTest.php` — cdWorkspace: cdConnection, cdTokenFake (~2992 tok)
 - `ShopifyClientCredentialsAuthTest.php` — sccWorkspace: sccConnection, sccFakeTokenResponse (~2800 tok)
 - `ShopifyConnectionWorkflowTest.php` — Declares scwWorkspace (~1993 tok)
 - `ShopifyWebhookTest.php` — shopifyWebhookWorkspace: shopifyWebhookHeaders, shopifyProductPayload, shopifyOrderPayload (~2169 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
+- `WooCommerceCanonicalPublishMapperTest.php` — wooMapperWorkspace: wooMapperProduct, wooMapperConnection (~2228 tok)
 - `WooCommerceOutboundSyncTest.php` — wooOutboundWorkspace: wooOutboundProduct (~2722 tok)
 
 ## tests/Feature/Invoicing/

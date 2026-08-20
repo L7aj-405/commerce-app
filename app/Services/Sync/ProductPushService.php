@@ -65,6 +65,15 @@ class ProductPushService
 
                 if (($result['success'] ?? false) && ! empty($result['external_id'])) {
                     $listingId = $this->recordProductListing($product, $connection, (string) $result['external_id'])->id;
+                } elseif ($result['success'] ?? false) {
+                    // The platform answered 2xx but the response carried no
+                    // usable id — treating this as "success" is exactly how a
+                    // product ends up unlinked-but-looks-published, and the
+                    // next sync creates a duplicate because nothing here ever
+                    // recorded a ProductChannelListing to match against.
+                    $result['success'] = false;
+                    $result['error'] = 'missing_external_id';
+                    $result['message'] = 'Platform did not return a product id — nothing was linked.';
                 }
 
                 $this->log(

@@ -278,12 +278,29 @@ class ProductSyncService
             }
 
             // SKU is the safe automatic merge key inside one Store catalog. It
-            // lets Shopify + WooCommerce point to the same canonical product.
+            // lets Shopify + WooCommerce point to the same canonical product —
+            // but only when the match is unambiguous. Blank SKU, more than one
+            // candidate, or a candidate that already has its own listing for
+            // this exact connection are all "do not guess" cases.
             if ($product === null && $remoteSku !== null) {
-                $product = Product::query()
+                $skuCandidates = Product::query()
                     ->where('store_id', $store->id)
                     ->where('sku', $remoteSku)
-                    ->first();
+                    ->limit(3)
+                    ->get();
+
+                $product = $this->resolveSkuFallbackCandidate($skuCandidates, $connection);
+
+                if ($product !== null) {
+                    Log::info('ProductSyncService: SKU fallback attached an external product to an existing local product', [
+                        'store_id' => $store->id,
+                        'platform' => $platform,
+                        'connection_id' => $connection->id,
+                        'external_id' => $externalId,
+                        'sku' => $remoteSku,
+                        'product_id' => $product->id,
+                    ]);
+                }
             }
 
             $wasCreated = $product === null;
@@ -350,6 +367,26 @@ class ProductSyncService
 
             return $wasCreated ? 'created' : 'updated';
         });
+    }
+
+    /**
+     * Decide whether a set of same-SKU candidates is a safe automatic merge
+     * target. Never guess: more than one candidate, or a candidate that
+     * already carries its own listing for this exact connection (attaching
+     * would silently remap that existing listing to a different remote
+     * product), both fall through to "create a new product" instead.
+     *
+     * @param  \Illuminate\Support\Collection<int, Product>  $candidates
+     */
+    public function resolveSkuFallbackCandidate(\Illuminate\Support\Collection $candidates, PlatformConnection $connection): ?Product
+    {
+        if ($candidates->count() !== 1) {
+            return null;
+        }
+
+        $candidate = $candidates->first();
+
+        return $candidate->listingForConnection($connection) === null ? $candidate : null;
     }
 
     /** @return array<string, mixed> */
@@ -507,14 +544,29 @@ class ProductSyncService
                     $variant->update($variantData);
                 }
 
-                if ($connection !== null && $externalId !== '') {
+                $parentExternalId = $connection !== null ? $product->externalIdForConnection($connection) : null;
+
+                if ($connection !== null && $externalId !== '' && $parentExternalId === null && $productListing === null) {
+                    // The parent product has no external id for this
+                    // connection yet — never auto-create a ProductChannelListing
+                    // with a blank external_product_id just to hang a variant
+                    // listing off it. That blank id collides with any other
+                    // product's own blank-id listing on the same connection
+                    // (unique on platform_connection_id+external_product_id)
+                    // and silently breaks every sync after the first.
+                    Log::warning('ProductSyncService: skipped variant channel listing — parent product has no external id for this connection yet', [
+                        'product_id' => $product->id,
+                        'connection_id' => $connection->id,
+                        'variant_external_id' => $externalId,
+                    ]);
+                } elseif ($connection !== null && $externalId !== '') {
                     $productListing ??= ProductChannelListing::updateOrCreate(
                         [
                             'product_id' => $product->id,
                             'platform_connection_id' => $connection->id,
                         ],
                         [
-                            'external_product_id' => $product->externalIdForConnection($connection) ?? (string) $product->external_id,
+                            'external_product_id' => $parentExternalId,
                             'sync_status' => 'synced',
                             'last_pulled_at' => now(),
                         ],

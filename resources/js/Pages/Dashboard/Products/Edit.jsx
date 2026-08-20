@@ -7,7 +7,7 @@ import StatusBadge from '@/Components/StatusBadge';
 import AdjustStockModal from '@/Components/Products/AdjustStockModal';
 import PublishTargetModal from '@/Components/Products/PublishTargetModal';
 
-export default function Edit({ product, connections = [], warehouses = [] }) {
+export default function Edit({ product, connections = [], warehouses = [], readiness = {} }) {
     const permissions = usePage().props.auth?.permissions ?? [];
     const canAdjustStock = permissions.includes('*') || permissions.includes('stock.adjust');
     const [adjusting, setAdjusting] = useState(null); // null | { variantId, variantName }
@@ -28,16 +28,13 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         .sort()
         .join('|');
 
+    // Stock is intentionally NOT part of the form payload — it's read-only
+    // here and only ever changed through the inventory-safe Adjust Stock
+    // flow (POST .../stock). Keeping it out of `data.variants` means it can
+    // never be sent back on save and never gets reset by generate/save.
     const prepareVariantsFromProduct = (variants) => {
         if (!variants || !Array.isArray(variants)) return [];
         return variants.map(variant => {
-            let stockQty = 0;
-            if (variant.stocks && Array.isArray(variant.stocks)) {
-                stockQty = variant.stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0);
-            } else {
-                stockQty = parseInt(variant.qty) || parseInt(variant.stock) || 0;
-            }
-
             const options = variant.options ?? {};
 
             return {
@@ -47,11 +44,21 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                 sku: variant.sku ?? '',
                 price: variant.price ? String(variant.price) : '',
                 cost: variant.cost ? String(variant.cost) : '',
-                qty: stockQty,
                 selected: true,
                 channel_listings: variant.channel_listings ?? [],
             };
         });
+    };
+
+    // Always reads the live `product` prop — never the form's `data` state —
+    // so a partial Inertia reload after an Adjust Stock action shows the new
+    // number immediately without disturbing any in-progress unsaved edits.
+    const stockForVariant = (variantId) => {
+        if (!variantId) return 0;
+        const pv = (product?.variants ?? []).find((v) => v.id === variantId);
+        if (!pv) return 0;
+        if (Array.isArray(pv.stocks)) return pv.stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0);
+        return parseInt(pv.qty ?? pv.stock ?? 0) || 0;
     };
 
     // 3. إعداد الـ Form مع إضافة حقل qty الموحد للـ Simple Product
@@ -69,6 +76,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 
         options: buildOptionsFromProduct(product),
         variants: prepareVariantsFromProduct(product?.variants),
+        regenerate_skus: false,
     });
 
     // ✨ تحديث البيانات تلقائياً أول ما يتشارجا الـ Product
@@ -87,7 +95,8 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                 type: product.type ? String(product.type).toLowerCase().trim() : 'simple',
 
                 options: buildOptionsFromProduct(product),
-                variants: prepareVariantsFromProduct(product.variants)
+                variants: prepareVariantsFromProduct(product.variants),
+                regenerate_skus: false,
             }));
         }
     }, [product?.id]);
@@ -123,24 +132,42 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         const trimmed = newName.trim();
         if (trimmed === '') return;
 
-        const oldName = data.options[index].name;
-        const updated = data.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o));
-        setData('options', updated);
+        setData(prev => {
+            const oldName = prev.options[index]?.name;
+            const nextOptions = prev.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o));
 
-        // Keep already-generated variant rows pointing at the renamed option
-        // instead of orphaning their value under the old name.
-        if (oldName !== trimmed) {
-            setData('variants', data.variants.map((v) => {
-                if (!(oldName in v.options)) return v;
+            if (!oldName || oldName === trimmed) {
+                return { ...prev, options: nextOptions };
+            }
+
+            // Update options + variant maps in one state transaction. Doing two
+            // setData calls here can race and leave the form with renamed
+            // options but variants still carrying the old option key.
+            const nextVariants = (prev.variants ?? []).map((v) => {
+                if (!(oldName in (v.options ?? {}))) return v;
                 const { [oldName]: value, ...rest } = v.options;
                 const options = { ...rest, [trimmed]: value };
                 return { ...v, options, combo_key: comboKeyFor(options) };
-            }));
-        }
+            });
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
     };
 
     const handleRemoveAttribute = (indexToRemove) => {
-        setData('options', data.options.filter((_, index) => index !== indexToRemove));
+        setData(prev => {
+            const removed = prev.options[indexToRemove];
+            const nextOptions = prev.options.filter((_, index) => index !== indexToRemove);
+
+            // A variant containing a removed option is no longer a valid active
+            // combination. Drop it from the active form immediately; the backend
+            // will archive rather than hard-delete if it has listings/inventory.
+            const nextVariants = removed
+                ? (prev.variants ?? []).filter((v) => !(removed.name in (v.options ?? {})))
+                : (prev.variants ?? []);
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
     };
 
     const handleAddOptionValue = (optionIndex, rawValue) => {
@@ -158,17 +185,56 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
     // uses this value — the backend re-checks (channel listings / inventory
     // links) regardless, this is just an honest heads-up before saving.
     const handleRemoveOptionValue = (optionIndex, valueIndex) => {
-        const option = data.options[optionIndex];
-        const value = option.values[valueIndex];
-        const inUse = data.variants.some((v) => v.options[option.name] === value);
+        setData(prev => {
+            const option = prev.options[optionIndex];
+            const value = option?.values?.[valueIndex];
+            if (!option || value === undefined) return prev;
 
-        if (inUse && !confirm(`"${value}" is used by an existing variant. Regenerating will drop that combination (or keep it read-only if it's linked to a platform). Continue?`)) {
-            return;
+            const inUse = (prev.variants ?? []).some((v) => v.options?.[option.name] === value);
+
+            if (inUse && !confirm(`"${value}" is used by an existing variant. Removing it will drop that combination from the active list. Linked variants are archived safely on save. Continue?`)) {
+                return prev;
+            }
+
+            const nextOptions = prev.options.map((o, i) => (
+                i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
+            ));
+
+            // Do not wait for the user to click Generate. Once a value is
+            // removed, every active variant containing it is invalid and should
+            // disappear immediately from the form payload.
+            const nextVariants = (prev.variants ?? []).filter((v) => v.options?.[option.name] !== value);
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
+    };
+
+    const skuFragment = (value) => {
+        const fragment = String(value ?? '')
+            .trim()
+            .replace(/[^A-Za-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .toUpperCase();
+
+        return fragment || 'X';
+    };
+
+    const generateVariantSku = (options, usedSkus = new Set()) => {
+        const base = skuFragment(data.sku || data.name || product?.id?.slice(0, 8) || 'PRODUCT');
+        const suffix = (data.options ?? [])
+            .map((option) => skuFragment(options?.[option.name]))
+            .join('-');
+        const natural = [base, suffix].filter(Boolean).join('-');
+        let candidate = natural;
+        let suffixNumber = 2;
+
+        while (usedSkus.has(candidate)) {
+            candidate = `${natural}-${suffixNumber}`;
+            suffixNumber += 1;
         }
 
-        setData('options', data.options.map((o, i) => (
-            i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
-        )));
+        usedSkus.add(candidate);
+        return candidate;
     };
 
     const generateVariantsMatrix = () => {
@@ -184,46 +250,76 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 
         const combinations = cartesian(sets);
 
+        // Reserve non-empty SKUs from the current form, including variants that
+        // may be dropped by this regeneration. The backend is still the final
+        // authority, but this keeps the UI preview close to reality.
+        const usedSkus = new Set((data.variants ?? []).map((v) => v.sku).filter(Boolean));
+
         const generatedVariants = combinations.map(combo => {
             const options = Object.assign({}, ...combo);
             const comboKey = comboKeyFor(options);
-            const skuSuffix = Object.values(options).join('-').toUpperCase();
-            const variantSku = data.sku ? `${data.sku}-${skuSuffix}` : skuSuffix;
 
             // Match by the canonical (sorted) combination — order-independent,
-            // so adding a new option no longer loses previously-entered
-            // price/sku/qty for combinations that still exist.
-            const existingVariant = data.variants.find(v => v.combo_key === comboKey);
+            // so adding/removing options no longer loses rows whose exact
+            // combination still exists.
+            const existingVariant = (data.variants ?? []).find(v => v.combo_key === comboKey);
 
-            return existingVariant ?? {
+            if (existingVariant) {
+                // Shopify imports often have empty variant SKUs. Generate a
+                // visible SKU immediately when the field is empty, but never
+                // overwrite a user/platform SKU here. The Regenerate SKUs action
+                // is the explicit overwrite path.
+                if (!existingVariant.sku) {
+                    return { ...existingVariant, options, combo_key: comboKey, sku: generateVariantSku(options, usedSkus) };
+                }
+
+                usedSkus.add(existingVariant.sku);
+                return { ...existingVariant, options, combo_key: comboKey };
+            }
+
+            return {
                 id: null,
                 combo_key: comboKey,
                 options,
-                sku: variantSku,
+                sku: generateVariantSku(options, usedSkus),
                 price: data.price || '',
                 cost: data.cost || '',
-                qty: 0,
                 selected: true,
                 channel_listings: [],
             };
         });
 
-        setData('variants', generatedVariants);
+        setData(prev => ({ ...prev, variants: generatedVariants }));
     };
 
     const handleVariantChange = (index, field, value) => {
         const updatedVariants = [...data.variants];
-        if (field === 'qty') {
-            updatedVariants[index]['qty'] = parseInt(value) || 0;
-        } else {
-            updatedVariants[index][field] = value;
-        }
+        updatedVariants[index][field] = value;
         setData('variants', updatedVariants);
     };
 
     const submit = (e) => {
         e.preventDefault();
         patch(`/dashboard/products/${product.id}`);
+    };
+
+    // Regenerates every active variant's SKU, overwriting existing ones —
+    // the actual generation (base SKU + normalized option values + uniqueness
+    // suffix) happens server-side in ProductVariantWizardService, this just
+    // flags the same save payload to request it.
+    const handleRegenerateSkus = () => {
+        if (!confirm('Regenerate SKUs for all active variants? This overwrites any SKU already set.')) return;
+
+        const usedSkus = new Set();
+        const regenerated = (data.variants ?? []).map((variant) => ({
+            ...variant,
+            sku: generateVariantSku(variant.options ?? {}, usedSkus),
+        }));
+
+        // Keep the flag for the server-side save. This gives the user instant
+        // feedback in the table, while ProductVariantWizardService still does
+        // the authoritative unique SKU generation during save.
+        setData(prev => ({ ...prev, variants: regenerated, regenerate_skus: true }));
     };
 
     const nextStep = () => step < maxSteps && setStep(step + 1);
@@ -263,7 +359,9 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         }}>
             
             <div className="max-w-4xl mx-auto space-y-6">
-                
+
+                <PublishReadinessPanel readiness={readiness} />
+
                 {/* --- STEP INDICATOR TRAIL --- */}
                 <div className="bg-surface-2 border border-line py-4 px-6 rounded-xl shadow-sm">
                     <div className="flex items-center justify-between">
@@ -445,6 +543,14 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             {data.type === 'variable' && (
                                 <Section title="Variants">
                                     <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                                        {data.variants && data.variants.length > 0 && (
+                                            <div className="flex justify-end">
+                                                <button type="button" onClick={handleRegenerateSkus}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                                                    <Layers className="w-3.5 h-3.5" /> Regenerate SKUs
+                                                </button>
+                                            </div>
+                                        )}
                                         {data.variants && data.variants.length > 0 ? (
                                             <div className="overflow-x-auto border border-line rounded-lg mt-2">
                                                 <table className="w-full text-left border-collapse bg-surface text-xs">
@@ -463,7 +569,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                                                 <td className="p-2.5 font-medium text-content-muted whitespace-nowrap">
                                                                     {/* Display-only string — the real identity is the
                                                                         options map/canonical ids, never this text. */}
-                                                                    {Object.entries(v.options ?? {}).map(([k, val]) => `${k}=${val}`).join(' / ') || '—'}
+                                                                    {Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') || '—'}
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="text" value={v.sku || ''} onChange={e => handleVariantChange(index, 'sku', e.target.value)}
@@ -475,16 +581,20 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">{v.qty ?? 0}</span>
-                                                                        {canAdjustStock && v.id && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setAdjusting({ variantId: v.id, variantName: Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') })}
-                                                                                className="text-content-muted hover:text-content"
-                                                                                title="Adjust stock"
-                                                                            >
-                                                                                <SlidersHorizontal className="w-3.5 h-3.5" />
-                                                                            </button>
+                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">{stockForVariant(v.id)}</span>
+                                                                        {canAdjustStock && (
+                                                                            v.id ? (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setAdjusting({ variantId: v.id, variantName: Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') })}
+                                                                                    className="text-content-muted hover:text-content"
+                                                                                    title="Adjust stock"
+                                                                                >
+                                                                                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                            ) : (
+                                                                                <span className="text-[10px] text-content-muted italic">Save product first to adjust stock.</span>
+                                                                            )
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -624,6 +734,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                     variantName={adjusting.variantName}
                     warehouses={warehouses}
                     onClose={() => setAdjusting(null)}
+                    onAdjusted={() => router.reload({ only: ['product'] })}
                 />
             )}
 
@@ -632,6 +743,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                     mode="single"
                     product={product}
                     connections={connections}
+                    readiness={readiness}
                     onClose={() => setPublishModalOpen(false)}
                     onPublished={() => router.reload({ only: ['product'] })}
                 />
@@ -724,6 +836,40 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                     placeholder="+ value"
                     className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-indigo-500"
                 />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Server-computed readiness for the product as currently SAVED (ProductPublishReadinessService)
+ * — the same check that gates the publish endpoints. Informational only; it
+ * never blocks saving this form. Distinct from PublishReadinessNotice below,
+ * which previews unsaved form state client-side.
+ */
+function PublishReadinessPanel({ readiness = {} }) {
+    const platforms = Object.entries(readiness);
+    if (platforms.length === 0) return null;
+
+    const badge = { ready: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', blocked: 'bg-red-500/15 text-red-700 dark:text-red-300' };
+
+    return (
+        <div className="bg-surface-2 border border-line rounded-xl p-4">
+            <p className="text-xs font-semibold text-content-muted uppercase tracking-wide mb-2.5">Publish readiness</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {platforms.map(([platform, report]) => (
+                    <div key={platform} className="rounded-lg border border-line bg-surface p-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-content uppercase">{platform}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${badge[report.status] ?? 'bg-slate-500/15 text-content-muted'}`}>
+                                {report.status}
+                            </span>
+                        </div>
+                        {[...(report.errors ?? []), ...(report.warnings ?? [])].slice(0, 2).map((msg, i) => (
+                            <p key={i} className="mt-1 text-xs text-content-muted">{msg}</p>
+                        ))}
+                    </div>
+                ))}
             </div>
         </div>
     );

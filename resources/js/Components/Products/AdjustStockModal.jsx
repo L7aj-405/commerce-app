@@ -15,8 +15,11 @@ const TYPES = [
  * and then synchronously pushes the new quantity to WooCommerce — never
  * a direct product.quantity write.
  */
-export default function AdjustStockModal({ product, variantId, variantName, warehouses = [], onClose }) {
-    const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? '');
+export default function AdjustStockModal({ product, variantId, variantName, warehouses = [], onClose, onAdjusted }) {
+    // Never guess when more than one warehouse exists — the field starts
+    // empty (submit stays disabled) and the user must pick explicitly. A
+    // single warehouse is the only case safe to pre-select.
+    const [warehouseId, setWarehouseId] = useState(warehouses.length === 1 ? warehouses[0].id : '');
     const [type, setType] = useState('set_on_hand');
     const [quantity, setQuantity] = useState('');
     const [reason, setReason] = useState('');
@@ -25,6 +28,7 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
 
     const submit = (e) => {
         e.preventDefault();
+        if (!warehouseId) return;
         setProcessing(true);
         setErrors({});
 
@@ -36,7 +40,14 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
             variant_id: variantId ?? undefined,
         }, {
             preserveScroll: true,
-            onSuccess: () => onClose(),
+            preserveState: true,
+            onSuccess: () => {
+                // Refresh only the `product` prop (fresh stock numbers) —
+                // never a full browser reload, and never touches any
+                // unsaved edits sitting in the product edit form.
+                onAdjusted?.();
+                onClose();
+            },
             onError: (errs) => setErrors(errs),
             onFinish: () => setProcessing(false),
         });
@@ -63,11 +74,16 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                             className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             required
                         >
-                            {warehouses.length === 0 && <option value="">No warehouses</option>}
+                            {(warehouses.length === 0 || warehouses.length > 1) && (
+                                <option value="">{warehouses.length === 0 ? 'No warehouses' : 'Choose a warehouse…'}</option>
+                            )}
                             {warehouses.map((w) => (
                                 <option key={w.id} value={w.id}>{w.name}</option>
                             ))}
                         </select>
+                        {warehouses.length > 1 && !warehouseId && (
+                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Multiple warehouses exist — pick one before adjusting.</p>
+                        )}
                         {errors.warehouse_id && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.warehouse_id}</p>}
                     </div>
 

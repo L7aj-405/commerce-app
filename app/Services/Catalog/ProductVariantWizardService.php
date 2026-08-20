@@ -11,6 +11,7 @@ use App\Models\ProductVariant;
 use App\Models\ProductVariantChannelListing;
 use App\Models\VariantInventoryLink;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -24,15 +25,22 @@ use Illuminate\Validation\ValidationException;
  * fields never loses the SKU/price/channel-listing/inventory-link of a
  * combination that still exists, and a combination that's gone but is
  * still externally linked is never silently destroyed.
+ *
+ * The wizard submission is always the active source of truth: any
+ * previously-saved option value or variant that isn't resubmitted is
+ * removed from the active set (hard-deleted when nothing still points to
+ * it, archived via `is_active`/soft-delete otherwise) — old Shopify/WooCommerce
+ * import data never resurrects something the user explicitly removed.
  */
 class ProductVariantWizardService
 {
     /**
      * @param  array<int, array{name: string, values: array<int, string>}>  $options
      * @param  array<int, array{id?: ?string, sku?: ?string, price?: mixed, compare_price?: mixed, cost?: mixed, status?: ?string, options: array<string, string>}>  $variants
+     * @param  bool  $regenerateSkus  When true, every active variant's SKU is regenerated, even if it already has one.
      * @return array{variants: Collection<int, ProductVariant>, warnings: array<int, string>}
      */
-    public function sync(Product $product, array $options, array $variants): array
+    public function sync(Product $product, array $options, array $variants, bool $regenerateSkus = false): array
     {
         $options = $this->validateOptions($options);
         $optionNames = collect($options)->pluck('name')->all();
@@ -40,6 +48,9 @@ class ProductVariantWizardService
         $variants = $this->validateVariants($variants, $optionNames);
 
         // 1. Upsert option definitions + values, building name+value -> id.
+        // Every submitted value is (re)activated here — this is what lets a
+        // user re-add a value they'd previously removed without creating a
+        // duplicate row under the same option.
         $valueIdByNameAndValue = [];
         $submittedAttributeIds = [];
         $submittedValueIdsByAttribute = [];
@@ -52,7 +63,7 @@ class ProductVariantWizardService
 
             foreach ($option['values'] as $valuePosition => $value) {
                 $attributeValue = ProductAttributeValue::findOrCreateForAttribute($attribute->id, $value);
-                $attributeValue->update(['position' => $valuePosition]);
+                $attributeValue->update(['position' => $valuePosition, 'is_active' => true]);
                 $valueIdByNameAndValue[$option['name'] . '::' . $value] = $attributeValue->id;
                 $submittedValueIdsByAttribute[$attribute->id][] = $attributeValue->id;
             }
@@ -89,8 +100,8 @@ class ProductVariantWizardService
             $seen[$comboKey] = true;
         }
 
-        // 3. Match against existing (non-deleted) variants by the same
-        // canonical combination.
+        // 3. Match against existing (non-deleted, i.e. active) variants by
+        // the same canonical combination.
         $existingVariants = $product->variants()->with('attributeValues')->get();
         $existingByCombo = [];
         foreach ($existingVariants as $existing) {
@@ -100,6 +111,8 @@ class ProductVariantWizardService
 
         $claimedVariantIds = [];
         $resultVariants = collect();
+        $reservedSkus = [];
+        $baseSku = $this->baseSku($product);
 
         foreach ($variants as $index => $variantData) {
             $comboKey = implode(',', $submittedCombos[$index]);
@@ -115,8 +128,16 @@ class ProductVariantWizardService
                 }
             }
 
+            $orderedCombo = collect($optionNames)->mapWithKeys(fn ($name) => [$name => $variantData['options'][$name]])->all();
+
+            $needsSku = $regenerateSkus || $variantData['sku'] === '';
+            $sku = $needsSku
+                ? $this->generateUniqueSku($product, $baseSku, $orderedCombo, $matched?->id, $reservedSkus)
+                : $variantData['sku'];
+            $reservedSkus[$sku] = true;
+
             $attrs = [
-                'sku' => $variantData['sku'] !== '' ? $variantData['sku'] : null,
+                'sku' => $sku,
                 'price' => (float) ($variantData['price'] ?? 0),
                 'compare_price' => isset($variantData['compare_price']) && $variantData['compare_price'] !== ''
                     ? (float) $variantData['compare_price']
@@ -130,7 +151,10 @@ class ProductVariantWizardService
             } else {
                 $variant = ProductVariant::create(array_merge($attrs, [
                     'product_id' => $product->id,
-                    'name' => $this->displayName($variantData['options']),
+                    // Display name is cosmetic only — the real identity and
+                    // the UI's combination column both come from the
+                    // canonical option-value pivot, never from this string.
+                    'name' => 'Variant ' . ($index + 1),
                 ]));
             }
 
@@ -139,7 +163,15 @@ class ProductVariantWizardService
             $resultVariants->push($variant);
         }
 
-        // 4. Combinations no longer submitted — remove only if safe.
+        // 4. Combinations no longer submitted — always removed from the
+        // active set. Safe ones (no external listing/inventory link) are
+        // simply soft-deleted; unsafe ones are ALSO soft-deleted (archived)
+        // rather than left active — ProductVariant's SoftDeletes column is
+        // the archive flag here, and archiving never touches the listing
+        // row itself, so the external mapping survives untouched for a
+        // future re-link/publish decision. The one thing that must never
+        // happen is leaving a removed combination sitting in the active
+        // variants list, which is exactly the bug this fixes.
         $warnings = [];
         foreach ($existingVariants as $existing) {
             if (isset($claimedVariantIds[$existing->id])) {
@@ -154,26 +186,122 @@ class ProductVariantWizardService
             );
 
             if ($hasChannelListing || $hasInventoryLink) {
-                $warnings[] = "Kept \"{$existing->getDisplayName()}\" — it's linked to a platform listing or inventory item and can't be removed by regenerating variants.";
-                continue;
+                $warnings[] = "Archived \"{$existing->getDisplayName()}\" — it's linked to a platform listing or inventory item, so it was kept (inactive) instead of deleted.";
             }
 
-            $existing->delete(); // soft delete — ProductVariant already uses SoftDeletes.
+            $existing->delete(); // soft delete — this IS the archive: excluded from every active query going forward.
         }
 
-        // 5. Orphan cleanup — only options/values nothing still references.
+        // 5. Values the user removed from a still-present option. Hard
+        // delete when nothing protected still points to it; otherwise flip
+        // is_active off so it never comes back as an active option — but
+        // the row (and any archived variant's pivot link to it) survives.
+        foreach ($submittedValueIdsByAttribute as $attributeId => $keepIds) {
+            ProductAttributeValue::query()
+                ->where('attribute_id', $attributeId)
+                ->where('is_active', true)
+                ->whereNotIn('id', $keepIds)
+                ->get()
+                ->each(fn (ProductAttributeValue $value) => $this->retireValue($value));
+        }
+
+        // 6. Orphan cleanup — whole options the user removed entirely this
+        // time. Same protected-reference rule as step 5: only hard-delete
+        // the attribute (which cascades to its values) when nothing still
+        // references any of its values; otherwise archive the values and
+        // leave the attribute row in place.
         ProductAttribute::query()
             ->where('product_id', $product->id)
             ->whereNotIn('id', $submittedAttributeIds)
             ->get()
             ->each(function (ProductAttribute $attribute) {
-                $stillUsed = $attribute->values()->whereHas('variants')->exists();
-                if (! $stillUsed) {
+                $valueIds = $attribute->values()->pluck('id');
+                $stillReferenced = $valueIds->isNotEmpty() && DB::table('product_variant_attribute_values')
+                    ->whereIn('product_attribute_value_id', $valueIds)
+                    ->exists();
+
+                if ($stillReferenced) {
+                    ProductAttributeValue::query()->where('attribute_id', $attribute->id)->update(['is_active' => false]);
+                } else {
                     $attribute->delete();
                 }
             });
 
         return ['variants' => $resultVariants, 'warnings' => $warnings];
+    }
+
+    /**
+     * A value is safe to hard-delete unless an archived (soft-deleted)
+     * variant that still has an external channel listing or inventory link
+     * is the reason it's still referenced in the pivot — deleting it there
+     * would cascade-delete that pivot row and lose the archived variant's
+     * only record of what it was. Anything else (unreferenced, or only
+     * referenced by a variant that was safely deleted outright) is hard-deleted.
+     */
+    private function retireValue(ProductAttributeValue $value): void
+    {
+        $referencingVariantIds = DB::table('product_variant_attribute_values')
+            ->where('product_attribute_value_id', $value->id)
+            ->pluck('product_variant_id');
+
+        $protected = $referencingVariantIds->isNotEmpty() && (
+            ProductVariantChannelListing::withoutTenancy(
+                fn () => ProductVariantChannelListing::query()->whereIn('product_variant_id', $referencingVariantIds)->exists()
+            )
+            || VariantInventoryLink::withoutOrganizationTenancy(
+                fn () => VariantInventoryLink::query()->whereIn('product_variant_id', $referencingVariantIds)->exists()
+            )
+        );
+
+        if ($protected) {
+            $value->update(['is_active' => false]);
+        } else {
+            $value->delete();
+        }
+    }
+
+    private function baseSku(Product $product): string
+    {
+        if (! empty($product->sku)) {
+            return strtoupper((string) $product->sku);
+        }
+
+        $slug = strtoupper(Str::slug((string) $product->name, '-'));
+
+        return $slug !== '' ? $slug : strtoupper(substr($product->id, 0, 8));
+    }
+
+    private function skuFragment(string $value): string
+    {
+        $fragment = strtoupper(trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', $value), '-'));
+
+        return $fragment !== '' ? $fragment : 'X';
+    }
+
+    /**
+     * @param  array<string, string>  $orderedCombo  option name => value, in canonical option-position order
+     * @param  array<string, bool>  $reserved  SKUs already claimed earlier in this same sync() call, by reference
+     */
+    private function generateUniqueSku(Product $product, string $base, array $orderedCombo, ?string $ignoreVariantId, array &$reserved): string
+    {
+        $fragment = collect($orderedCombo)->map(fn ($value) => $this->skuFragment((string) $value))->implode('-');
+        $candidate = trim($base . '-' . $fragment, '-');
+        $sku = $candidate;
+        $suffix = 2;
+
+        while (
+            isset($reserved[$sku])
+            || ProductVariant::query()
+                ->where('product_id', $product->id)
+                ->where('sku', $sku)
+                ->when($ignoreVariantId, fn ($q) => $q->whereKeyNot($ignoreVariantId))
+                ->exists()
+        ) {
+            $sku = "{$candidate}-{$suffix}";
+            $suffix++;
+        }
+
+        return $sku;
     }
 
     /**
@@ -262,11 +390,5 @@ class ProductVariantWizardService
         }
 
         return $normalized;
-    }
-
-    /** @param array<string, string> $options */
-    private function displayName(array $options): string
-    {
-        return collect($options)->map(fn ($value, $name) => "{$name}: {$value}")->implode(' / ');
     }
 }

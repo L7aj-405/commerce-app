@@ -5448,6 +5448,294 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-08-20T00:39:59.263Z"
+    },
+    {
+      "id": "bug-330",
+      "timestamp": "2026-08-20T01:28:11.672Z",
+      "error_message": "Missing error handling in sendProductPayload",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block | Also: * Create a single new Shopify variant on an existing product; * already-built canonical variant payload.",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T01:30:23.530Z"
+    },
+    {
+      "id": "bug-331",
+      "timestamp": "2026-08-20T01:28:36.421Z",
+      "error_message": "Missing error handling in sendProductPayload",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T01:28:36.421Z"
+    },
+    {
+      "id": "bug-332",
+      "timestamp": "2026-08-20T01:34:41.662Z",
+      "error_message": "Wrong reference: Response should be ProductPublishReadinessService",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Used \"Response\" instead of \"ProductPublishReadinessService\"",
+      "fix": "Changed Response → ProductPublishReadinessService",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T01:34:41.662Z"
+    },
+    {
+      "id": "bug-333",
+      "timestamp": "2026-08-20T01:38:55.807Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Foundation/ProductPublishReadinessTest.php",
+      "root_cause": "Had 'product_attribute_values.id'",
+      "fix": "Changed to 'id'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T01:38:55.807Z"
+    },
+    {
+      "id": "bug-334",
+      "timestamp": "2026-08-20T01:45:25.978Z",
+      "error_message": "CSS fix: connection_ids",
+      "file": "resources/js/Components/Products/PublishTargetModal.jsx",
+      "root_cause": "connection_ids: selected, create_missing_listings: createMissing → selected,",
+      "fix": "Changed connection_ids: selected, create_missing_listings: createMissing → selected,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T01:45:44.778Z"
+    },
+    {
+      "id": "bug-335",
+      "timestamp": "2026-08-20T01:46:47.435Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/Products/PublishTargetModal.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T01:46:47.435Z"
+    },
+    {
+      "id": "bug-336",
+      "timestamp": "2026-08-20T01:47:58.896Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T01:47:58.896Z"
+    },
+    {
+      "id": "bug-337",
+      "timestamp": "2026-08-20T10:51:55.683Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Models/ProductAttributeValue.php",
+      "root_cause": "Had 'position'",
+      "fix": "Changed to 'is_active'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T10:51:55.683Z"
+    },
+    {
+      "id": "bug-338",
+      "timestamp": "2026-08-20T10:52:52.347Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Publishing/ProductOptionSnapshot.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 25→33 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T10:52:52.347Z"
+    },
+    {
+      "id": "bug-339",
+      "timestamp": "2026-08-20T11:00:59.520Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T11:00:59.520Z"
+    },
+    {
+      "id": "bug-340",
+      "timestamp": "2026-08-20T11:03:12.467Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 16→36 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T11:03:12.467Z"
+    },
+    {
+      "id": "bug-341",
+      "timestamp": "2026-08-20T13:28:51.246Z",
+      "error_message": "Missing guard clause",
+      "file": "resources/js/Components/Products/AdjustStockModal.jsx",
+      "root_cause": "No early return/throw for edge case: !warehouseId",
+      "fix": "Added guard clause: if (!warehouseId)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:28:51.246Z"
+    },
+    {
+      "id": "bug-342",
+      "timestamp": "2026-08-20T13:30:06.916Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:30:06.916Z"
+    },
+    {
+      "id": "bug-343",
+      "timestamp": "2026-08-20T13:31:20.736Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "dark: text-emerald-400 font-bold tabular-nums\">{v.qty ?? 0 → text-emerald-400 font-bold tabular-nums\">{stockForVariant(v.id)",
+      "fix": "Changed dark: text-emerald-400 font-bold tabular-nums\">{v.qty ?? 0 → text-emerald-400 font-bold tabular-nums\">{stockForVariant(v.id)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:31:20.736Z"
+    },
+    {
+      "id": "bug-344",
+      "timestamp": "2026-08-20T13:34:04.248Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→4 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:34:04.248Z"
+    },
+    {
+      "id": "bug-345",
+      "timestamp": "2026-08-20T13:56:58.571Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/ProductSyncService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→25 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:56:58.571Z"
+    },
+    {
+      "id": "bug-346",
+      "timestamp": "2026-08-20T13:57:15.339Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Sync/ProductSyncService.php",
+      "root_cause": "Was returning: array<string, mixed> */",
+      "fix": "Now returns: null;",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T13:57:15.339Z"
+    },
+    {
+      "id": "bug-347",
+      "timestamp": "2026-08-20T14:04:15.591Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/ProductSyncService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→27 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T14:04:15.591Z"
     }
   ]
 }

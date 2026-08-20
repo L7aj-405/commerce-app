@@ -53,6 +53,7 @@ class ShopifyConnector extends BaseConnector
     {
         return Http::withHeaders(['X-Shopify-Access-Token' => $this->resolveAccessToken()])
             ->baseUrl($this->getBaseUrl())
+            ->connectTimeout(10)
             ->timeout(30)
             ->acceptJson();
     }
@@ -733,6 +734,128 @@ class ShopifyConnector extends BaseConnector
             throw $e;
         } catch (Exception $e) {
             Log::warning('Shopify deleteVariant failed', ['variant' => $variant->id, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a Shopify product from an already-built canonical payload
+     * (see ShopifyProductPayloadMapper). Pure HTTP send + response parse —
+     * no attribute/option business logic lives here.
+     *
+     * @return array{success: bool, external_id: string, variant_ids: array<int, string>, message: string, error: ?string}
+     */
+    public function sendProductPayload(array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->post('/products.json', ['product' => $payload]));
+            $response->throw();
+
+            $data = $response->json('product') ?? [];
+            $variantIds = array_values(array_map(
+                fn (array $v) => (string) ($v['id'] ?? ''),
+                $data['variants'] ?? [],
+            ));
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? ''),
+                'variant_ids' => $variantIds,
+                'variants' => $data['variants'] ?? [],
+                'message' => 'Product created on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify sendProductPayload failed', ['error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing Shopify product from an already-built canonical
+     * payload. Variants inside the payload are created/updated in place by
+     * Shopify when they carry a matching remote `id`; variants without an
+     * `id` are created new.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateProductPayload(string $externalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/products/{$externalId}.json", ['product' => $payload]));
+            $response->throw();
+
+            $data = $response->json('product') ?? [];
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $externalId),
+                'variants' => $data['variants'] ?? [],
+                'message' => 'Product updated on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify updateProductPayload failed', ['external_id' => $externalId, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a single new Shopify variant on an existing product from an
+     * already-built canonical variant payload.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function createVariantPayload(string $parentExternalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->post("/products/{$parentExternalId}/variants.json", ['variant' => $payload]));
+            $response->throw();
+
+            $data = $response->json('variant') ?? [];
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? ''),
+                'message' => 'Variant created on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify createVariantPayload failed', ['error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update a single existing Shopify variant from an already-built
+     * canonical variant payload (see ShopifyProductPayloadMapper::variantPayload()).
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateVariantPayload(string $variantExternalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/variants/{$variantExternalId}.json", ['variant' => $payload]));
+            $response->throw();
+
+            $data = $response->json('variant') ?? [];
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $variantExternalId),
+                'message' => 'Variant updated on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify updateVariantPayload failed', ['error' => $e->getMessage()]);
             throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
         }
     }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { X, Loader2, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import { X, Loader2, CheckCircle2, XCircle, MinusCircle, Clock } from 'lucide-react';
 import StatusBadge from '@/Components/StatusBadge';
 
 /**
@@ -10,19 +10,25 @@ import StatusBadge from '@/Components/StatusBadge';
  *
  * mode="single": product = { id, name, sku, channel_listings }
  * mode="bulk":   productIds = [...], productCount = N
+ * readiness (single mode only): { shopify: {status,warnings,errors}, woocommerce: {...} }
+ *   — a platform with status "blocked" cannot be selected for publish here.
  */
-export default function PublishTargetModal({ mode = 'single', product, productIds, productCount, connections = [], onClose, onPublished }) {
+export default function PublishTargetModal({ mode = 'single', product, productIds, productCount, connections = [], readiness = {}, onClose, onPublished }) {
     const [selected, setSelected] = useState([]);
     const [createMissing, setCreateMissing] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [outcome, setOutcome] = useState(null); // { results } | { summary, results }
+    const [outcome, setOutcome] = useState(null); // { results } | { summary, results } | { queued: true, batch_id, connections }
     const [submitError, setSubmitError] = useState(null);
+    const [polling, setPolling] = useState(false);
 
     const linkedConnectionIds = mode === 'single'
         ? new Set((product?.channel_listings ?? []).map((l) => l.platform_connection_id))
         : null;
 
-    const toggle = (id) => {
+    const isBlocked = (platform) => mode === 'single' && readiness?.[platform]?.status === 'blocked';
+
+    const toggle = (id, platform) => {
+        if (isBlocked(platform)) return;
         setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
 
@@ -50,6 +56,34 @@ export default function PublishTargetModal({ mode = 'single', product, productId
             .finally(() => setSubmitting(false));
     };
 
+    // Queued variant (CV5) — single-product only. Returns immediately with a
+    // batch id instead of waiting for the platform HTTP calls; "Check status"
+    // polls once on demand rather than auto-refreshing.
+    const submitQueued = () => {
+        if (selected.length === 0 || mode !== 'single') return;
+        setSubmitting(true);
+        setSubmitError(null);
+
+        axios.post(`/dashboard/products/${product.id}/publish-queued`, {
+            connection_ids: selected,
+            create_missing_listings: createMissing,
+        })
+            .then((res) => {
+                setOutcome({ queued: true, batch_id: res.data.batch_id, connections: res.data.connections, results: [] });
+                onPublished?.();
+            })
+            .catch((err) => setSubmitError(err.response?.data?.message ?? 'Publish request failed.'))
+            .finally(() => setSubmitting(false));
+    };
+
+    const checkStatus = () => {
+        if (!outcome?.batch_id) return;
+        setPolling(true);
+        axios.get(`/dashboard/products/publish-batches/${outcome.batch_id}`)
+            .then((res) => setOutcome({ queued: true, batch_id: res.data.batch_id, connections: outcome.connections, results: res.data.results, batchStatus: res.data.status }))
+            .finally(() => setPolling(false));
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col text-left">
@@ -71,7 +105,11 @@ export default function PublishTargetModal({ mode = 'single', product, productId
 
                 <div className="p-4 overflow-y-auto space-y-4">
                     {outcome ? (
-                        <ResultsView mode={mode} outcome={outcome} connections={connections} />
+                        outcome.queued ? (
+                            <QueuedResultsView outcome={outcome} connections={connections} onCheckStatus={checkStatus} polling={polling} />
+                        ) : (
+                            <ResultsView mode={mode} outcome={outcome} connections={connections} />
+                        )
                     ) : (
                         <>
                             {mode === 'bulk' && (
@@ -89,13 +127,15 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                         const listing = mode === 'single'
                                             ? (product?.channel_listings ?? []).find((l) => l.platform_connection_id === conn.id)
                                             : null;
+                                        const blocked = isBlocked(conn.platform);
 
                                         return (
-                                            <label key={conn.id} className="flex items-start gap-3 p-3 rounded-lg border border-line bg-surface hover:bg-surface-3 cursor-pointer">
+                                            <label key={conn.id} className={`flex items-start gap-3 p-3 rounded-lg border ${blocked ? 'border-red-500/30 bg-red-500/5 cursor-not-allowed opacity-75' : 'border-line bg-surface hover:bg-surface-3 cursor-pointer'}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selected.includes(conn.id)}
-                                                    onChange={() => toggle(conn.id)}
+                                                    disabled={blocked}
+                                                    onChange={() => toggle(conn.id, conn.platform)}
                                                     className="mt-0.5 rounded border-line"
                                                 />
                                                 <div className="min-w-0 flex-1">
@@ -106,7 +146,11 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                                             {conn.status}
                                                         </span>
                                                     </div>
-                                                    {mode === 'single' && (
+                                                    {blocked ? (
+                                                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                                                            {readiness[conn.platform]?.errors?.[0] ?? 'Not ready to publish to this platform.'}
+                                                        </p>
+                                                    ) : mode === 'single' && (
                                                         linked ? (
                                                             <div className="mt-1 flex items-center gap-1.5">
                                                                 <span className="text-xs text-content-muted">Linked</span>
@@ -151,6 +195,18 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                 <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
                                     Cancel
                                 </button>
+                                {mode === 'single' && (
+                                    <button
+                                        type="button"
+                                        onClick={submitQueued}
+                                        disabled={selected.length === 0 || submitting}
+                                        title="Publish in the background — useful for products with many variants."
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                        Queue publish
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={submit}
@@ -199,6 +255,49 @@ function ResultsView({ mode, outcome, connections }) {
                     );
                 })}
             </div>
+        </div>
+    );
+}
+
+function QueuedResultsView({ outcome, connections, onCheckStatus, polling }) {
+    const platformFor = (connectionId) => connections.find((c) => c.id === connectionId)?.platform ?? '—';
+    const icon = { succeeded: CheckCircle2, failed: XCircle, skipped: MinusCircle, queued: Clock, running: Loader2 };
+    const tone = { succeeded: 'text-emerald-600 dark:text-emerald-400', failed: 'text-red-600 dark:text-red-400', skipped: 'text-content-muted', queued: 'text-content-muted', running: 'text-indigo-600 dark:text-indigo-400' };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-start gap-2 p-2.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-xs text-indigo-700 dark:text-indigo-300">
+                <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                    <p className="font-medium">Publish queued{outcome.batchStatus ? ` — ${outcome.batchStatus}` : ''}.</p>
+                    <p className="mt-0.5 text-content-muted">
+                        {(outcome.connections ?? []).map((c) => c.platform).join(', ') || 'Selected channels'} will update in the background.
+                    </p>
+                </div>
+            </div>
+
+            {(outcome.results ?? []).length > 0 && (
+                <div className="space-y-1.5">
+                    {outcome.results.map((r, i) => {
+                        const Icon = icon[r.status] ?? Clock;
+                        return (
+                            <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
+                                <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${tone[r.status] ?? 'text-content-muted'} ${r.status === 'running' ? 'animate-spin' : ''}`} />
+                                <div className="min-w-0">
+                                    <span className="font-medium text-content uppercase">{r.platform ?? platformFor(r.connection_id)}</span>
+                                    <span className="text-content-muted"> · {r.status}</span>
+                                    {r.message && <p className="text-content-muted mt-0.5">{r.message}</p>}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            <button type="button" onClick={onCheckStatus} disabled={polling} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50">
+                {polling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Check status
+            </button>
         </div>
     );
 }

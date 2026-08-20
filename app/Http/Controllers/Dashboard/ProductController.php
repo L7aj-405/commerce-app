@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProductPublishJob;
 use App\Models\PlatformConnection;
 use App\Models\Product;
+use App\Models\ProductPublishBatch;
+use App\Models\ProductPublishResult;
 use App\Models\ProductVariant;
+use Illuminate\Support\Str;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\Warehouse;
 use App\Services\Catalog\ProductVariantWizardService;
 use App\Services\Inventory\CatalogInventoryService;
 use App\Services\Inventory\InventoryEngine;
+use App\Services\Publishing\ProductPublishReadinessService;
 use App\Services\Sync\ProductPublishService;
 use App\Services\Sync\ProductPushService;
 use App\Services\Sync\ProductSyncService;
@@ -46,7 +51,7 @@ class ProductController extends Controller
             ->where('status', 'active')
             ->whereIn('platform', ['woocommerce', 'shopify', 'youcan'])
             ->get(['id', 'platform', 'label', 'status', 'synced_products_count', 'last_synced_at'])
-            ->map(fn ($c) => [
+            ->map(fn($c) => [
                 'id'                     => $c->id,
                 'platform'               => $c->platform,
                 'label'                  => $c->label ?? ucfirst($c->platform),
@@ -65,7 +70,7 @@ class ProductController extends Controller
                 $term = '%' . $filters['search'] . '%';
                 $q->where(function ($subQuery) use ($term) {
                     $subQuery->where('name', 'like', $term)
-                             ->orWhere('sku', 'like', $term);
+                        ->orWhere('sku', 'like', $term);
                 });
             })
             ->orderBy('name')
@@ -202,7 +207,7 @@ class ProductController extends Controller
                     'warehouse_id' => $warehouse->id,
                     'variant_id'   => null,
                     'quantity'     => 0, // أو صيفط الـ qty الافتراضي من الـ frontend
-                    'reorder_level'=> 10
+                    'reorder_level' => 10
                 ]);
             } else {
                 $submittedVariants = array_values($validated['variants'] ?? []);
@@ -223,7 +228,7 @@ class ProductController extends Controller
                         'warehouse_id' => $warehouse->id,
                         'variant_id'   => $variant->id,
                         'quantity'     => (int) ($submittedVariants[$index]['stock'] ?? 0),
-                        'reorder_level'=> 10,
+                        'reorder_level' => 10,
                     ]);
                 }
             }
@@ -231,7 +236,6 @@ class ProductController extends Controller
             DB::commit();
 
             return redirect()->route('dashboard.products.index')->with('success', 'Product created successfully!');
-
         } catch (ValidationException $e) {
             DB::rollBack();
             return back()->withInput()->withErrors($e->errors());
@@ -242,7 +246,7 @@ class ProductController extends Controller
         }
     }
 
-    public function edit(Request $request, Product $product): Response
+    public function edit(Request $request, Product $product, ProductPublishReadinessService $readiness): Response
     {
         $store = $request->user()->getActiveStore();
         abort_if($store === null || $product->store_id !== $store->id, 403);
@@ -254,11 +258,15 @@ class ProductController extends Controller
             'variants.inventoryLink.inventoryItem:id,sku,name',
             // Canonical option data — the actual source of truth for a
             // variant's combination, not the legacy `attributes` JSON column.
+            // Only active values: a value the user removed (and a variant's
+            // link to it) must never resurface here, whether the variant
+            // that referenced it is active or was archived for that removal.
+            'variants.attributeValues' => fn($q) => $q->active(),
             'variants.attributeValues.attribute',
             'stocks',
             'channelListings.connection:id,platform,label',
             'inventoryLink.inventoryItem:id,sku,name',
-            'attributes.values',
+            'attributes.values' => fn($q) => $q->active(),
         ]);
 
         // حساب الـ total_stock وتمريرها نيشان للـ Simple Product باش يعمر الـ input فـ React
@@ -267,14 +275,14 @@ class ProductController extends Controller
 
         // Plain {name, values[]} shape the wizard's Options section reads —
         // built from the canonical tables, not the JSON column.
-        $product->options = $product->attributes->map(fn ($attribute) => [
+        $product->options = $product->attributes->map(fn($attribute) => [
             'name' => $attribute->name,
             'values' => $attribute->values->pluck('value')->all(),
         ])->values();
 
         $product->variants->each(function ($variant) {
             $variant->options = $variant->attributeValues
-                ->mapWithKeys(fn ($value) => [$value->attribute->name => $value->value]);
+                ->mapWithKeys(fn($value) => [$value->attribute->name => $value->value]);
         });
 
         return Inertia::render('Dashboard/Products/Edit', [
@@ -283,6 +291,9 @@ class ProductController extends Controller
                 ->where('status', 'active')
                 ->get(['id', 'platform', 'label', 'status']),
             'warehouses'  => $store->warehouses()->get(['warehouses.id', 'warehouses.name']),
+            // Informational only — never blocks saving the product, only
+            // blocks the publish action client-side for a blocked platform.
+            'readiness'   => $readiness->check($product),
         ]);
     }
 
@@ -291,56 +302,80 @@ class ProductController extends Controller
         $store = $request->user()->getActiveStore();
         abort_if($store === null || $product->store_id !== $store->id, 403);
 
-        $validated = $request->validate([
-            'name'           => ['required', 'string', 'max:255'],
-            'sku'            => [
-                'required', 
-                'string', 
-                'max:255', 
-                Rule::unique('products', 'sku')->where('store_id', $store->id)->ignore($product->id)
-            ],
-            'type'           => ['required', 'in:simple,variable'],
-            'description'    => ['nullable', 'string'],
-            'category'       => ['nullable', 'string', 'max:120'],
-            'price'          => ['required', 'numeric', 'min:0'],
-            'compare_price'  => ['nullable', 'numeric', 'min:0'],
-            'cost'           => ['nullable', 'numeric', 'min:0'],
-            'featured_image' => ['nullable', 'url', 'max:500'],
-            'status'         => ['required', 'in:active,draft,archived'],
-
-            // NOTE: quantity is intentionally NOT accepted here. Editing product
-            // fields must never write stock — use adjustStock() (inventory-safe,
-            // pushes to WooCommerce) instead. See Fix WooCommerce outbound sync.
-            //
-            // Canonical option definitions + per-variant option-value map —
-            // see ProductVariantWizardService. Options are optional on update
-            // (nullable, not required_if) because a simple-type submission
-            // never carries any.
-            'options'            => ['nullable', 'array'],
-            'options.*.name'     => ['required_with:options', 'string', 'max:120'],
-            'options.*.values'   => ['required_with:options', 'array', 'min:1'],
-            'options.*.values.*' => ['required', 'string', 'max:120'],
-            'variants'       => ['nullable', 'array'],
-            'variants.*.id'  => ['nullable', 'string', 'max:26'],
-            'variants.*.sku' => ['nullable', 'string'],
-            'variants.*.price'=> ['nullable', 'numeric', 'min:0'],
-            'variants.*.compare_price' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.cost' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.name'=> ['nullable', 'string'],
-            'variants.*.options' => ['nullable', 'array'],
-        ]);
+        /*
+     * Shopify/WooCommerce imported products may not have a parent product SKU.
+     * But our SaaS update validation requires product.sku.
+     *
+     * If the user edits a Shopify-imported product with sku = null, validation
+     * would stop before ProductVariantWizardService runs, so option/value removals
+     * and generated variant SKUs would never be persisted.
+     */
+        if (! $request->filled('sku')) {
+            $request->merge([
+                'sku' => $this->generateProductSku(
+                    $request->input('name') ?: $product->name,
+                    $store->id,
+                    $product->id
+                ),
+            ]);
+        }
 
         $warnings = [];
 
         try {
+            $validated = $request->validate([
+                'name'           => ['required', 'string', 'max:255'],
+                'sku'            => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('products', 'sku')
+                        ->where('store_id', $store->id)
+                        ->ignore($product->id),
+                ],
+                'type'           => ['required', 'in:simple,variable'],
+                'description'    => ['nullable', 'string'],
+                'category'       => ['nullable', 'string', 'max:120'],
+                'price'          => ['required', 'numeric', 'min:0'],
+                'compare_price'  => ['nullable', 'numeric', 'min:0'],
+                'cost'           => ['nullable', 'numeric', 'min:0'],
+                'featured_image' => ['nullable', 'url', 'max:500'],
+                'status'         => ['required', 'in:active,draft,archived'],
+
+                // Quantity is intentionally NOT accepted here.
+                // Stock must be changed through adjustStock(), not product edit.
+                'options'            => ['nullable', 'array'],
+                'options.*.name'     => ['required_with:options', 'string', 'max:120'],
+                'options.*.values'   => ['required_with:options', 'array', 'min:1'],
+                'options.*.values.*' => ['required', 'string', 'max:120'],
+
+                'variants'                  => ['nullable', 'array'],
+                'variants.*.id'             => ['nullable', 'string', 'max:26'],
+                'variants.*.sku'            => ['nullable', 'string', 'max:255'],
+                'variants.*.price'          => ['nullable', 'numeric', 'min:0'],
+                'variants.*.compare_price'  => ['nullable', 'numeric', 'min:0'],
+                'variants.*.cost'           => ['nullable', 'numeric', 'min:0'],
+                'variants.*.name'           => ['nullable', 'string'],
+                'variants.*.options'        => ['nullable', 'array'],
+                'variants.*.options.*'      => ['nullable', 'string', 'max:120'],
+                'variants.*.selected'       => ['nullable', 'boolean'],
+
+                // When true, ProductVariantWizardService should regenerate every
+                // active variant SKU. Otherwise, it only fills empty SKUs.
+                'regenerate_skus' => ['nullable', 'boolean'],
+            ]);
+
             DB::transaction(function () use ($product, $validated, $store, &$warnings) {
-                // 1. تنظيف الـ Variants القدام إذا تحول السيتينغ من Variable لـ Simple
+                /*
+             * If a variable product becomes simple, remove local active variants.
+             * This branch keeps the old behavior, but quantity still remains
+             * inventory-safe because we do not write product.qty here.
+             */
                 if ($product->type === 'variable' && $validated['type'] === 'simple') {
                     Stock::whereIn('variant_id', $product->variants()->pluck('id'))->delete();
                     $product->variants()->delete();
                 }
 
-                // 2. تحديث الداتا الأساسية للمنتج
                 $product->update([
                     'name'           => $validated['name'],
                     'sku'            => $validated['sku'],
@@ -348,67 +383,127 @@ class ProductController extends Controller
                     'description'    => $validated['description'] ?? null,
                     'category'       => $validated['category'] ?? null,
                     'price'          => (float) $validated['price'],
-                    'compare_price'  => ($validated['compare_price'] ?? null) ? (float) $validated['compare_price'] : null,
-                    'cost'           => ($validated['cost'] ?? null) ? (float) $validated['cost'] : 0.0,
+                    'compare_price'  => ($validated['compare_price'] ?? null) !== null && $validated['compare_price'] !== ''
+                        ? (float) $validated['compare_price']
+                        : null,
+                    'cost'           => ($validated['cost'] ?? null) !== null && $validated['cost'] !== ''
+                        ? (float) $validated['cost']
+                        : 0.0,
                     'featured_image' => $validated['featured_image'] ?? null,
                     'status'         => $validated['status'],
                 ]);
 
-                // تحديد الـ Warehouse الأساسي للمتجر
-                $warehouse = $store->getPrimaryWarehouse() 
+                $warehouse = $store->getPrimaryWarehouse()
                     ?? auth()->user()->warehouses()->where('is_active', true)->first();
 
-                if (!$warehouse) {
-                    throw new \Exception('No active warehouse configured for stock mapping.');
+                if (! $warehouse) {
+                    throw new \RuntimeException('No active warehouse configured for stock mapping.');
                 }
 
-                // 3. Bootstrap a stock row ONLY if one doesn't exist yet — never
-                // overwrite an existing quantity from a product-field edit.
-                // Real quantity changes go through adjustStock() (inventory-safe).
                 if ($validated['type'] === 'simple') {
                     Stock::firstOrCreate(
-                        ['product_id' => $product->id, 'warehouse_id' => $warehouse->id, 'variant_id' => null],
-                        ['quantity' => 0, 'reorder_level' => 10]
-                    );
-                } else {
-                    $incomingVariants = collect($validated['variants'] ?? [])
-                        ->filter(fn ($vd) => $vd['selected'] ?? true)
-                        ->values()
-                        ->all();
-
-                    $sync = app(ProductVariantWizardService::class)->sync(
-                        $product,
-                        $validated['options'] ?? [],
-                        $incomingVariants,
+                        [
+                            'product_id'   => $product->id,
+                            'warehouse_id' => $warehouse->id,
+                            'variant_id'   => null,
+                        ],
+                        [
+                            'quantity'      => 0,
+                            'reorder_level' => 10,
+                        ]
                     );
 
-                    $warnings = $sync['warnings'];
+                    return;
+                }
 
-                    // Bootstrap-only, same rule as the simple-product branch
-                    // above — never overwrites an existing Stock row's quantity.
-                    foreach ($sync['variants'] as $variant) {
-                        Stock::firstOrCreate(
-                            ['product_id' => $product->id, 'variant_id' => $variant->id, 'warehouse_id' => $warehouse->id],
-                            ['quantity' => 0, 'reorder_level' => 10]
-                        );
-                    }
+                $incomingVariants = collect($validated['variants'] ?? [])
+                    ->filter(fn($variantData) => $variantData['selected'] ?? true)
+                    ->values()
+                    ->all();
+
+                $sync = app(ProductVariantWizardService::class)->sync(
+                    $product,
+                    $validated['options'] ?? [],
+                    $incomingVariants,
+                    (bool) ($validated['regenerate_skus'] ?? false),
+                );
+
+                $warnings = $sync['warnings'] ?? [];
+
+                /*
+             * Bootstrap stock rows only for new variants.
+             * Do not overwrite existing stock quantities from the product wizard.
+             */
+                foreach ($sync['variants'] as $variant) {
+                    Stock::firstOrCreate(
+                        [
+                            'product_id'   => $product->id,
+                            'variant_id'   => $variant->id,
+                            'warehouse_id' => $warehouse->id,
+                        ],
+                        [
+                            'quantity'      => 0,
+                            'reorder_level' => 10,
+                        ]
+                    );
                 }
             });
 
-            $redirect = redirect()->route('dashboard.products.index')->with('success', 'Product updated successfully.');
+            $redirect = redirect()
+                ->route('dashboard.products.index')
+                ->with('success', 'Product updated successfully.');
 
             if ($warnings !== []) {
                 $redirect = $redirect->with('warning', implode(' ', $warnings));
             }
 
             return $redirect;
-
         } catch (ValidationException $e) {
+            Log::warning('Product update validation failed', [
+                'product_id' => $product->id,
+                'errors' => $e->errors(),
+            ]);
+
             return back()->withInput()->withErrors($e->errors());
         } catch (Throwable $e) {
-            Log::error('Product update failed', ['product_id' => $product->id, 'error' => $e->getMessage()]);
+            Log::error('Product update failed', [
+                'product_id' => $product->id,
+                'class' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
             return back()->withInput()->with('error', 'Error: ' . $e->getMessage());
         }
+    }
+
+    private function generateProductSku(?string $name, string $storeId, string $ignoreProductId): string
+    {
+        $base = strtoupper(Str::slug((string) $name, '-'));
+
+        if ($base === '') {
+            $base = 'PRODUCT-' . strtoupper(substr($ignoreProductId, 0, 8));
+        }
+
+        // Keep enough room for "-2", "-3", etc.
+        $base = substr($base, 0, 180);
+
+        $sku = $base;
+        $suffix = 2;
+
+        while (
+            Product::query()
+            ->where('store_id', $storeId)
+            ->where('sku', $sku)
+            ->where('id', '!=', $ignoreProductId)
+            ->exists()
+        ) {
+            $sku = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $sku;
     }
 
     public function destroy(Request $request, Product $product): RedirectResponse
@@ -450,6 +545,116 @@ class ProductController extends Controller
             $validated['connection_ids'],
             (bool) ($validated['create_missing_listings'] ?? false),
         ));
+    }
+
+    /**
+     * Queue-based publish (CV5) — creates a ProductPublishBatch and one
+     * ProductPublishResult per explicitly selected connection, dispatches a
+     * ProductPublishJob for each, and returns immediately. Unlike publish()
+     * above, the browser never waits for the platform HTTP calls — poll
+     * publishBatchStatus() for outcomes. connection_ids is required and is
+     * always re-verified against this product's own store, same as publish().
+     */
+    public function publishQueued(Request $request, Product $product): \Illuminate\Http\JsonResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $product->store_id !== $store->id, 403);
+
+        $validated = $request->validate([
+            'connection_ids' => ['required', 'array', 'min:1'],
+            'connection_ids.*' => ['string'],
+            'create_missing_listings' => ['nullable', 'boolean'],
+        ]);
+
+        $createMissingListings = (bool) ($validated['create_missing_listings'] ?? false);
+
+        $connections = PlatformConnection::query()
+            ->where('store_id', $store->id)
+            ->whereIn('id', $validated['connection_ids'])
+            ->whereIn('platform', ['shopify', 'woocommerce'])
+            ->get();
+
+        $batch = ProductPublishBatch::create([
+            'store_id' => $store->id,
+            'organization_id' => $store->organization_id,
+            'user_id' => $request->user()->id,
+            'status' => ProductPublishBatch::STATUS_PENDING,
+            'total_count' => 0,
+            'payload' => ['product_id' => $product->id, 'create_missing_listings' => $createMissingListings],
+        ]);
+
+        $results = [];
+        $foundIds = $connections->pluck('id')->all();
+
+        foreach ($validated['connection_ids'] as $requestedId) {
+            if (! in_array($requestedId, $foundIds, true)) {
+                // Wrong store, wrong platform, or doesn't exist — recorded as
+                // an immediate failure, never silently dropped, never queued.
+                $results[] = ProductPublishResult::create([
+                    'batch_id' => $batch->id,
+                    'product_id' => $product->id,
+                    'platform_connection_id' => $requestedId,
+                    'platform' => 'unknown',
+                    'status' => ProductPublishResult::STATUS_FAILED,
+                    'message' => "Connection does not belong to this product's store.",
+                    'error_code' => 'invalid_connection',
+                ]);
+            }
+        }
+
+        foreach ($connections as $connection) {
+            $result = ProductPublishResult::create([
+                'batch_id' => $batch->id,
+                'product_id' => $product->id,
+                'platform_connection_id' => $connection->id,
+                'platform' => $connection->platform,
+                'status' => ProductPublishResult::STATUS_QUEUED,
+            ]);
+
+            $results[] = $result;
+
+            ProductPublishJob::dispatch($result->id, $createMissingListings);
+        }
+
+        $batch->update(['total_count' => count($results)]);
+
+        return response()->json([
+            'batch_id' => $batch->id,
+            'status' => 'queued',
+            'connections' => $connections->map(fn($c) => ['id' => $c->id, 'platform' => $c->platform])->values(),
+        ]);
+    }
+
+    /** Poll the outcome of a queued publish batch — scoped to the acting user's active store. */
+    public function publishBatchStatus(Request $request, string $batch): \Illuminate\Http\JsonResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null, 422, 'No active store.');
+
+        $model = ProductPublishBatch::query()
+            ->where('store_id', $store->id)
+            ->with('results')
+            ->find($batch);
+
+        abort_if($model === null, 404);
+
+        return response()->json([
+            'batch_id' => $model->id,
+            'status' => $model->status,
+            'total_count' => $model->total_count,
+            'succeeded_count' => $model->succeeded_count,
+            'failed_count' => $model->failed_count,
+            'skipped_count' => $model->skipped_count,
+            'results' => $model->results->map(fn($r) => [
+                'connection_id' => $r->platform_connection_id,
+                'platform' => $r->platform,
+                'status' => $r->status,
+                'message' => $r->message,
+                'variant_id' => $r->product_variant_id,
+                'external_product_id' => $r->external_product_id,
+                'external_variant_id' => $r->external_variant_id,
+            ]),
+        ]);
     }
 
     /**

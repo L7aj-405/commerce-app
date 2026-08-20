@@ -165,8 +165,14 @@ it('does not delete a variant with an external channel listing when its combinat
         ['sku' => 'CV1-X', 'price' => 100, 'options' => ['Size' => 'X']],
     ]);
 
+    // "Kept" now means archived (soft-deleted), not left active — it must
+    // no longer appear in the active variants list, but the row and its
+    // external listing both survive (see ProductWizardOptionValueRemovalTest
+    // for the dedicated archive-not-hard-delete coverage this generalizes).
     expect($result['warnings'])->not->toBeEmpty()
-        ->and(ProductVariant::withoutTenancy(fn () => ProductVariant::query()->find($xlVariant->id)))->not->toBeNull();
+        ->and(ProductVariant::withoutTenancy(fn () => ProductVariant::query()->find($xlVariant->id)))->toBeNull()
+        ->and(ProductVariant::withoutTenancy(fn () => ProductVariant::withTrashed()->find($xlVariant->id)))->not->toBeNull()
+        ->and(ProductVariantChannelListing::withoutTenancy(fn () => ProductVariantChannelListing::query()->where('product_variant_id', $xlVariant->id)->exists()))->toBeTrue();
 });
 
 it('rejects a duplicate option name', function (): void {

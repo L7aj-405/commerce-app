@@ -137,6 +137,10 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     // /push route, which auto-published to every active connection
                     // for the store regardless of platform.
                     Route::post('/{product}/publish', [ProductController::class, 'publish'])->name('publish');
+                    // Queued publish (CV5) — returns immediately with a
+                    // batch id instead of waiting for the platform HTTP calls.
+                    Route::post('/{product}/publish-queued', [ProductController::class, 'publishQueued'])->name('publish-queued');
+                    Route::get('/publish-batches/{batch}',   [ProductController::class, 'publishBatchStatus'])->name('publish-batches.show');
                     Route::post('/bulk-publish',       [ProductController::class, 'bulkPublish'])->name('bulk-publish');
                     Route::post('/sync/start',  [ProductSyncController::class, 'startSync'])->name('sync.start');
                 });
