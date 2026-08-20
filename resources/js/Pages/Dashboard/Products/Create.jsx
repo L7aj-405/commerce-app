@@ -2,26 +2,27 @@ import { useState } from 'react';
 import { Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Save, Plus, Trash2, Layers } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
+import { OptionRow, PublishReadinessNotice } from './Edit';
 
 export default function Create() {
     // 1. تحديث الـ Form State لتشمل الحقول الجديدة الخاصة بالـ Variants والباكيند
     const { data, setData, post, processing, errors } = useForm({
-        name: '', 
-        sku: '', 
-        description: '', 
+        name: '',
+        sku: '',
+        description: '',
         category: '',
-        price: 0, 
-        compare_price: '', 
+        price: 0,
+        compare_price: '',
         cost: '',
         featured_image: '',
-        
+
         // 🆕 الحقول الجديدة لي غاتمشي للباكيند
         type: 'simple',        // simple أو variable
-        attributes: [],        // لتخزين الـ [{ name: 'Size', values: ['S', 'M'] }]
+        options: [],           // لتخزين الـ [{ name: 'Size', values: ['S', 'M'] }] — canonical ProductOption defs
         variants: [],          // لتخزين المصفوفة النهائية للـ [ {sku, price, stock, options} ]
     });
 
-    // ستايتس محلية خفيفة لإدخال الـ Attributes بسرعة ف الـ UI
+    // ستايتس محلية خفيفة لإدخال الـ Options بسرعة ف الـ UI
     const [currentAttrName, setCurrentAttrName] = useState('');
     const [currentAttrValues, setCurrentAttrValues] = useState('');
 
@@ -29,37 +30,72 @@ export default function Create() {
     // الـ LOGIC الخاصة بتوليد الـ VARIANTS MATRIX
     // ============================================
 
-    // إضافة الخاصية وقيمها (مثال: الخاصية Size وقيمها S, M, L دفعة واحدة)
+    // إضافة الـ option وقيمه (مثال: Size وقيمها S, M, L دفعة واحدة)
     const handleAddAttribute = (e) => {
         e.preventDefault();
         if (!currentAttrName.trim() || !currentAttrValues.trim()) return;
 
         // تقسيم القيم بالفاصلة وتنظيف الفراغات
         const valuesArray = currentAttrValues.split(',').map(v => v.trim()).filter(v => v !== '');
+        if (data.options.some(o => o.name.toLowerCase() === currentAttrName.trim().toLowerCase())) return;
 
-        const newAttribute = {
-            name: currentAttrName.trim(),
-            values: valuesArray
-        };
-
-        setData('attributes', [...data.attributes, newAttribute]);
+        setData('options', [...data.options, { name: currentAttrName.trim(), values: valuesArray }]);
         setCurrentAttrName('');
         setCurrentAttrValues('');
     };
 
-    // حذف خاصية كاملة
+    const handleRenameOption = (index, newName) => {
+        const trimmed = newName.trim();
+        if (trimmed === '') return;
+
+        const oldName = data.options[index].name;
+        setData('options', data.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o)));
+
+        if (oldName !== trimmed) {
+            setData('variants', data.variants.map((v) => {
+                if (!(oldName in v.options)) return v;
+                const { [oldName]: value, ...rest } = v.options;
+                return { ...v, options: { ...rest, [trimmed]: value } };
+            }));
+        }
+    };
+
+    // حذف option كامل
     const handleRemoveAttribute = (indexToRemove) => {
-        const updatedAttrs = data.attributes.filter((_, index) => index !== indexToRemove);
-        setData('attributes', updatedAttrs);
+        setData('options', data.options.filter((_, index) => index !== indexToRemove));
+    };
+
+    const handleAddOptionValue = (optionIndex, rawValue) => {
+        const value = rawValue.trim();
+        if (value === '') return;
+        setData('options', data.options.map((o, i) => {
+            if (i !== optionIndex) return o;
+            if (o.values.some((v) => v.toLowerCase() === value.toLowerCase())) return o;
+            return { ...o, values: [...o.values, value] };
+        }));
+    };
+
+    const handleRemoveOptionValue = (optionIndex, valueIndex) => {
+        const option = data.options[optionIndex];
+        const value = option.values[valueIndex];
+        const inUse = data.variants.some((v) => v.options[option.name] === value);
+
+        if (inUse && !confirm(`"${value}" is used by a generated variant row. Removing it and regenerating will drop that combination. Continue?`)) {
+            return;
+        }
+
+        setData('options', data.options.map((o, i) => (
+            i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
+        )));
     };
 
     // دالة الـ Cartesian Product السحرية لتوليد كاع الاحتمالات بلحظتها ف المتصفح
     const generateVariantsMatrix = () => {
-        if (data.attributes.length === 0) return;
+        if (data.options.length === 0) return;
 
         const cartesian = (sets) => sets.reduce((acc, set) => acc.flatMap(x => set.map(y => [...x, y])), [[]]);
-        const sets = data.attributes.map(attr => attr.values.map(val => ({ [attr.name]: val })));
-        
+        const sets = data.options.map(attr => attr.values.map(val => ({ [attr.name]: val })));
+
         if (sets.some(s => s.length === 0)) {
             alert('المرجو إدخال قيم لكل خاصية أولاً');
             return;
@@ -70,7 +106,7 @@ export default function Create() {
         // تحويل الاحتمالات إلى الـ Structure لي كيتسناه الباكيند ديالك
         const generatedVariants = combinations.map(combo => {
             const options = Object.assign({}, ...combo); // كترجع بحال: { Size: 'S', Color: 'Black' }
-            
+
             // توليد SKU تلقائي ذكي مبني على الـ SKU الرئيسي والخصائص المدخلة
             const skuSuffix = Object.values(options).join('-').toUpperCase();
             const variantSku = data.sku ? `${data.sku}-${skuSuffix}` : skuSuffix;
@@ -79,7 +115,7 @@ export default function Create() {
                 sku: variantSku,
                 price: data.price || 0, // كياخد الثمن الرئيسي كبداية تسهيلاً للكليان
                 stock: 0,
-                options: options // هادا هو الـ JSON column لي غايتحفظ ف الـ variants table
+                options: options // هادا هو الـ combination map لي غايتصدر مع الطلب
             };
         });
 
@@ -146,15 +182,15 @@ export default function Create() {
                     </div>
                 </Section>
 
-                {/* القسم 3: إدارة الـ Attributes والـ Variants (يظهر فقط إذا كان المنتج Variable) */}
+                {/* القسم 3: إدارة الـ Options والـ Variants (يظهر فقط إذا كان المنتج Variable) */}
                 {data.type === 'variable' && (
-                    <Section title="Attributes & Variants Mapping">
+                    <Section title="Product options">
                         <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
-                            
+
                             {/* حقول إضافة الخصائص دغيا دغيا */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                                 <div>
-                                    <label className="block text-xs text-content-muted mb-1">Attribute Name</label>
+                                    <label className="block text-xs text-content-muted mb-1">Option name</label>
                                     <input type="text" placeholder="e.g., Size" value={currentAttrName} onChange={e => setCurrentAttrName(e.target.value)}
                                         className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
                                 </div>
@@ -165,36 +201,39 @@ export default function Create() {
                                 </div>
                                 <button type="button" onClick={handleAddAttribute}
                                     className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
-                                    <Plus className="w-3.5 h-3.5" /> Add Attribute
+                                    <Plus className="w-3.5 h-3.5" /> Add option
                                 </button>
                             </div>
 
-                            {/* عرض الـ Attributes المضافة حالياً مع إمكانية الحذف */}
+                            {/* عرض الـ Options المضافة حالياً مع إمكانية التعديل والحذف */}
                             <div className="space-y-2">
-                                {data.attributes.map((attr, idx) => (
-                                    <div key={idx} className="flex items-center justify-between bg-surface-2 px-3 py-2 rounded-lg border border-line">
-                                        <div className="flex items-center gap-4 text-xs">
-                                            <span className="font-semibold text-indigo-600 dark:text-indigo-400 uppercase">{attr.name}:</span>
-                                            <div className="flex flex-wrap gap-1">
-                                                {attr.values.map((v, vIdx) => (
-                                                    <span key={vIdx} className="bg-surface px-2 py-0.5 rounded border border-line text-content-muted">{v}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <button type="button" onClick={() => handleRemoveAttribute(idx)} className="text-content-muted hover:text-red-600 dark:text-red-400 transition">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
+                                {data.options.map((option, idx) => (
+                                    <OptionRow
+                                        key={idx}
+                                        option={option}
+                                        onRename={(name) => handleRenameOption(idx, name)}
+                                        onAddValue={(value) => handleAddOptionValue(idx, value)}
+                                        onRemoveValue={(vIdx) => handleRemoveOptionValue(idx, vIdx)}
+                                        onRemoveOption={() => handleRemoveAttribute(idx)}
+                                    />
                                 ))}
                             </div>
 
-                            {data.attributes.length > 0 && (
+                            {data.options.length > 0 && (
                                 <button type="button" onClick={generateVariantsMatrix}
                                     className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
-                                    <Layers className="w-3.5 h-3.5" /> Generate Variants Matrix
+                                    <Layers className="w-3.5 h-3.5" /> Generate variants
                                 </button>
                             )}
 
+                            <PublishReadinessNotice options={data.options} variants={data.variants} />
+                        </div>
+                    </Section>
+                )}
+
+                {data.type === 'variable' && data.variants.length > 0 && (
+                    <Section title="Variants">
+                        <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
                             {/* الجدول الديناميكي لملء قيم كل فاريانت على حدة */}
                             {data.variants.length > 0 && (
                                 <div className="overflow-x-auto border border-line rounded-lg mt-2">

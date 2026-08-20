@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react';
 import { SourceBadge, fmtMoney, timeAgo, ageTone } from '@/Components/Departments/QueueParts';
+import StatusBadge from '@/Components/StatusBadge';
 
 /**
  * Shared table body for the four order-based operations queues
@@ -49,9 +50,7 @@ export default function OperationsTable({ rows, currency, showClientColumn, rend
                                 <td className="px-3 py-2.5 text-content-muted">{o.client_organization_name || '—'}</td>
                             )}
                             <td className="px-3 py-2.5">
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-2 border border-line text-content">
-                                    {o.status_label}
-                                </span>
+                                <StatusBadge status={o.status} type="fulfillment" label={o.status_label} />
                                 {o.allocation?.shortage_quantity > 0 && (
                                     <div className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
                                         waiting {o.allocation.shortage_quantity} unit(s)

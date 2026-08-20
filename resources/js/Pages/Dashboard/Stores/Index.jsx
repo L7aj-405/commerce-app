@@ -2,6 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { Plus, Store as StoreIcon, Users, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import EmptyState from '@/Components/EmptyState';
+import TypeBadge from '@/Components/TypeBadge';
 
 const TYPE_LABELS = {
     retail: 'Retail',
@@ -69,11 +70,7 @@ export default function Index({ stores = [], currentStoreId }) {
 
                                 <h3 className="text-base font-semibold text-content truncate">{s.name}</h3>
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                    {s.type && (
-                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
-                                            {s.type}
-                                        </span>
-                                    )}
+                                    <TypeBadge kind="store" value={s.type} />
                                     <p className="text-xs text-content-muted">{TYPE_LABELS[s.business_type] ?? '—'}</p>
                                 </div>
 

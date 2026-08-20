@@ -133,7 +133,18 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     Route::post('/',            [ProductController::class, 'store'])->name('store');
                     Route::patch('/{product}',  [ProductController::class, 'update'])->name('update');
                     Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
+                    // Explicit-target publish (SaaS -> platform). Replaces the old
+                    // /push route, which auto-published to every active connection
+                    // for the store regardless of platform.
+                    Route::post('/{product}/publish', [ProductController::class, 'publish'])->name('publish');
+                    Route::post('/bulk-publish',       [ProductController::class, 'bulkPublish'])->name('bulk-publish');
                     Route::post('/sync/start',  [ProductSyncController::class, 'startSync'])->name('sync.start');
+                });
+
+                // Inventory-safe stock adjustments — gated by the same
+                // permission the Stock dashboard's quick-adjust already uses.
+                Route::middleware('perm:stock.adjust')->group(function () {
+                    Route::post('/{product}/stock', [ProductController::class, 'adjustStock'])->name('stock');
                 });
             });
 
@@ -226,6 +237,10 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/whatsapp',     [IntegrationsController::class, 'whatsapp'])->name('whatsapp');
                 Route::post('/whatsapp',    [IntegrationsController::class, 'saveWhatsapp'])->name('whatsapp.save');
                 Route::post('/test/{platform}', [IntegrationsController::class, 'testConnection'])->name('test');
+                // Real-API-truth Shopify capability diagnostics — distinct from
+                // the generic testConnection() above, which only reports a
+                // pass/fail gated on the token's self-reported scope string.
+                Route::post('/shopify/diagnostics', [IntegrationsController::class, 'shopifyDiagnostics'])->name('shopify.diagnostics');
             });
         });
     });

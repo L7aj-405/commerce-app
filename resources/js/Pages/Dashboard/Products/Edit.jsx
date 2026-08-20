@@ -1,30 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Loader2, Save, Trash2, Plus, Layers, Package, Settings, CheckCircle } from 'lucide-react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, Loader2, Save, Trash2, Plus, Layers, Package, Settings, CheckCircle, Upload, SlidersHorizontal } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
+import Card from '@/Components/Card';
+import StatusBadge from '@/Components/StatusBadge';
+import AdjustStockModal from '@/Components/Products/AdjustStockModal';
+import PublishTargetModal from '@/Components/Products/PublishTargetModal';
 
-export default function Edit({ product }) {
-    
-    // 1. دالة بناء الـ Attributes من الـ Variants كيفما كان كيدير الـ Livewire بالظبط
-    const buildAttributesFromProduct = (variants) => {
-        if (!variants || !Array.isArray(variants)) return [];
-        const attrsMap = {};
-        
-        variants.forEach(variant => {
-            const attrs = variant.attributes || {}; 
-            Object.entries(attrs).forEach(([name, value]) => {
-                if (!attrsMap[name]) {
-                    attrsMap[name] = { name: name, values: [] };
-                }
-                if (value !== null && value !== '' && !attrsMap[name].values.includes(String(value))) {
-                    attrsMap[name].values.push(String(value));
-                }
-            });
-        });
-        return Object.values(attrsMap);
+export default function Edit({ product, connections = [], warehouses = [] }) {
+    const permissions = usePage().props.auth?.permissions ?? [];
+    const canAdjustStock = permissions.includes('*') || permissions.includes('stock.adjust');
+    const [adjusting, setAdjusting] = useState(null); // null | { variantId, variantName }
+
+    // Canonical option definitions come straight from the backend
+    // (ProductAttribute/ProductAttributeValue) — no more inferring them
+    // from whatever happened to survive on each variant's JSON blob.
+    const buildOptionsFromProduct = (product) => {
+        return (product?.options ?? []).map((o) => ({ name: o.name, values: [...(o.values ?? [])] }));
     };
 
-    // 2. دالة تجهيز الـ Variants بنفس الـ Structure ديال الـ Livewire (مع حقل qty الموحد)
+    // A combination's real identity is its sorted set of option:value pairs
+    // — never the display title, and never insertion order (adding a new
+    // option used to reshuffle Object.values() order and silently break
+    // matching, which is the client-side half of the reported bug).
+    const comboKeyFor = (optionsMap) => Object.entries(optionsMap || {})
+        .map(([k, v]) => `${k}:${v}`)
+        .sort()
+        .join('|');
+
     const prepareVariantsFromProduct = (variants) => {
         if (!variants || !Array.isArray(variants)) return [];
         return variants.map(variant => {
@@ -35,16 +38,18 @@ export default function Edit({ product }) {
                 stockQty = parseInt(variant.qty) || parseInt(variant.stock) || 0;
             }
 
+            const options = variant.options ?? {};
+
             return {
                 id: variant.id || null,
-                combo_key: variant.combo_key || Object.values(variant.attributes || {}).join('|'),
-                name: variant.name || Object.values(variant.attributes || {}).join(' / '),
-                attributes: variant.attributes || {}, 
+                combo_key: comboKeyFor(options),
+                options,
                 sku: variant.sku ?? '',
                 price: variant.price ? String(variant.price) : '',
                 cost: variant.cost ? String(variant.cost) : '',
-                qty: stockQty, 
+                qty: stockQty,
                 selected: true,
+                channel_listings: variant.channel_listings ?? [],
             };
         });
     };
@@ -60,13 +65,10 @@ export default function Edit({ product }) {
         cost: product?.cost ?? '', 
         featured_image: product?.featured_image ?? '',
         status: product?.status ?? 'active',
-        type: product?.type ? String(product.type).toLowerCase().trim() : 'simple', 
-        
-        // ✨ استقبال كمية المخزن الإجمالية للـ Simple Product اللي جاية من الـ Controller
-        qty: product?.total_stock ?? 0, 
-        
-        productAttributes: buildAttributesFromProduct(product?.variants), 
-        variants: prepareVariantsFromProduct(product?.variants),     
+        type: product?.type ? String(product.type).toLowerCase().trim() : 'simple',
+
+        options: buildOptionsFromProduct(product),
+        variants: prepareVariantsFromProduct(product?.variants),
     });
 
     // ✨ تحديث البيانات تلقائياً أول ما يتشارجا الـ Product
@@ -83,11 +85,8 @@ export default function Edit({ product }) {
                 cost: product.cost ?? '',
                 status: product.status ?? 'active',
                 type: product.type ? String(product.type).toLowerCase().trim() : 'simple',
-                
-                // ✨ الـ Sync ديال كونتيتي الـ Simple Product من الداتابيز
-                qty: product.total_stock ?? 0, 
-                
-                productAttributes: buildAttributesFromProduct(product.variants),
+
+                options: buildOptionsFromProduct(product),
                 variants: prepareVariantsFromProduct(product.variants)
             }));
         }
@@ -113,29 +112,71 @@ export default function Edit({ product }) {
         if (!currentAttrName.trim() || !currentAttrValues.trim()) return;
 
         const valuesArray = currentAttrValues.split(',').map(v => v.trim()).filter(v => v !== '');
-        if (data.productAttributes.some(a => a.name.toLowerCase() === currentAttrName.trim().toLowerCase())) return;
+        if (data.options.some(a => a.name.toLowerCase() === currentAttrName.trim().toLowerCase())) return;
 
-        const newAttribute = {
-            name: currentAttrName.trim(),
-            values: valuesArray
-        };
-
-        setData('productAttributes', [...data.productAttributes, newAttribute]);
+        setData('options', [...data.options, { name: currentAttrName.trim(), values: valuesArray }]);
         setCurrentAttrName('');
         setCurrentAttrValues('');
     };
 
+    const handleRenameOption = (index, newName) => {
+        const trimmed = newName.trim();
+        if (trimmed === '') return;
+
+        const oldName = data.options[index].name;
+        const updated = data.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o));
+        setData('options', updated);
+
+        // Keep already-generated variant rows pointing at the renamed option
+        // instead of orphaning their value under the old name.
+        if (oldName !== trimmed) {
+            setData('variants', data.variants.map((v) => {
+                if (!(oldName in v.options)) return v;
+                const { [oldName]: value, ...rest } = v.options;
+                const options = { ...rest, [trimmed]: value };
+                return { ...v, options, combo_key: comboKeyFor(options) };
+            }));
+        }
+    };
+
     const handleRemoveAttribute = (indexToRemove) => {
-        const updatedAttrs = data.productAttributes.filter((_, index) => index !== indexToRemove);
-        setData('productAttributes', updatedAttrs);
+        setData('options', data.options.filter((_, index) => index !== indexToRemove));
+    };
+
+    const handleAddOptionValue = (optionIndex, rawValue) => {
+        const value = rawValue.trim();
+        if (value === '') return;
+        const updated = data.options.map((o, i) => {
+            if (i !== optionIndex) return o;
+            if (o.values.some((v) => v.toLowerCase() === value.toLowerCase())) return o;
+            return { ...o, values: [...o.values, value] };
+        });
+        setData('options', updated);
+    };
+
+    // Safe to remove client-side only when no generated variant currently
+    // uses this value — the backend re-checks (channel listings / inventory
+    // links) regardless, this is just an honest heads-up before saving.
+    const handleRemoveOptionValue = (optionIndex, valueIndex) => {
+        const option = data.options[optionIndex];
+        const value = option.values[valueIndex];
+        const inUse = data.variants.some((v) => v.options[option.name] === value);
+
+        if (inUse && !confirm(`"${value}" is used by an existing variant. Regenerating will drop that combination (or keep it read-only if it's linked to a platform). Continue?`)) {
+            return;
+        }
+
+        setData('options', data.options.map((o, i) => (
+            i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
+        )));
     };
 
     const generateVariantsMatrix = () => {
-        if (data.productAttributes.length === 0) return;
+        if (data.options.length === 0) return;
 
         const cartesian = (sets) => sets.reduce((acc, set) => acc.flatMap(x => set.map(y => [...x, y])), [[]]);
-        const sets = data.productAttributes.map(attr => attr.values.map(val => ({ [attr.name]: val })));
-        
+        const sets = data.options.map(attr => attr.values.map(val => ({ [attr.name]: val })));
+
         if (sets.some(s => s.length === 0)) {
             alert('المرجو إدخال قيم لكل خاصية أولاً');
             return;
@@ -144,23 +185,26 @@ export default function Edit({ product }) {
         const combinations = cartesian(sets);
 
         const generatedVariants = combinations.map(combo => {
-            const options = Object.assign({}, ...combo); 
-            const comboKey = Object.values(options).join('|');
+            const options = Object.assign({}, ...combo);
+            const comboKey = comboKeyFor(options);
             const skuSuffix = Object.values(options).join('-').toUpperCase();
             const variantSku = data.sku ? `${data.sku}-${skuSuffix}` : skuSuffix;
 
+            // Match by the canonical (sorted) combination — order-independent,
+            // so adding a new option no longer loses previously-entered
+            // price/sku/qty for combinations that still exist.
             const existingVariant = data.variants.find(v => v.combo_key === comboKey);
 
             return existingVariant ?? {
                 id: null,
                 combo_key: comboKey,
-                name: Object.values(options).join(' / '),
-                attributes: options,
+                options,
                 sku: variantSku,
                 price: data.price || '',
                 cost: data.cost || '',
                 qty: 0,
-                selected: true
+                selected: true,
+                channel_listings: [],
             };
         });
 
@@ -177,13 +221,19 @@ export default function Edit({ product }) {
         setData('variants', updatedVariants);
     };
 
-    const submit = (e) => { 
-        e.preventDefault(); 
-        patch(`/dashboard/products/${product.id}`); 
+    const submit = (e) => {
+        e.preventDefault();
+        patch(`/dashboard/products/${product.id}`);
     };
 
     const nextStep = () => step < maxSteps && setStep(step + 1);
     const prevStep = () => step > 1 && setStep(step - 1);
+
+    // Publishing never fires immediately — it opens the target-selection
+    // modal so the user explicitly picks which connection(s) to push to.
+    // Clicking "Publish to platforms" used to push to every active
+    // connection for the store, including platforms the user never chose.
+    const [publishModalOpen, setPublishModalOpen] = useState(false);
 
     return (
         <SaasLayout pageHeader={{
@@ -194,9 +244,21 @@ export default function Edit({ product }) {
                 { label: 'Edit' },
             ],
             actions: (
-                <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
-                    <ArrowLeft className="w-4 h-4" /> Back
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setPublishModalOpen(true)}
+                        disabled={connections.length === 0}
+                        title={connections.length === 0 ? 'No active platform connections for this store.' : undefined}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                        <Upload className="w-4 h-4" />
+                        Publish to platforms
+                    </button>
+                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
+                        <ArrowLeft className="w-4 h-4" /> Back
+                    </Link>
+                </div>
             ),
         }}>
             
@@ -307,30 +369,40 @@ export default function Edit({ product }) {
                                     <Field label="Cost" type="number" step="0.01" value={data.cost} onChange={(v) => setData('cost', v)} error={errors.cost} />
                                 </div>
 
-                                {/* ✨ إظهار حقل الـ Stock الكونتيتي هنايا إذا كان نوع المنتج Simple */}
+                                {/* Read-only — quantity is no longer editable from the product
+                                    form. Use "Adjust stock" so changes go through the inventory
+                                    engine and push to WooCommerce. */}
                                 {data.type === 'simple' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                                        <Field 
-                                            label="Stock Quantity (الكمية الإجمالية)" 
-                                            type="number" 
-                                            value={data.qty} 
-                                            onChange={(v) => setData('qty', parseInt(v) || 0)} 
-                                            error={errors.qty} 
-                                            required 
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
+                                        <div>
+                                            <label className="block text-xs font-medium text-content-muted mb-1">Stock on hand</label>
+                                            <div className="px-3 py-2 rounded-lg bg-surface border border-line text-content text-sm font-semibold tabular-nums">
+                                                {product?.total_stock ?? 0}
+                                            </div>
+                                        </div>
+                                        {canAdjustStock && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setAdjusting({ variantId: null, variantName: null })}
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 h-[38px]"
+                                            >
+                                                <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust stock
+                                            </button>
+                                        )}
+                                        <p className="md:col-span-3 text-[11px] text-content-muted">Stock is managed through inventory adjustments.</p>
                                     </div>
                                 )}
                             </Section>
 
-                            {/* Variable Mapping Section */}
+                            {/* Options Section */}
                             {data.type === 'variable' && (
-                                <Section title="Synced Attributes & Variants Mapping Matrix">
+                                <Section title="Product options">
                                     <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
-                                        
-                                        {/* خيارات إضافة خصائص جديدة */}
+
+                                        {/* Add a new option */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                                             <div>
-                                                <label className="block text-xs text-content-muted mb-1">Attribute Name</label>
+                                                <label className="block text-xs text-content-muted mb-1">Option name</label>
                                                 <input type="text" placeholder="e.g., Size" value={currentAttrName} onChange={e => setCurrentAttrName(e.target.value)}
                                                     className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
                                             </div>
@@ -341,51 +413,57 @@ export default function Edit({ product }) {
                                             </div>
                                             <button type="button" onClick={handleAddAttribute}
                                                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
-                                                <Plus className="w-3.5 h-3.5" /> Add Attribute
+                                                <Plus className="w-3.5 h-3.5" /> Add option
                                             </button>
                                         </div>
 
-                                        {/* الخصائص الحالية للمنتج */}
+                                        {/* Existing options — rename, add/remove values, delete option */}
                                         <div className="space-y-2">
-                                            {data.productAttributes && data.productAttributes.map((attr, idx) => (
-                                                <div key={idx} className="flex items-center justify-between bg-surface-2 px-3 py-2 rounded-lg border border-line">
-                                                    <div className="flex items-center gap-4 text-xs">
-                                                        <span className="font-semibold text-indigo-600 dark:text-indigo-400 uppercase">{attr.name}:</span>
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {attr.values && attr.values.map((v, vIdx) => (
-                                                                <span key={vIdx} className="bg-surface px-2 py-0.5 rounded border border-line text-content-muted">{v}</span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <button type="button" onClick={() => handleRemoveAttribute(idx)} className="text-content-muted hover:text-red-600 dark:text-red-400 transition">
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
+                                            {data.options && data.options.map((option, idx) => (
+                                                <OptionRow
+                                                    key={idx}
+                                                    option={option}
+                                                    onRename={(name) => handleRenameOption(idx, name)}
+                                                    onAddValue={(value) => handleAddOptionValue(idx, value)}
+                                                    onRemoveValue={(vIdx) => handleRemoveOptionValue(idx, vIdx)}
+                                                    onRemoveOption={() => handleRemoveAttribute(idx)}
+                                                />
                                             ))}
                                         </div>
 
                                         <button type="button" onClick={generateVariantsMatrix}
                                             className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
-                                            <Layers className="w-3.5 h-3.5" /> Re-generate / Sync Matrix Permutations
+                                            <Layers className="w-3.5 h-3.5" /> Generate variants
                                         </button>
 
-                                        {/* جدول الـ Variants والـ qty */}
+                                        <PublishReadinessNotice options={data.options} variants={data.variants} />
+                                    </div>
+                                </Section>
+                            )}
+
+                            {/* Variants Section */}
+                            {data.type === 'variable' && (
+                                <Section title="Variants">
+                                    <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
                                         {data.variants && data.variants.length > 0 ? (
                                             <div className="overflow-x-auto border border-line rounded-lg mt-2">
                                                 <table className="w-full text-left border-collapse bg-surface text-xs">
                                                     <thead className="bg-surface text-content-muted font-medium border-b border-line">
                                                         <tr>
-                                                            <th className="p-2.5">Combination Options</th>
+                                                            <th className="p-2.5">Combination</th>
                                                             <th className="p-2.5">Variant SKU</th>
                                                             <th className="p-2.5">Price (MAD)</th>
                                                             <th className="p-2.5">Stock Quantity (الكمية)</th>
+                                                            <th className="p-2.5">Listings</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-line">
                                                         {data.variants.map((v, index) => (
                                                             <tr key={index} className="hover:bg-surface-2/30">
                                                                 <td className="p-2.5 font-medium text-content-muted whitespace-nowrap">
-                                                                    {v.name || '—'}
+                                                                    {/* Display-only string — the real identity is the
+                                                                        options map/canonical ids, never this text. */}
+                                                                    {Object.entries(v.options ?? {}).map(([k, val]) => `${k}=${val}`).join(' / ') || '—'}
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="text" value={v.sku || ''} onChange={e => handleVariantChange(index, 'sku', e.target.value)}
@@ -396,8 +474,32 @@ export default function Edit({ product }) {
                                                                         className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-indigo-500" />
                                                                 </td>
                                                                 <td className="p-2.5">
-                                                                    <input type="number" value={v.qty ?? 0} onChange={e => handleVariantChange(index, 'qty', e.target.value)}
-                                                                        className="bg-surface-2 border border-indigo-500/30 rounded px-2 py-1 text-xs text-emerald-600 dark:text-emerald-400 w-24 focus:outline-none focus:border-indigo-500 font-bold" />
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">{v.qty ?? 0}</span>
+                                                                        {canAdjustStock && v.id && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => setAdjusting({ variantId: v.id, variantName: Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') })}
+                                                                                className="text-content-muted hover:text-content"
+                                                                                title="Adjust stock"
+                                                                            >
+                                                                                <SlidersHorizontal className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-2.5">
+                                                                    {(v.channel_listings ?? []).length === 0 ? (
+                                                                        <span className="text-content-muted/60">—</span>
+                                                                    ) : (
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            {v.channel_listings.map((l) => (
+                                                                                <span key={l.id} className="px-1.5 py-0.5 rounded bg-surface-3 border border-line text-[10px] text-content-muted">
+                                                                                    {l.connection?.platform ?? 'platform'}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -431,6 +533,43 @@ export default function Edit({ product }) {
                                     </div>
                                     <Field label="Image URL" value={data.featured_image} onChange={(v) => setData('featured_image', v)} error={errors.featured_image} />
                                 </div>
+                            </Section>
+
+                            <Section title="Channel mappings & inventory link">
+                                <Card className="!p-4">
+                                    <p className="text-xs text-content-muted mb-3">
+                                        Managed by integrations/inventory engine — read-only here. Use "Publish to platforms" above to push changes out.
+                                    </p>
+
+                                    <div className="space-y-1.5">
+                                        <p className="text-xs font-semibold text-content-muted uppercase tracking-wide">Product listings</p>
+                                        {(product.channel_listings ?? []).length === 0 ? (
+                                            <p className="text-xs text-content-muted">Not yet listed on any platform.</p>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-2">
+                                                {product.channel_listings.map((listing) => (
+                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-3 border border-line text-xs">
+                                                        <span className="font-medium text-content">{listing.connection?.label ?? listing.connection?.platform}</span>
+                                                        <span className="text-content-muted font-mono">#{listing.external_product_id}</span>
+                                                        <StatusBadge type="sync" status={listing.sync_status} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-3 pt-3 border-t border-line space-y-1.5">
+                                        <p className="text-xs font-semibold text-content-muted uppercase tracking-wide">Inventory / master SKU link</p>
+                                        {product.inventory_link?.inventory_item ? (
+                                            <p className="text-xs text-content">
+                                                Linked to master SKU <span className="font-mono text-content-muted">{product.inventory_link.inventory_item.sku}</span>
+                                                {' '}({product.inventory_link.inventory_item.name})
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-content-muted">No inventory item linked yet — created automatically the first time stock is recorded.</p>
+                                        )}
+                                    </div>
+                                </Card>
                             </Section>
                         </div>
                     )}
@@ -477,6 +616,26 @@ export default function Edit({ product }) {
 
                 </form>
             </div>
+
+            {adjusting && (
+                <AdjustStockModal
+                    product={product}
+                    variantId={adjusting.variantId}
+                    variantName={adjusting.variantName}
+                    warehouses={warehouses}
+                    onClose={() => setAdjusting(null)}
+                />
+            )}
+
+            {publishModalOpen && (
+                <PublishTargetModal
+                    mode="single"
+                    product={product}
+                    connections={connections}
+                    onClose={() => setPublishModalOpen(false)}
+                    onPublished={() => router.reload({ only: ['product'] })}
+                />
+            )}
         </SaasLayout>
     );
 }
@@ -508,6 +667,98 @@ function TextArea({ label, value, onChange, error }) {
             <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)}
                 className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
             {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+        </div>
+    );
+}
+
+/** One option row: rename inline, add/remove values, delete the option. */
+export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemoveOption }) {
+    const [editingName, setEditingName] = useState(false);
+    const [nameDraft, setNameDraft] = useState(option.name);
+    const [newValue, setNewValue] = useState('');
+
+    const commitName = () => {
+        setEditingName(false);
+        if (nameDraft.trim() !== '' && nameDraft.trim() !== option.name) onRename(nameDraft.trim());
+        else setNameDraft(option.name);
+    };
+
+    return (
+        <div className="bg-surface-2 px-3 py-2 rounded-lg border border-line space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                {editingName ? (
+                    <input
+                        autoFocus
+                        value={nameDraft}
+                        onChange={(e) => setNameDraft(e.target.value)}
+                        onBlur={commitName}
+                        onKeyDown={(e) => e.key === 'Enter' && commitName()}
+                        className="text-xs font-semibold uppercase bg-surface border border-indigo-500/40 rounded px-1.5 py-0.5 text-content focus:outline-none"
+                    />
+                ) : (
+                    <button type="button" onClick={() => setEditingName(true)} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase hover:underline">
+                        {option.name}:
+                    </button>
+                )}
+                <button type="button" onClick={onRemoveOption} className="text-content-muted hover:text-red-600 dark:text-red-400 transition">
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+                {option.values.map((v, vIdx) => (
+                    <span key={vIdx} className="inline-flex items-center gap-1 bg-surface px-2 py-0.5 rounded border border-line text-content-muted text-xs">
+                        {v}
+                        <button type="button" onClick={() => onRemoveValue(vIdx)} className="text-content-muted/60 hover:text-red-600 dark:hover:text-red-400">
+                            <Trash2 className="w-3 h-3" />
+                        </button>
+                    </span>
+                ))}
+                <input
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); onAddValue(newValue); setNewValue(''); }
+                    }}
+                    onBlur={() => { if (newValue.trim() !== '') { onAddValue(newValue); setNewValue(''); } }}
+                    placeholder="+ value"
+                    className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-indigo-500"
+                />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Read-only, client-side-only heads-up — not a publish gate. Mirrors the
+ * real constraints Shopify/WooCommerce enforce so a user finds out before
+ * clicking Publish, not from a failed push.
+ */
+export function PublishReadinessNotice({ options = [], variants = [] }) {
+    const warnings = [];
+
+    if (options.length > 3) {
+        warnings.push('Shopify allows a maximum of 3 options per product — this product has ' + options.length + '.');
+    }
+
+    const optionNames = options.map((o) => o.name);
+    const incompleteVariant = variants.some((v) => optionNames.some((name) => !v.options?.[name]));
+    if (variants.length > 0 && incompleteVariant) {
+        warnings.push('Shopify requires every variant to have a value for every option — regenerate variants after editing options.');
+    }
+
+    if (options.length === 0 || variants.length === 0) {
+        warnings.push('WooCommerce needs at least one attribute and one variation for a variable product.');
+    }
+
+    if (warnings.length === 0) return null;
+
+    return (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
+            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Publish readiness</p>
+            {warnings.map((w, i) => (
+                <p key={i} className="text-xs text-amber-700 dark:text-amber-300">{w}</p>
+            ))}
         </div>
     );
 }

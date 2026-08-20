@@ -47,6 +47,14 @@ export default function Index({ store, providers = [], connections = [] }) {
                                     </div>
                                     <p className="text-xs text-content-muted mt-1">{p.description}</p>
 
+                                    {p.key === 'shopify' && (
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-500/15 text-slate-600 dark:text-slate-300">App · Coming soon</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-300">Admin token · Advanced</span>
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Webhook · Recommended</span>
+                                        </div>
+                                    )}
+
                                     {conn && (
                                         <dl className="mt-3 grid grid-cols-2 gap-y-1 text-xs text-content-muted">
                                             <dt>Synced products</dt>

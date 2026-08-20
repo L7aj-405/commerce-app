@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-19T13:29:42.768Z
-> Files: 108 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-20T00:44:41.181Z
+> Files: 169 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -11,7 +11,12 @@
 
 ## ../../../../.claude/plans/
 
-- `tidy-frolicking-moler.md` — Phase 1 / Step 8 — Onboarding UI (~4260 tok)
+- `tidy-frolicking-moler.md` — Phase CV1 — Canonical Product Options and Variant Wizard Persistence (~3384 tok)
+
+## ../../../../.claude/projects/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/memory/
+
+- `feedback_implementation_first_no_test_runs.md` (~449 tok)
+- `MEMORY.md` — Memory Index (~46 tok)
 
 ## ../../../../AppData/Local/Temp/
 
@@ -42,9 +47,11 @@
 
 ## app/Concerns/
 
+- `ProfileValidationRules.php` — Get the validation rules used to validate user profiles. (~342 tok)
 
 ## app/Connectors/
 
+- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~8744 tok)
 
 ## app/Console/Commands/
 
@@ -72,6 +79,7 @@
 
 ## app/Http/Controllers/Api/
 
+- `ShopifyWebhookController.php` — Single endpoint for every Shopify webhook topic — the event is read (~1550 tok)
 
 ## app/Http/Controllers/Auth/
 
@@ -79,8 +87,10 @@
 ## app/Http/Controllers/Dashboard/
 
 - `DashboardController.php` — index (~1906 tok)
+- `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~3947 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~837 tok)
 - `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~3362 tok)
+- `ProductController.php` — index, syncFromPlatform, create, store, edit (~6908 tok)
 - `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~5223 tok)
 - `StockTransferController.php` — index, create, store, slip (~2839 tok)
 - `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
@@ -97,9 +107,13 @@
 - `CheckoutController.php` — store (~1233 tok)
 - `PosController.php` — Eager loads needed to present a product with its variants in one query set: (~1924 tok)
 
+## app/Http/Controllers/Settings/
+
+- `SettingsController.php` — Account-level settings (Profile/Appearance/Security) — replaces the (~1116 tok)
+
 ## app/Http/Middleware/
 
-- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~933 tok)
+- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~953 tok)
 
 ## app/Http/Requests/Auth/
 
@@ -142,7 +156,11 @@
 
 ## app/Models/
 
+- `PlatformConnection.php` — Model — 20 fields, 5 rels (~982 tok)
 - `PosOrderItem.php` — Model — 13 fields, 3 rels (~369 tok)
+- `Product.php` — Platform-specific identities for this canonical catalog product. (~1797 tok)
+- `ProductAttribute.php` — Model — 4 fields, 2 rels (~315 tok)
+- `ProductAttributeValue.php` — Model — 4 fields, 2 rels (~365 tok)
 - `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
 - `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
 - `StockTransferItem.php` — Model — 8 fields, 3 rels (~270 tok)
@@ -174,6 +192,10 @@
 
 - `AgencyWorkspaceService.php` — AgencyWorkspaceService: createClient, createAgencyWarehouse, assignWarehouse, assignService (~1276 tok)
 
+## app/Services/Catalog/
+
+- `ProductVariantWizardService.php` — Turns a product-edit-wizard submission (option definitions + variant (~3145 tok)
+
 ## app/Services/Invoicing/
 
 
@@ -194,12 +216,23 @@
 - `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~2978 tok)
 - `OrderProcessingService.php` — Create a POS order with its line items. Runs in a single transaction so (~2940 tok)
 
+## app/Services/Shopify/
+
+- `ShopifyAuthException.php` — Declares ShopifyAuthException (~39 tok)
+- `ShopifyAuthService.php` — Generates and caches short-lived Shopify Admin API tokens via the (~2714 tok)
+- `ShopifyCapabilityDiagnosticsService.php` — Real-API-truth diagnostics for a Shopify admin_client_credentials (~2599 tok)
+- `ShopifyOrderMapper.php` — Map a Shopify orders/create|updated webhook payload onto the canonical (~271 tok)
+- `ShopifyProductMapper.php` — Map a Shopify products/create|update webhook payload onto the canonical (~241 tok)
+- `ShopifyWebhookVerifier.php` — Verify a Shopify webhook's X-Shopify-Hmac-Sha256 header against the raw (~203 tok)
+
 ## app/Services/Stocks/
 
 - `StockTransferService.php` — Record a stock transfer / Bon de Sortie and move the goods atomically. (~2656 tok)
 
 ## app/Services/Sync/
 
+- `ProductPublishService.php` — Orchestrates explicit-target product publishing (SaaS -> platform). (~1769 tok)
+- `ProductPushService.php` — Create a local product on every selected channel that does not already (~8482 tok)
 
 ## app/Services/WhatsApp/
 
@@ -234,6 +267,8 @@
 - `2026_07_26_000002_add_variant_id_to_stock_ledger_table.php` — Migration: alter stock_ledger table (~276 tok)
 - `2026_07_27_000001_create_stock_transfers_table.php` — Migration: create stock_transfers table (~719 tok)
 - `2026_07_27_000002_create_stock_transfer_items_table.php` — Migration: create stock_transfer_items table (~391 tok)
+- `2026_08_19_000001_add_shopify_webhook_fields_to_platform_connections_table.php` — Migration: alter platform_connections table (~216 tok)
+- `2026_08_20_000001_add_position_to_product_attributes_tables.php` — Migration: alter product_attributes table (~237 tok)
 
 ## database/seeders/
 
@@ -253,7 +288,12 @@
 
 ## resources/js/Components/
 
-- `StoreSwitcher.jsx` — Small "merchant / agency / client" pill — falls back to nothing when organization data isn't loaded. (~1921 tok)
+- `Button.jsx` — Codifies the button classes already used consistently across (~340 tok)
+- `Card.jsx` — Thin wrapper for the `bg-surface-2 border border-line rounded-xl` pattern (~396 tok)
+- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~871 tok)
+- `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
+- `SyncProductsModal.jsx` — SyncProductsModal (~3069 tok)
+- `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
 
 ## resources/js/Components/Dashboard/
 
@@ -263,7 +303,7 @@
 
 - `OperationsFilterBar.jsx` — Warehouse / city / assignee / client-org select filters for an operations queue. (~377 tok)
 - `OperationsNav.jsx` — Switcher across the five single-station operations queues. (~955 tok)
-- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1294 tok)
+- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1264 tok)
 
 ## resources/js/Components/Filters/
 
@@ -275,6 +315,16 @@
 - `Select.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~404 tok)
 - `WizardFooter.jsx` — Back / Skip / Continue row shared by every onboarding step. (~552 tok)
 
+## resources/js/Components/Products/
+
+- `AdjustStockModal.jsx` — Inventory-safe stock adjustment for the Product Edit page. Posts to (~1977 tok)
+- `ImportProductsModal.jsx` — Small import-choice modal shown next to Add product / Sync / Add platform. (~1527 tok)
+- `PublishTargetModal.jsx` — Explicit publish-target selection — the fix for "clicking Publish pushes (~3642 tok)
+
+## resources/js/Components/Settings/
+
+- `SettingsNav.jsx` — Same "switcher across N related pages" pattern as DepartmentNav/OperationsNav. (~462 tok)
+
 ## resources/js/Hooks/
 
 - `useCart.js` — initialState: reducer, clampPercent, lineSubtotal + 5 more (~2931 tok)
@@ -283,6 +333,7 @@
 
 ## resources/js/Layouts/
 
+- `AgencyLayout.jsx` — Lightweight shell for the agency workspace — deliberately not a second (~1087 tok)
 - `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
 - `SaasLayout.jsx` — NAV_SECTIONS (~4582 tok)
 
@@ -291,6 +342,12 @@
 
 ## resources/js/Pages/Admin/
 
+
+## resources/js/Pages/Agency/
+
+- `Clients.jsx` — Clients — renders form (~1181 tok)
+- `ClientShow.jsx` — SERVICE_LABELS (~1460 tok)
+- `Warehouses.jsx` — Warehouses — renders form (~1420 tok)
 
 ## resources/js/Pages/Auth/
 
@@ -319,10 +376,11 @@
 
 ## resources/js/Pages/Dashboard/Integrations/
 
-- `Index.jsx` — ICONS (~1603 tok)
+- `Index.jsx` — ICONS (~1834 tok)
 
 ## resources/js/Pages/Dashboard/Integrations/Platforms/
 
+- `Shopify.jsx` — Real-API-truth diagnostics — replaces the old generic "Test connection" (~6360 tok)
 
 ## resources/js/Pages/Dashboard/Operations/
 
@@ -347,6 +405,9 @@
 
 ## resources/js/Pages/Dashboard/Products/
 
+- `Create.jsx` — Create — renders form (~5309 tok)
+- `Edit.jsx` — Edit (~13105 tok)
+- `Index.jsx` — Index — renders table (~3698 tok)
 
 ## resources/js/Pages/Dashboard/Roles/
 
@@ -358,7 +419,7 @@
 
 - `Create.jsx` — Organization-first "Add Store": the workspace is never invented here — it (~2696 tok)
 - `Edit.jsx` — Edit — renders form (~1753 tok)
-- `Index.jsx` — TYPE_LABELS (~1932 tok)
+- `Index.jsx` — TYPE_LABELS (~1862 tok)
 
 ## resources/js/Pages/Dashboard/Warehouses/
 
@@ -384,6 +445,12 @@
 - `CheckoutPreviewModal.jsx` — Final confirmation before the sale is committed. Shows a clean summary of (~3024 tok)
 - `ProductCard.jsx` — Pull the first image out of an array, JSON string, or plain string. (~1726 tok)
 - `VariantModal.jsx` — Variant picker for a variable product. The cashier chooses one value per (~4036 tok)
+
+## resources/js/Pages/Settings/
+
+- `Appearance.jsx` — Purely a client-side preference (localStorage + prefers-color-scheme, (~717 tok)
+- `Profile.jsx` — Profile — renders form (~1477 tok)
+- `Security.jsx` — Security — renders form (~1257 tok)
 
 ## resources/views/
 
@@ -460,8 +527,11 @@
 
 ## routes/
 
+- `api.php` (~251 tok)
 - `auth.php` (~1236 tok)
-- `dashboard.php` (~4457 tok)
+- `dashboard.php` (~4775 tok)
+- `settings.php` (~380 tok)
+- `web.php` — ============================================ (~1220 tok)
 
 ## storage/app/
 
@@ -498,6 +568,7 @@
 
 ## tests/Feature/
 
+- `_SmokeCheck.php` (~518 tok)
 
 ## tests/Feature/Api/
 
@@ -512,7 +583,19 @@
 
 ## tests/Feature/Foundation/
 
+- `ProductBulkPublishTest.php` — bpWorkspace: bpWooConnection, bpProduct, bpListing (~1672 tok)
+- `ProductImportEntryPointTest.php` — Declares importEntryPointWorkspace (~583 tok)
+- `ProductPublishTargetingTest.php` — ptWorkspace: ptWooConnection, ptShopifyConnection, ptProduct, ptListing (~3889 tok)
+- `ProductVariantCanonicalizationTest.php` — canonicalizationWorkspace: canonicalizationProduct (~2688 tok)
+- `ProductWizardMigrationTest.php` — Declares pwmWorkspace (~2277 tok)
+- `ProductWizardVariantPersistenceTest.php` — Declares wizardPersistenceWorkspace (~2330 tok)
+- `SettingsPageMigrationTest.php` (~381 tok)
+- `ShopifyCapabilityDiagnosticsTest.php` — cdWorkspace: cdConnection, cdTokenFake (~2992 tok)
+- `ShopifyClientCredentialsAuthTest.php` — sccWorkspace: sccConnection, sccFakeTokenResponse (~2800 tok)
+- `ShopifyConnectionWorkflowTest.php` — Declares scwWorkspace (~1993 tok)
+- `ShopifyWebhookTest.php` — shopifyWebhookWorkspace: shopifyWebhookHeaders, shopifyProductPayload, shopifyOrderPayload (~2169 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
+- `WooCommerceOutboundSyncTest.php` — wooOutboundWorkspace: wooOutboundProduct (~2722 tok)
 
 ## tests/Feature/Invoicing/
 
@@ -534,6 +617,8 @@
 
 ## tests/Feature/Settings/
 
+- `ProfileUpdateTest.php` (~483 tok)
+- `SecurityTest.php` (~823 tok)
 
 ## tests/Feature/Stocks/
 

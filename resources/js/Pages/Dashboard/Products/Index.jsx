@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
-import { Package, Layers } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Package, Layers, Plus, Upload } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DataTable from '@/Components/DataTable';
 import SearchFilterBar from '@/Components/SearchFilterBar';
 import SyncProductsModal from '@/Components/SyncProductsModal';
+import ImportProductsModal from '@/Components/Products/ImportProductsModal';
+import PublishTargetModal from '@/Components/Products/PublishTargetModal';
+import StatusBadge from '@/Components/StatusBadge';
 
 export default function Index({ store, products = { data: [], links: [] }, filters = {}, connections = [] }) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [syncModalOpen, setSyncModalOpen] = useState(false);
+    const permissions = usePage().props.auth?.permissions ?? [];
+    const canManage = permissions.includes('*') || permissions.includes('products.manage');
 
     const applyFilters = (q) => {
         const params = q ? { search: q } : {};
@@ -19,9 +25,48 @@ export default function Index({ store, products = { data: [], links: [] }, filte
         router.reload({ only: ['products'] });
     };
 
+    // Publish is explicit-target-only — clicking it never pushes to every
+    // connected platform. Both the per-row button and the bulk action open
+    // the same channel-selection modal; nothing is published until the user
+    // picks connection(s) there and confirms.
+    const [publishTarget, setPublishTarget] = useState(null); // { mode:'single', product } | { mode:'bulk', productIds }
+    const [selectedIds, setSelectedIds] = useState([]);
+
+    const visibleIds = products.data.map((p) => p.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+    const toggleAll = () => setSelectedIds(allVisibleSelected ? [] : visibleIds);
+    const toggleOne = (id) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+    const onBulkPublished = () => {
+        setSelectedIds([]);
+        router.reload({ only: ['products'] });
+    };
+
     const currency = store?.currency ?? 'MAD';
 
     const columns = [
+        {
+            key: 'select',
+            label: (
+                <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleAll}
+                    className="rounded border-line"
+                    aria-label="Select all visible products"
+                />
+            ),
+            width: '36px',
+            render: (p) => (
+                <input
+                    type="checkbox"
+                    checked={selectedIds.includes(p.id)}
+                    onChange={() => toggleOne(p.id)}
+                    className="rounded border-line"
+                    aria-label={`Select ${p.name}`}
+                />
+            ),
+        },
         {
             key: 'image',
             label: '',
@@ -82,17 +127,45 @@ export default function Index({ store, products = { data: [], links: [] }, filte
         },
         { key: 'category', label: 'Category', render: (p) => <span className="text-xs text-content-muted">{p.category ?? '—'}</span> },
         {
+            key: 'sync',
+            label: 'Sync',
+            render: (p) => {
+                const listings = p.channel_listings ?? [];
+                if (listings.length === 0) return <span className="text-xs text-content-muted/60">Not listed</span>;
+                return (
+                    <div className="flex flex-wrap gap-1.5">
+                        {listings.map((l) => (
+                            <div key={l.id} className="flex items-center gap-1">
+                                <span className="text-[10px] uppercase text-content-muted">{l.connection?.platform}</span>
+                                <StatusBadge type="sync" status={l.sync_status} />
+                            </div>
+                        ))}
+                    </div>
+                );
+            },
+        },
+        {
             key: 'actions',
             label: '',
             align: 'right',
             render: (p) => (
-                <Link
-                    // 🆕 تحويل المسار لـ صفحة التعديل الخاصة بالمنتج الحالي باستعمال الـ id ديالو
-                    href={`/dashboard/products/${p.id}/edit`}
-                    className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300 font-medium"
-                >
-                    Edit
-                </Link>
+                <div className="flex items-center justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setPublishTarget({ mode: 'single', product: p })}
+                        title="Choose which platform(s) to publish this product to"
+                        className="inline-flex items-center gap-1 text-xs text-content-muted hover:text-content font-medium"
+                    >
+                        <Upload className="w-3 h-3" /> Publish
+                    </button>
+                    <Link
+                        // 🆕 تحويل المسار لـ صفحة التعديل الخاصة بالمنتج الحالي باستعمال الـ id ديالو
+                        href={`/dashboard/products/${p.id}/edit`}
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300 font-medium"
+                    >
+                        Edit
+                    </Link>
+                </div>
             ),
         },
     ];
@@ -110,15 +183,49 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                     >
                         <Layers className="w-4 h-4" /> Stock
                     </Link>
-                    
-                    {/* مررنا الـ connections والـ onSyncCompleted لي غيعيط ليها الـ Modal */}
-                    <SyncProductsModal 
-                        connections={connections} 
-                        onSyncCompleted={refreshCatalog}
+
+                    <ImportProductsModal
+                        connections={connections}
+                        onImportFromWooCommerce={() => setSyncModalOpen(true)}
                     />
+
+                    {/* مررنا الـ connections والـ onSyncCompleted لي غيعيط ليها الـ Modal */}
+                    <SyncProductsModal
+                        connections={connections}
+                        onSyncCompleted={refreshCatalog}
+                        open={syncModalOpen}
+                        onOpenChange={setSyncModalOpen}
+                    />
+
+                    {canManage && (
+                        <Link
+                            href="/dashboard/products/create"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                        >
+                            <Plus className="w-4 h-4" /> Add product
+                        </Link>
+                    )}
                 </div>
             ),
         }}>
+            {selectedIds.length > 0 && (
+                <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
+                    <span className="text-sm text-content">{selectedIds.length} product{selectedIds.length === 1 ? '' : 's'} selected</span>
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setSelectedIds([])} className="text-xs text-content-muted hover:text-content font-medium">
+                            Clear
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPublishTarget({ mode: 'bulk', productIds: selectedIds })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                        >
+                            <Upload className="w-3.5 h-3.5" /> Publish selected
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4">
                 <SearchFilterBar
                     placeholder="Search by name or SKU…"
@@ -139,6 +246,18 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                     products.links && products.links.length > 3 ? <Pagination links={products.links} /> : null
                 }
             />
+
+            {publishTarget && (
+                <PublishTargetModal
+                    mode={publishTarget.mode}
+                    product={publishTarget.mode === 'single' ? publishTarget.product : undefined}
+                    productIds={publishTarget.mode === 'bulk' ? publishTarget.productIds : undefined}
+                    productCount={publishTarget.mode === 'bulk' ? publishTarget.productIds.length : undefined}
+                    connections={connections}
+                    onClose={() => setPublishTarget(null)}
+                    onPublished={publishTarget.mode === 'bulk' ? onBulkPublished : refreshCatalog}
+                />
+            )}
         </SaasLayout>
     );
 }

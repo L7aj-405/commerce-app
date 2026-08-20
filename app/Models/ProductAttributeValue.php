@@ -19,7 +19,9 @@ class ProductAttributeValue extends Model
     public $incrementing = false;
     protected $primaryKey = 'id';
 
-    protected $fillable = ['attribute_id', 'value', 'slug'];
+    protected $fillable = ['attribute_id', 'value', 'slug', 'position'];
+
+    protected $casts = ['position' => 'integer'];
 
     public function attribute(): BelongsTo
     {
