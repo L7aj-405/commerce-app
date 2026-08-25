@@ -24,9 +24,9 @@ export default function Picking({ orders = [], is_agency_context = false }) {
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Picking',
-            subtitle: 'Warehouse picking for orders your organization operates',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Picking' }],
+            title: 'Picking Queue',
+            subtitle: 'Supervisor view of all orders currently in picking status.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Picking Queue' }],
         }}>
             <OperationsNav current="picking" />
 

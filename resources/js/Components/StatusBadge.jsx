@@ -41,6 +41,23 @@ const TYPE_MAPS = {
     // ProductChannelListing/ProductVariantChannelListing.sync_status, and
     // PlatformConnection.webhook_status (pending/verified/failed)
     sync:     { pending: 'amber', synced: 'emerald', error: 'red', verified: 'emerald', failed: 'red' },
+    // Connection Profile auth section — deliberately distinct from `sync`
+    // above (auth ≠ sync status, never share a status vocabulary).
+    auth:     { connected: 'emerald', needs_setup: 'amber', error: 'red' },
+    connection: { active: 'emerald', pending: 'amber', disconnected: 'slate', failed: 'red' },
+    // DeliveryConnection.status (Ozon Express etc.)
+    delivery_connection: { connected: 'emerald', error: 'red', disabled: 'slate' },
+    // City sync is its own status, independent of delivery_connection above.
+    city_sync: { synced: 'emerald', sync_failed: 'red', not_synced: 'slate' },
+    // Per-row city-mapping suggestion status (DeliveryCityMappingSuggestionService).
+    city_match: { mapped: 'emerald', exact: 'emerald', suggested: 'blue', needs_review: 'amber', no_match: 'slate' },
+    // Shipment::normalizedStatuses() — external-carrier tracking state.
+    shipment: {
+        draft: 'slate', created: 'blue', sent_to_carrier: 'indigo', awaiting_pickup: 'indigo',
+        picked_up: 'indigo', in_transit: 'indigo', out_for_delivery: 'cyan', delivered: 'emerald',
+        failed_attempt: 'amber', returned: 'red', refused: 'red', cancelled: 'slate', unknown: 'slate',
+        provider_unverified: 'amber',
+    },
 };
 
 export default function StatusBadge({ status, type = 'invoice', label }) {

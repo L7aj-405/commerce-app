@@ -190,7 +190,16 @@ class IntegrationsController extends Controller
                     'consumer_secret'   => filled($validated['client_secret'] ?? null)
                         ? $validated['client_secret']
                         : $existing?->consumer_secret,
-                    'settings'          => array_merge($existing?->settings ?? [], ['token_status' => 'unknown']),
+                    // New/changed credentials invalidate any previous
+                    // verdict — token_status/last_token_error/diagnostics are
+                    // all cleared so a stale "missing read_products" (or any
+                    // other) error can never survive a credential edit;
+                    // Test connection must be run again to earn a fresh one.
+                    'settings'          => array_merge(
+                        collect($existing?->settings ?? [])->except(['last_token_error', 'diagnostics'])->all(),
+                        ['token_status' => 'unknown'],
+                    ),
+                    'metadata'          => collect($existing?->metadata ?? [])->except(['auth_check'])->all(),
                     'status'            => 'active',
                 ],
             );
@@ -323,9 +332,17 @@ class IntegrationsController extends Controller
         $store = $request->user()->getActiveStore();
         abort_if($store === null, 422, 'No active store.');
 
+        $existing = PlatformConnection::query()->where('store_id', $store->id)->where('platform', $platform)->first();
+
+        // Re-entering credentials invalidates any previous test/diagnostic
+        // verdict — a stale error (or a stale "connected") must never
+        // outlive the credentials it was measured against.
         PlatformConnection::updateOrCreate(
             ['store_id' => $store->id, 'platform' => $platform],
-            array_merge($data, ['status' => 'active']),
+            array_merge($data, [
+                'status' => 'active',
+                'metadata' => collect($existing?->metadata ?? [])->except(['auth_check'])->all(),
+            ]),
         );
     }
 }

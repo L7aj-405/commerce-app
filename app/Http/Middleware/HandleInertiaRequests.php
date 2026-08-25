@@ -72,6 +72,25 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
+                // Structured detail alongside a "Send to Ozon" city-mapping
+                // error — {raw_city, suggested_city_id, suggested_city_name}
+                // — so the UI can offer an actionable link/hint instead of
+                // just the flat error string.
+                'city_issue' => fn () => $request->session()->get('city_issue'),
+                // Structured detail alongside a "Send to Ozon" shipment-
+                // creation error — {http_status, content_type, response_keys,
+                // response_preview} — never includes the api_key. Lets the
+                // UI show a collapsible debug block instead of just text.
+                'shipment_issue' => fn () => $request->session()->get('shipment_issue'),
+                // Structured detail alongside flash.warning when an Ozon
+                // add-parcel returned a tracking number but a follow-up
+                // parcel-info/tracking call could not confirm it —
+                // {tracking_number_returned, add_parcel_result, add_parcel_message,
+                // parcel_info_http_status, parcel_info_provider_message,
+                // tracking_http_status, tracking_provider_message,
+                // verification_status, verification_error}. Never includes
+                // the api_key.
+                'shipment_verification' => fn () => $request->session()->get('shipment_verification'),
             ],
         ]);
     }

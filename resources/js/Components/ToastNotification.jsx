@@ -10,10 +10,14 @@ const TONES = {
 
 const DURATION_MS = 4000;
 
-export default function ToastNotification() {
+/** `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each, deduped by id (never by message, since two different orders can share the same title). */
+export default function ToastNotification({ polled = [] }) {
     const { flash } = usePage().props;
     const [toasts, setToasts] = useState([]);
     const seenRef             = useRef(new Set());
+    const firstPollRef        = useRef(true);
+
+    const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
     useEffect(() => {
         const ingest = (kind, message) => {
@@ -31,7 +35,24 @@ export default function ToastNotification() {
         ingest('warning', flash?.warning);
     }, [flash]);
 
-    const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+    useEffect(() => {
+        // The FIRST poll on page load can already carry a backlog of
+        // existing unseen notifications — toast only ones that arrive after
+        // that, so opening any page doesn't dump a wall of old toasts.
+        const isFirstPoll = firstPollRef.current;
+        firstPollRef.current = false;
+
+        polled.forEach((n) => {
+            const key = `order-notif:${n.id}`;
+            if (seenRef.current.has(key)) return;
+            seenRef.current.add(key);
+            if (isFirstPoll || n.seen) return;
+
+            const id = Math.random().toString(36).slice(2, 9);
+            setToasts((prev) => [...prev, { id, kind: 'success', message: [n.title, n.message].filter(Boolean).join(' — ') }]);
+            setTimeout(() => dismiss(id), DURATION_MS);
+        });
+    }, [polled]);
 
     if (toasts.length === 0) return null;
 

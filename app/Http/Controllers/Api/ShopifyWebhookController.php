@@ -19,6 +19,13 @@ class ShopifyWebhookController
     private const PRODUCT_TOPICS = ['products/create', 'products/update'];
     private const ORDER_TOPICS   = ['orders/create', 'orders/updated'];
 
+    // orders/cancelled is accepted (never a 404/ignored-topic reject) but
+    // deliberately NOT routed through the order mapper — cancelling/
+    // reverting a local order is a confirmation/fulfillment-workflow
+    // decision, out of scope for this webhook endpoint. Logged only, so the
+    // event is visible without silently changing local order state.
+    private const CANCEL_TOPICS  = ['orders/cancelled'];
+
     public function __construct(
         private readonly ShopifyWebhookVerifier $verifier,
         private readonly ShopifyProductMapper $products,
@@ -89,6 +96,10 @@ class ShopifyWebhookController
                 $this->products->map($payload, $conn);
             } elseif (in_array($topic, self::ORDER_TOPICS, true)) {
                 $this->orders->map($payload, $conn);
+            } elseif (in_array($topic, self::CANCEL_TOPICS, true)) {
+                SyncLog::withoutTenancy(fn () => $log->update(['status' => 'ignored', 'completed_at' => now()]));
+
+                return response()->json(['status' => 'ignored_cancel_topic']);
             } else {
                 SyncLog::withoutTenancy(fn () => $log->update(['status' => 'ignored', 'completed_at' => now()]));
 
@@ -129,7 +140,7 @@ class ShopifyWebhookController
     {
         $action = in_array($topic, self::PRODUCT_TOPICS, true)
             ? 'product'
-            : (in_array($topic, self::ORDER_TOPICS, true) ? 'order' : null);
+            : ((in_array($topic, self::ORDER_TOPICS, true) || in_array($topic, self::CANCEL_TOPICS, true)) ? 'order' : null);
 
         return SyncLog::withoutTenancy(fn () => SyncLog::create([
             'store_id'                => $conn->store_id,

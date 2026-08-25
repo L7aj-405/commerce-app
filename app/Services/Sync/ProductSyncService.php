@@ -9,6 +9,7 @@ use App\Connectors\WooCommerceConnector;
 use App\Connectors\YouCanConnector;
 use App\Enums\StockMovementType;
 use App\Models\PlatformConnection;
+use App\Services\Catalog\ProductVariantWizardService;
 use App\Models\Product;
 use App\Models\ProductAttribute;
 use App\Models\ProductAttributeValue;
@@ -316,7 +317,21 @@ class ProductSyncService
                 ]));
                 $authoritativePull = true;
             } elseif ($authoritativePull) {
+                $wasVariable = $product->isVariable();
                 $product->update($canonicalData);
+
+                if ($wasVariable && ! $product->isVariable()) {
+                    // The remote product no longer has meaningful
+                    // options/variants (e.g. it was tested as variable, then
+                    // reverted to simple in Shopify) — archive the old local
+                    // canonical options/variants so they stop feeding stale
+                    // "missing option value" errors into Shopify/WooCommerce
+                    // publish readiness for a product that is simple now.
+                    // Never hard-deletes a variant with a channel listing or
+                    // inventory link; ProductChannelListing/
+                    // ProductVariantChannelListing rows are left untouched.
+                    app(ProductVariantWizardService::class)->archiveAll($product);
+                }
             } else {
                 // A new channel matched an existing canonical SKU. Linking the
                 // channel must not silently let that channel overwrite ERP data.

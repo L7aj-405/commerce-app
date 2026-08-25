@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\Order;
 use App\Models\OrderShipment;
 use App\Models\PosOrder;
+use App\Models\Shipment;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\Orders\DispatchService;
@@ -113,9 +114,29 @@ class DepartmentController extends Controller
 
         $byOrder = $shipments->keyBy(fn (OrderShipment $s) => $s->shippable_type . ':' . $s->shippable_id);
 
-        $orders = array_map(function (array $o) use ($byOrder) {
+        // Ozon (or any future provider) shipments — additive only, the
+        // internal dispatch-leg record above stays the primary source for
+        // this board. Keyed TWO ways: by the order_shipments row they're
+        // bridged to (the normal, VERIFIED case), and by the order itself
+        // (shippable_type:shippable_id) — a shipment stuck at
+        // STATUS_PROVIDER_UNVERIFIED never gets an order_shipments row (see
+        // OzonShipmentService::send()), so it would otherwise be invisible
+        // on this board even though the parcel-create attempt is real and
+        // needs a dispatcher's attention.
+        $ozonShipments = Shipment::query()
+            ->where('store_id', $store->id)
+            ->where('provider_code', 'ozon')
+            ->latest()
+            ->limit(300)
+            ->get();
+
+        $ozonByOrderShipment = $ozonShipments->whereNotNull('order_shipment_id')->keyBy('order_shipment_id');
+        $ozonByOrder = $ozonShipments->keyBy(fn (Shipment $s) => $s->shippable_type . ':' . $s->shippable_id);
+
+        $orders = array_map(function (array $o) use ($byOrder, $ozonByOrderShipment, $ozonByOrder) {
             $model = $o['type'] === 'pos' ? PosOrder::class : Order::class;
             $s     = $byOrder->get($model . ':' . $o['id']);
+            $ozon  = $s === null ? null : $ozonByOrderShipment->get($s->id);
 
             $o['shipment'] = $s === null ? null : [
                 'id'                 => $s->id,
@@ -127,7 +148,19 @@ class DepartmentController extends Controller
                 'tracking_url'       => $s->tracking_url,
                 'manifest_reference' => $s->manifest_reference,
                 'dispatched_at'      => $s->dispatched_at?->toIso8601String(),
+                'provider'           => $ozon === null ? null : [
+                    'id'                    => $ozon->id,
+                    'code'                  => $ozon->provider_code,
+                    'tracking_number'       => $ozon->tracking_number,
+                    'status'                => $ozon->status,
+                    'last_tracking_update'  => $ozon->updated_at?->toIso8601String(),
+                ],
             ];
+
+            $unverified = $ozonByOrder->get($model . ':' . $o['id']);
+            $o['ozon_unverified'] = ($s === null && $unverified !== null && $unverified->status === Shipment::STATUS_PROVIDER_UNVERIFIED)
+                ? ['id' => $unverified->id, 'tracking_number' => $unverified->tracking_number]
+                : null;
 
             return $o;
         }, $orders);
@@ -140,6 +173,11 @@ class DepartmentController extends Controller
             // fellow dispatchers — a dispatcher hands a parcel to a delivery agent.
             'agents'    => $this->assignments->workload($store, 'orders.deliver', $user, 'delivery'),
             'manifests' => app(DispatchService::class)->manifests($store),
+            'ozon_connected' => \App\Models\DeliveryConnection::query()
+                ->where('store_id', $store->id)
+                ->where('provider_code', 'ozon')
+                ->where('status', \App\Models\DeliveryConnection::STATUS_CONNECTED)
+                ->exists(),
             'stats'    => [
                 'awaiting'   => count(array_filter($orders, fn ($o) => $o['shipment'] === null)),
                 'in_flight'  => $shipments->where('status', OrderShipment::STATUS_DISPATCHED)->count(),
@@ -190,7 +228,16 @@ class DepartmentController extends Controller
         abort_if($store === null, 403);
 
         $order = $this->resolveOrder($store, $type, $id);
-        $this->authorizePhase($user, $store, ($order->fulfillment_status ?? FulfillmentStatus::Pending)->phase());
+        $phase = ($order->fulfillment_status ?? FulfillmentStatus::Pending)->phase();
+        $this->authorizePhase($user, $store, $phase);
+
+        // Confirmation Desk: releasing someone else's claim requires the
+        // supervisor override (orders.manage) — an ordinary agent may only
+        // release their OWN claim. Scoped to the confirmation phase only;
+        // other departments' release behavior is unchanged.
+        if ($phase === 'confirmation' && $order->assigned_to !== null && $order->assigned_to !== $user->id) {
+            abort_unless($user->can('orders.manage'), 403, 'Only the agent who claimed this order (or a supervisor) can release it.');
+        }
 
         $this->assignments->release($order);
 
@@ -313,7 +360,7 @@ class DepartmentController extends Controller
         $pos = PosOrder::query()
             ->where('store_id', $store->id)
             ->whereIn('fulfillment_status', $statuses)
-            ->with(['items', 'store:id,currency', 'shippingCity', 'inventoryAllocation.warehouse', 'inventoryAllocation.city', 'inventoryAllocation.reservations'])
+            ->with(['items', 'store:id,currency', 'shippingCity', 'inventoryAllocation.warehouse', 'inventoryAllocation.city', 'inventoryAllocation.reservations.transfer'])
             ->oldest()
             ->limit(200)
             ->get();
@@ -321,7 +368,7 @@ class DepartmentController extends Controller
         $online = Order::query()
             ->where('store_id', $store->id)
             ->whereIn('fulfillment_status', $statuses)
-            ->with(['store:id,currency', 'shippingCity', 'inventoryAllocation.warehouse', 'inventoryAllocation.city', 'inventoryAllocation.reservations'])
+            ->with(['store:id,currency', 'shippingCity', 'inventoryAllocation.warehouse', 'inventoryAllocation.city', 'inventoryAllocation.reservations.transfer'])
             ->oldest()
             ->limit(200)
             ->get();

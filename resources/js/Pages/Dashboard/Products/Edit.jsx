@@ -53,12 +53,16 @@ export default function Edit({ product, connections = [], warehouses = [], readi
     // Always reads the live `product` prop — never the form's `data` state —
     // so a partial Inertia reload after an Adjust Stock action shows the new
     // number immediately without disturbing any in-progress unsaved edits.
+    // stock_on_hand comes from the inventory engine's source of truth
+    // (InventoryItem -> WarehouseInventoryBalance), computed server-side in
+    // ProductController@edit — never the legacy per-variant `stocks` array,
+    // which can go stale (e.g. a Shopify-synced variant that has never gone
+    // through a local inventory adjustment).
     const stockForVariant = (variantId) => {
         if (!variantId) return 0;
         const pv = (product?.variants ?? []).find((v) => v.id === variantId);
         if (!pv) return 0;
-        if (Array.isArray(pv.stocks)) return pv.stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0);
-        return parseInt(pv.qty ?? pv.stock ?? 0) || 0;
+        return parseInt(pv.stock_on_hand ?? 0) || 0;
     };
 
     // 3. إعداد الـ Form مع إضافة حقل qty الموحد للـ Simple Product
@@ -468,8 +472,10 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                 </div>
 
                                 {/* Read-only — quantity is no longer editable from the product
-                                    form. Use "Adjust stock" so changes go through the inventory
-                                    engine and push to WooCommerce. */}
+                                    form, and saving this form (publish included) never changes
+                                    it. Use "Adjust stock" so changes go through the inventory
+                                    engine and push to WooCommerce/Shopify (Shopify via
+                                    InventoryLevel, never a product/variant update payload). */}
                                 {data.type === 'simple' && (
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
                                         <div>
@@ -487,7 +493,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                                 <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust stock
                                             </button>
                                         )}
-                                        <p className="md:col-span-3 text-[11px] text-content-muted">Stock is managed through inventory adjustments.</p>
+                                        <p className="md:col-span-3 text-[11px] text-content-muted">Stock quantity is synced through inventory adjustments, not product publish.</p>
                                     </div>
                                 )}
                             </Section>

@@ -12,10 +12,10 @@ import { ClipboardList, PackageSearch, Package, PackageCheck, Truck, ArrowLeftRi
 
 const PAGES = [
     { key: 'waiting-stock',  label: 'Waiting for stock', href: '/dashboard/operations/waiting-stock',  icon: ClipboardList },
-    { key: 'picking',        label: 'Picking',           href: '/dashboard/operations/picking',        icon: PackageSearch },
-    { key: 'packing',        label: 'Packing',           href: '/dashboard/operations/packing',        icon: Package },
-    { key: 'ready-delivery', label: 'Ready for delivery', href: '/dashboard/operations/ready-delivery', icon: PackageCheck },
-    { key: 'transfers',      label: 'Transfer receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight },
+    { key: 'picking',        label: 'Picking Queue',      href: '/dashboard/operations/picking',        icon: PackageSearch },
+    { key: 'packing',        label: 'Packing Queue',      href: '/dashboard/operations/packing',        icon: Package },
+    { key: 'ready-delivery', label: 'Ready for Dispatch', href: '/dashboard/operations/ready-delivery', icon: PackageCheck },
+    { key: 'transfers',      label: 'Transfer Receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight },
 ];
 
 export default function OperationsNav({ current }) {
@@ -52,7 +52,7 @@ export default function OperationsNav({ current }) {
                 href="/dashboard/departments/packing"
                 className="sm:ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
             >
-                <Truck className="w-4 h-4" /> Full Pick &amp; Pack board
+                <Truck className="w-4 h-4" /> Pick &amp; Pack Workbench
             </Link>
             <Link
                 href="/dashboard/orders/manage"

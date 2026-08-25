@@ -1,16 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, Info, Package } from 'lucide-react';
 
 const ICONS = {
     success: CheckCircle2,
     warning: AlertTriangle,
     info:    Info,
+    new_order: Package,
 };
 
-export default function NotificationBell({ notifications: initial = [] }) {
-    const [open, setOpen]                   = useState(false);
-    const [notifications, setNotifications] = useState(initial);
-    const ref                               = useRef(null);
+function timeAgo(iso) {
+    if (! iso) return '';
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.round(hours / 24)}d ago`;
+}
+
+/**
+ * `notifications` is the live, server-polled list from
+ * useOrderNotifications() — {id, order_id, type, title, message, seen,
+ * created_at}. Marking read persists server-side (per-user) via
+ * onMarkOne/onMarkAll, unlike the old local-only placeholder.
+ */
+export default function NotificationBell({ notifications = [], onMarkOne, onMarkAll }) {
+    const [open, setOpen] = useState(false);
+    const ref              = useRef(null);
 
     useEffect(() => {
         const onClick = (e) => { if (ref.current && ! ref.current.contains(e.target)) setOpen(false); };
@@ -18,10 +35,10 @@ export default function NotificationBell({ notifications: initial = [] }) {
         return () => document.removeEventListener('mousedown', onClick);
     }, []);
 
-    const unread = notifications.filter((n) => ! n.read).length;
+    const unread = notifications.filter((n) => ! n.seen).length;
 
-    const markAllRead = () => setNotifications((n) => n.map((x) => ({ ...x, read: true })));
-    const markOneRead = (id) => setNotifications((n) => n.map((x) => x.id === id ? { ...x, read: true } : x));
+    const markAllRead = () => onMarkAll?.();
+    const markOneRead = (n) => { if (! n.seen) onMarkOne?.(n.order_id); };
 
     return (
         <div ref={ref} className="relative">
@@ -60,26 +77,23 @@ export default function NotificationBell({ notifications: initial = [] }) {
                                 You're all caught up.
                             </div>
                         ) : notifications.map((n) => {
-                            const Icon = ICONS[n.kind] ?? Info;
+                            const Icon = ICONS[n.type] ?? Info;
                             return (
                                 <button
                                     key={n.id}
                                     type="button"
-                                    onClick={() => markOneRead(n.id)}
+                                    onClick={() => markOneRead(n)}
                                     className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-line/50 last:border-0 transition hover:bg-surface-3 ${
-                                        ! n.read ? 'bg-indigo-500/5' : ''
+                                        ! n.seen ? 'bg-indigo-500/5' : ''
                                     }`}
                                 >
-                                    <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${
-                                        n.kind === 'success' ? 'text-emerald-600 dark:text-emerald-400' :
-                                        n.kind === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-400'
-                                    }`} />
+                                    <Icon className="w-4 h-4 flex-shrink-0 mt-0.5 text-indigo-500" />
                                     <div className="min-w-0 flex-1">
                                         <div className="text-sm text-content truncate">{n.title}</div>
-                                        {n.body && <div className="text-xs text-content-muted mt-0.5 line-clamp-2">{n.body}</div>}
-                                        <div className="text-[10px] text-content-muted/60 mt-1">{n.time}</div>
+                                        {n.message && <div className="text-xs text-content-muted mt-0.5 line-clamp-2">{n.message}</div>}
+                                        <div className="text-[10px] text-content-muted/60 mt-1">{timeAgo(n.created_at)}</div>
                                     </div>
-                                    {! n.read && <span className="mt-1 w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />}
+                                    {! n.seen && <span className="mt-1 w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />}
                                 </button>
                             );
                         })}

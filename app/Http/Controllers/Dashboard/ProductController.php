@@ -10,11 +10,11 @@ use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\ProductPublishBatch;
 use App\Models\ProductPublishResult;
-use App\Models\ProductVariant;
 use Illuminate\Support\Str;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\Warehouse;
+use App\Services\Catalog\ProductStockSnapshotService;
 use App\Services\Catalog\ProductVariantWizardService;
 use App\Services\Inventory\CatalogInventoryService;
 use App\Services\Inventory\InventoryEngine;
@@ -60,7 +60,14 @@ class ProductController extends Controller
                 'last_synced_at'         => $c->last_synced_at?->diffForHumans(),
             ]);
 
-        $filters = ['search' => $request->input('search')];
+        $filters = [
+            'search' => $request->input('search'),
+            'platform' => $request->input('platform'),
+            'connection_id' => $request->input('connection_id'),
+            'has_listing' => $request->boolean('has_listing') ?: null,
+            'no_history' => $request->boolean('no_history') ?: null,
+            'archived' => $request->boolean('archived') ?: null,
+        ];
 
         $products = Product::query()
             ->where('store_id', $store->id)
@@ -73,6 +80,32 @@ class ProductController extends Controller
                         ->orWhere('sku', 'like', $term);
                 });
             })
+            // Archived products are hidden from the default catalog view — they
+            // stay fully intact (never soft-deleted) so historical order/return
+            // display is never affected, just excluded from this listing.
+            ->when($filters['archived'], fn ($q) => $q->where('status', 'archived'))
+            ->when(! $filters['archived'], fn ($q) => $q->where('status', '!=', 'archived'))
+            ->when($filters['connection_id'], fn ($q) => $q->whereHas(
+                'channelListings',
+                fn ($sub) => $sub->where('platform_connection_id', $filters['connection_id'])
+            ))
+            ->when($filters['platform'] && ! $filters['connection_id'], fn ($q) => $q->whereHas(
+                'channelListings.connection',
+                fn ($sub) => $sub->where('platform', $filters['platform'])
+            ))
+            ->when($filters['has_listing'], fn ($q) => $q->whereHas('channelListings'))
+            // Fast heuristic only (POS lines, returns, stock transfers, non-zero
+            // legacy stock) — it never scans the online orders.items JSON blob,
+            // so a product it marks "no history" can still be blocked by the
+            // authoritative ProductCleanupSafetyService check at purge time.
+            ->when($filters['no_history'], fn ($q) => $q
+                ->whereNotExists(fn ($sub) => $sub->select(DB::raw(1))->from('pos_order_items')
+                    ->whereColumn('pos_order_items.product_id', 'products.id'))
+                ->whereNotExists(fn ($sub) => $sub->select(DB::raw(1))->from('order_return_items')
+                    ->whereColumn('order_return_items.product_id', 'products.id'))
+                ->whereNotExists(fn ($sub) => $sub->select(DB::raw(1))->from('stock_transfer_items')
+                    ->whereColumn('stock_transfer_items.product_id', 'products.id'))
+                ->whereDoesntHave('stocks', fn ($sub) => $sub->where(fn ($w) => $w->where('quantity', '!=', 0)->orWhere('reserved', '!=', 0))))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -246,16 +279,22 @@ class ProductController extends Controller
         }
     }
 
-    public function edit(Request $request, Product $product, ProductPublishReadinessService $readiness): Response
+    public function edit(Request $request, Product $product, ProductPublishReadinessService $readiness, ProductStockSnapshotService $stockSnapshot): Response
     {
         $store = $request->user()->getActiveStore();
         abort_if($store === null || $product->store_id !== $store->id, 403);
 
+        $warehouse = $store->getPrimaryWarehouse();
+
         // تحميل الـ relations والـ stocks لـ كاع الأنواع
         $product->load([
+            // Legacy compatibility source only — see the per-variant stock
+            // computation below. The inventory engine (InventoryItem ->
+            // WarehouseInventoryBalance) is the real source of truth.
             'variants.stocks',
             'variants.channelListings.connection:id,platform,label',
             'variants.inventoryLink.inventoryItem:id,sku,name',
+            'variants.inventoryLink.inventoryItem.balances',
             // Canonical option data — the actual source of truth for a
             // variant's combination, not the legacy `attributes` JSON column.
             // Only active values: a value the user removed (and a variant's
@@ -266,24 +305,51 @@ class ProductController extends Controller
             'stocks',
             'channelListings.connection:id,platform,label',
             'inventoryLink.inventoryItem:id,sku,name',
+            'inventoryLink.inventoryItem.balances',
             'attributes.values' => fn($q) => $q->active(),
         ]);
 
-        // حساب الـ total_stock وتمريرها نيشان للـ Simple Product باش يعمر الـ input فـ React
-        // sellableStocks() only — damaged stock must never pre-fill the editable quantity
-        $product->total_stock = (int) $product->sellableStocks()->whereNull('variant_id')->sum('quantity');
+        // Simple product stock — same InventoryItem -> WarehouseInventoryBalance
+        // source of truth as variants (see ProductStockSnapshotService), not the
+        // legacy sellableStocks() sum.
+        $stockSnapshot->applyToProduct($product, $warehouse);
+        $product->total_stock = $product->stock_on_hand;
 
-        // Plain {name, values[]} shape the wizard's Options section reads —
-        // built from the canonical tables, not the JSON column.
-        $product->options = $product->attributes->map(fn($attribute) => [
-            'name' => $attribute->name,
-            'values' => $attribute->values->pluck('value')->all(),
-        ])->values();
+        // Computed BEFORE the variant mutations below, and never again after
+        // — ProductPublishReadinessService (via ProductOptionSnapshot::build)
+        // calls $product->load(['variants...']) internally, which replaces
+        // `variants` with a freshly-queried collection of brand new
+        // ProductVariant instances. Doing that after the stock/options props
+        // below are set silently discarded every one of them (they were set
+        // on model instances that no longer exist in $product's relation).
+        $readinessCheck = $readiness->check($product);
 
-        $product->variants->each(function ($variant) {
-            $variant->options = $variant->attributeValues
-                ->mapWithKeys(fn($value) => [$value->attribute->name => $value->value]);
-        });
+        // product.type is authoritative: a simple product must show empty
+        // options/variants here no matter what stale canonical rows are
+        // still sitting active in the DB (e.g. left over from before it was
+        // reverted from variable to simple by an external sync) — the edit
+        // page must never resurface them, and generate-variants starts from
+        // a clean slate. Plain {name, values[]} shape the wizard's Options
+        // section reads — built from the canonical tables, not the JSON column.
+        if ($product->isVariable()) {
+            $product->options = $product->attributes
+                ->filter(fn($attribute) => $attribute->values->isNotEmpty())
+                ->map(fn($attribute) => [
+                    'name' => $attribute->name,
+                    'values' => $attribute->values->pluck('value')->all(),
+                ])
+                ->values();
+
+            $product->variants->each(function ($variant) use ($warehouse, $stockSnapshot) {
+                $variant->options = $variant->attributeValues
+                    ->mapWithKeys(fn($value) => [$value->attribute->name => $value->value]);
+
+                $stockSnapshot->applyToVariant($variant, $warehouse);
+            });
+        } else {
+            $product->options = collect();
+            $product->setRelation('variants', collect());
+        }
 
         return Inertia::render('Dashboard/Products/Edit', [
             'product'     => $product,
@@ -293,7 +359,7 @@ class ProductController extends Controller
             'warehouses'  => $store->warehouses()->get(['warehouses.id', 'warehouses.name']),
             // Informational only — never blocks saving the product, only
             // blocks the publish action client-side for a blocked platform.
-            'readiness'   => $readiness->check($product),
+            'readiness'   => $readinessCheck,
         ]);
     }
 
@@ -373,7 +439,13 @@ class ProductController extends Controller
              */
                 if ($product->type === 'variable' && $validated['type'] === 'simple') {
                     Stock::whereIn('variant_id', $product->variants()->pluck('id'))->delete();
-                    $product->variants()->delete();
+                    // Archives (soft-deletes) every active variant and
+                    // retires every active option/value — never hard-deletes
+                    // a variant that still carries a channel listing or
+                    // inventory link. Without this, stale canonical options
+                    // stay active and keep blocking Shopify/WooCommerce
+                    // readiness for a product that now looks simple.
+                    app(ProductVariantWizardService::class)->archiveAll($product);
                 }
 
                 $product->update([
@@ -688,8 +760,11 @@ class ProductController extends Controller
      * Inventory-safe stock adjustment — replaces the old "write product.qty
      * directly" flow. Goes through CatalogInventoryService/InventoryEngine
      * (ledger entry + WarehouseInventoryBalance), then synchronously pushes
-     * the new quantity to WooCommerce only (Shopify/YouCan untouched —
-     * their existing async webhook sync path is unaffected either way).
+     * the new quantity to WooCommerce and Shopify (YouCan untouched — its
+     * existing async webhook sync path is unaffected either way). Shopify
+     * quantity is set via InventoryLevel (inventory_item_id + location_id),
+     * never via a product/variant update payload. A platform push failure
+     * never rolls back the local adjustment — it already committed.
      */
     public function adjustStock(
         Request $request,
@@ -744,40 +819,45 @@ class ProductController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        // Local adjustment is committed. Push to WooCommerce only — pinned
-        // explicitly so this new immediate-feedback path never touches
-        // Shopify/YouCan.
+        // Local adjustment is already committed — nothing below can roll it
+        // back. Push to WooCommerce and Shopify explicitly (YouCan keeps
+        // its existing async webhook sync path, untouched).
         $wooResults = $variant !== null
             ? $pushService->pushVariantStock($variant, 'woocommerce')
             : $pushService->pushStock($product, 'woocommerce');
 
-        $message = $this->describeStockPushResult($wooResults);
+        $shopifyResults = $variant !== null
+            ? $pushService->pushVariantStock($variant, 'shopify')
+            : $pushService->pushStock($product, 'shopify');
+
+        $message = $this->describeStockPushResult($wooResults, 'WooCommerce')
+            . ' ' . $this->describeStockPushResult($shopifyResults, 'Shopify');
 
         return redirect()
             ->route('dashboard.products.edit', $product)
             ->with('success', "Stock updated locally. {$message}");
     }
 
-    private function describeStockPushResult(array $results): string
+    private function describeStockPushResult(array $results, string $platformLabel): string
     {
         if (empty($results)) {
-            return 'No WooCommerce listing for this store — nothing pushed.';
+            return "No {$platformLabel} listing for this store — nothing pushed.";
         }
 
         $succeeded = collect($results)->where('success', true)->count();
         $total     = count($results);
 
         if ($succeeded === $total) {
-            return 'WooCommerce: synced.';
+            return "{$platformLabel}: synced.";
         }
 
         if ($succeeded > 0) {
-            return "WooCommerce: synced {$succeeded}/{$total}.";
+            return "{$platformLabel}: synced {$succeeded}/{$total}.";
         }
 
         $error = collect($results)->pluck('message')->filter()->first();
 
-        return 'WooCommerce sync failed' . ($error ? ": {$error}" : '.');
+        return "{$platformLabel} stock sync failed" . ($error ? ": {$error}" : '.');
     }
 
     private function resolveWarehouse(Store $store, string $warehouseId): ?Warehouse

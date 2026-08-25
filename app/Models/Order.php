@@ -28,9 +28,16 @@ class Order extends Model implements Invoiceable
 
     protected $fillable = [
         'store_id',
+        'organization_id',
         'platform_connection_id',
         'platform_order_id',
         'order_number',
+        'source_type',
+        'source_platform',
+        'source_store_name',
+        'source_store_domain',
+        'source_channel_label',
+        'imported_at',
         'fulfillment_status',
         'fulfillment_updated_at',
         'assigned_to',
@@ -87,6 +94,7 @@ class Order extends Model implements Invoiceable
             'ai_generated_message'      => 'boolean',
             'confirmation_retry_count'  => 'integer',
             'synced_at'                 => 'datetime',
+            'imported_at'               => 'datetime',
             'whatsapp_sent_at'          => 'datetime',
             'whatsapp_confirmed_at'     => 'datetime',
             'whatsapp_cancelled_at'     => 'datetime',
@@ -112,6 +120,12 @@ class Order extends Model implements Invoiceable
     public function inventoryAllocation(): MorphOne
     {
         return $this->morphOne(InventoryAllocation::class, 'source');
+    }
+
+    /** The most recent external delivery-provider shipment (e.g. Ozon), if any. */
+    public function shipment(): MorphOne
+    {
+        return $this->morphOne(Shipment::class, 'shippable')->latestOfMany();
     }
 
     public function customerInteractions(): HasMany

@@ -3,6 +3,58 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+## Session: 2026-08-20 (Shopify publish mirrors SaaS product type)
+
+| now | Fixed variant backfill: no longer gated on create_missing_listings when parent listing already exists | app/Services/Publishing/ProductChannelPublisher.php | success | ~600 |
+| now | Fixed destructive-update risk: only strip parent `variants` payload when variable, or when stale ProductVariantChannelListing rows signal a variable→simple conversion (adds warning instead) | app/Services/Publishing/ProductChannelPublisher.php | success | ~400 |
+| now | isVariable now derived from mapper's own snapshot decision (options key present), not the `type` column, to avoid publisher/mapper disagreement | app/Services/Publishing/ProductChannelPublisher.php | success | ~150 |
+| now | Routed Shopify connections in the synchronous /publish endpoint through ProductChannelPublisher (canonical mapper) instead of legacy ProductPushService — WooCommerce/YouCan untouched (Woo still relies on legacy JSON attributes column in existing tests) | app/Services/Sync/ProductPublishService.php | success | ~700 |
+| now | Added ShopifySimpleToVariablePublishTest (6 tests) + ShopifyPublishMirrorsSaasProductTest (4 tests) covering the 12 required scenarios | tests/Feature/Foundation/Shopify*PublishTest.php | success | ~2500 |
+
+## Session: 2026-08-20 (follow-up — Shopify 422 "options must have corresponding variants")
+
+| now | Root cause: parent update PUT stripped `variants` for variable products (relying on now-removed separate per-variant calls), sending options with no variants → Shopify 422. Redesigned to always send options+variants together in ONE request; known-linked variants get their remote `id` merged into the outgoing payload so Shopify updates in place; returned variants matched back to local variants by option1/2/3 combo (not SKU) | app/Services/Publishing/ProductChannelPublisher.php | success | ~1200 |
+| now | Removed now-dead ShopifyConnector::createVariantPayload()/updateVariantPayload() (only caller was the removed per-variant loop) | app/Connectors/ShopifyConnector.php | success | ~100 |
+| now | "options defined but no variants" moved from a Shopify readiness WARNING to an ERROR (blocks before HTTP) — this was the second, independent way to trigger the same 422 | app/Services/Publishing/ProductPublishReadinessService.php | success | ~150 |
+| now | Rewrote ShopifySimpleToVariablePublishTest (7 tests, single-request assertions) + updated ShopifyPublishMirrorsSaasProductTest fakes to include option1/option2 (matching is combo-based now, not SKU-based) | tests/Feature/Foundation/Shopify*PublishTest.php | success | ~1800 |
+
+## Session: 2026-08-20 (follow-up 2 — simple/variable state consistency)
+
+| now | product.type made authoritative: ProductOptionSnapshot returns empty options/variants for a non-variable product regardless of stale active canonical rows; also filters out attributes with zero active values (phantom empty option) | app/Services/Publishing/ProductOptionSnapshot.php | success | ~800 |
+| now | Added explicit `!$product->isVariable()` early-returns to ProductPublishReadinessService::shopify() and ShopifyProductPayloadMapper::map() (belt-and-suspenders on top of the snapshot fix; WooCommerce mapper/readiness already did this) | app/Services/Publishing/ProductPublishReadinessService.php, app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php | success | ~200 |
+| now | Added ProductVariantWizardService::archiveAll() (= sync($product,[],[])) — archives all active options/variants without hard-deleting anything protected. Fixed a latent bug it exposed: sync() only matched EXISTING variants among ACTIVE ones, so re-adding a previously-archived sku hit a `(product_id, sku)` unique constraint violation instead of restoring the trashed row — added a trashed-by-sku fallback match that restores + reuses the original variant id (also reconnects old ProductVariantChannelListing rows) | app/Services/Catalog/ProductVariantWizardService.php | success | ~600 |
+| now | ProductController@update: variable→simple now calls archiveAll() instead of a raw `variants()->delete()` (options get archived too, not just variants). ProductController@edit: options/variants props are forced empty for a simple product regardless of stale DB rows | app/Http/Controllers/Dashboard/ProductController.php | success | ~400 |
+| now | ProductSyncService::saveProduct(): when an authoritative pull flips a product from variable→simple (remote now reports simple/single-default-variant), calls archiveAll() on the OLD canonical state before the (pre-existing, unchanged) createVariants() call runs for the new default variant | app/Services/Sync/ProductSyncService.php | success | ~250 |
+| now | Added ProductSimpleVariableStateConsistencyTest (5 tests) + ShopifySimpleProductReadinessTest (5 tests) | tests/Feature/Foundation/*.php | success | ~2200 |
+
+## Session: 2026-08-20 (follow-up 3 — Shopify SKU lives on the variant, not the product)
+
+| now | Root cause: simple-product parent PUT sent an id-less `variants:[{sku,price}]` array — Shopify has no way to tell "update the existing default variant" from "create a new one" without an id, so the sku silently never landed. Fixed: simple-product UPDATE now strips `variants` from the parent payload entirely and issues an explicit `PUT /variants/{id}.json` afterward, with the default variant id resolved from ProductChannelListing.metadata.default_variant_id -> the parent response's variants[0].id -> a GET fallback (ShopifyConnector::getDefaultVariantId, new) — saved back into metadata either way for future publishes. CREATE keeps variants embedded (Shopify sets sku correctly on create) but now verifies the returned sku matches before declaring success | app/Services/Publishing/ProductChannelPublisher.php | success | ~1500 |
+| now | Re-added ShopifyConnector::updateVariantPayload() (deleted 2 sessions ago as "dead code" — turned out to be load-bearing once the simple-product default-variant flow needed it again) + new getDefaultVariantId() fallback fetch | app/Connectors/ShopifyConnector.php | success | ~700 |
+| now | simplePayload() now builds the default variant via new public defaultVariantPayload() (sku/price/compare_at_price/barcode) instead of inline sku+price only — reused by both the create payload and the publisher's explicit variant update | app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php | success | ~250 |
+| now | Title-succeeds-but-sku-fails now returns status=failed with the literal message "Product updated but Shopify default variant SKU update failed." — never reported as full success, per explicit task requirement | app/Services/Publishing/ProductChannelPublisher.php | success | n/a |
+| now | Fixed 2 stale tests broken by the architecture change: ProductPublishTargetingTest's shopify wildcard fake had no `variants` array (now required to resolve a default variant id); ShopifySimpleProductReadinessTest's "no options-only payload" test asserted `count($body['variants'])===1` (now the parent payload has NO `variants` key at all for a simple update — moved to the explicit variant call) | tests/Feature/Foundation/ProductPublishTargetingTest.php, tests/Feature/Foundation/ShopifySimpleProductReadinessTest.php | success | ~200 |
+| now | Confirmed (no code change needed) ShopifyConnector::parseProduct() already reads sku from variants[0], never the product parent — sync/import SKU normalization was already correct; added regression tests only | tests/Feature/Foundation/Shopify{Simple,Variant}SkuPublishTest.php | success | n/a |
+| now | Added ShopifySimpleSkuPublishTest (7 tests) + ShopifyVariantSkuPublishTest (2 tests) | tests/Feature/Foundation/*.php | success | ~2600 |
+
+## Session: 2026-08-20 (follow-up 4 — Shopify stock via InventoryLevel, not product update)
+
+| now | Root cause: Shopify quantity was never actually pushed from the Adjust Stock UI — ProductController::adjustStock() only ever called ProductPushService::pushStock()/pushVariantStock() with platform hardcoded to 'woocommerce'. Added a parallel 'shopify' push call; message now reports both platforms ("Stock updated locally. WooCommerce: ... Shopify: ..."), never rolls back local inventory on a remote failure (push happens strictly after the engine call already committed) | app/Http/Controllers/Dashboard/ProductController.php | success | ~600 |
+| now | Rewrote ProductPushService::shopifyVariantStock() + added shopifySimpleStock() — both now resolve inventory_item_id from cached listing data first (ProductVariantChannelListing.external_inventory_item_id / ProductChannelListing.metadata.default_inventory_item_id), fetching+persisting via new connector methods only when missing; location resolved via new ShopifyConnector::resolveLocationId() (cached in PlatformConnection.metadata.location_id) instead of always calling /locations.json and taking index 0 | app/Services/Sync/ProductPushService.php | success | ~900 |
+| now | Added ShopifyConnector::setInventoryLevel() (POST inventory_levels/set.json, absolute quantity — the ONLY thing that actually changes Shopify stock), resolveLocationId(), getDefaultVariantInventoryItemId(), getVariantInventoryItemId() — all never-throw-on-fetch except setInventoryLevel which throws ConnectorException like updateProductPayload/updateVariantPayload | app/Connectors/ShopifyConnector.php | success | ~1200 |
+| now | ProductChannelPublisher::publishShopify() now captures inventory_item_id for FREE from the publish response (Shopify includes it on every variant object already) and persists it — ProductVariantChannelListing.external_inventory_item_id for variable products, ProductChannelListing.metadata.default_inventory_item_id for simple — so the FIRST stock adjustment after a publish never needs an extra Shopify fetch. Publish itself still never pushes quantity | app/Services/Publishing/ProductChannelPublisher.php | success | ~400 |
+| now | Confirmed (no change needed) the canonical Shopify mapper (ShopifyProductPayloadMapper::defaultVariantPayload()/variantPayload()) never sends inventory_quantity/old_inventory_quantity — only the LEGACY, console-command-only ShopifyConnector::createVariableProduct()/createVariant() still do (unreachable from the official UI publish flow since 2 sessions ago; left untouched, noted as a known limitation) | n/a | success | n/a |
+| now | Edit.jsx: reworded the existing stock helper text to the literal required copy ("Stock quantity is synced through inventory adjustments, not product publish.") | resources/js/Pages/Dashboard/Products/Edit.jsx | success | ~100 |
+| now | Added ShopifyInventorySyncTest (8 tests: cached id, fetch+persist for product and variant, location resolution+persist, no-location failure, publish never sends quantity + captures inventory_item_id for free, no token in logs) + ShopifyStockAdjustmentPushTest (4 tests: full HTTP adjust-stock flow, no-rollback-on-Shopify-failure, no-location message, no-listing no-op) | tests/Feature/Foundation/Shopify{InventorySync,StockAdjustmentPush}Test.php | success | ~3200 |
+
+## Session: 2026-08-20 (follow-up 5 — Product Edit variant stock display + Shopify tracking activation)
+
+| now | ROOT CAUSE + FIX for a subtle Inertia bug: `Inertia::render('Dashboard/Products/Edit', ['product'=>$product, ..., 'readiness'=>$readiness->check($product)])` — PHP evaluates array VALUES left-to-right, but 'product' => $product stores an OBJECT REFERENCE, not a snapshot. `$readiness->check($product)` (evaluated LAST in that array literal) internally calls `ProductOptionSnapshot::build($product)` which does `$product->load(['variants.attributeValues'=>...])` — REPLACING `variants` with a freshly-queried collection of brand-new ProductVariant instances. Any props set on the OLD variant instances (via `$product->variants->each(...)` BEFORE the render call) are silently discarded because the array's 'product' entry now points to the SAME $product object whose `variants` relation was just swapped out. Fixed by computing `$readinessCheck = $readiness->check($product);` as its own statement BEFORE the variant-mutation block, then passing the pre-computed value into the array. Lesson: never call anything that might `$model->load(relation)` AFTER mutating that model's already-loaded relation instances, even within the "same" array literal / render call — evaluation order and object-reference semantics compound in a genuinely surprising way. Cost ~40 min of debugging via Log::debug dumps before finding it | app/Http/Controllers/Dashboard/ProductController.php | success | ~600 |
+| now | ProductController@edit: variant stock props (stock_on_hand/stock_reserved/stock_available/warehouse_id/inventory_item_id/inventory_missing) now computed from InventoryItem->WarehouseInventoryBalance (via variant.inventoryLink), never the legacy per-variant `stocks` array — new private applyVariantStockProps(). Discovered `Stock::saved()` already bridges to InventoryCompatibilityBridge on EVERY write (any Stock::create/update, from any code path), so legacy Stock and WarehouseInventoryBalance rarely actually diverge in this codebase — the `inventory_missing` fallback mainly covers a genuinely untouched variant (0, honestly) rather than a "not yet migrated" gap | app/Http/Controllers/Dashboard/ProductController.php | success | ~800 |
+| now | Edit.jsx: stockForVariant() now reads product.variants[].stock_on_hand (server-computed) instead of summing the legacy `.stocks` array | resources/js/Pages/Dashboard/Products/Edit.jsx | success | ~150 |
+| now | ShopifyConnector::setInventoryLevel() now retries once through activateInventoryTracking() (PUT inventory_items/{id}.json tracked:true, POST inventory_levels/connect.json) when Shopify's response looks like "not stocked/not tracked at this location" (404/422 + body substring match) — never silently swallows a persistent failure, the retry's own failure still surfaces | app/Connectors/ShopifyConnector.php | success | ~700 |
+| now | Added ProductEditVariantStockDisplayTest (7 tests) + ShopifyVariantInventorySyncTest (7 tests, incl. the tracking-activation retry) + 2 tests added to existing ShopifyStockAdjustmentPushTest (variant success + variant no-rollback-on-failure) | tests/Feature/Foundation/*.php | success | ~2600 |
+
 ## Session: 2026-08-19 (Phase 1 / Step 7 — Operational Queues)
 
 | 01:47 | Added inventory.transfers.receive permission + granted to Warehouse role | app/Support/PermissionCatalog.php | success | ~150 |
@@ -2268,3 +2320,955 @@
 | 15:04 | Edited app/Services/Sync/ProductSyncService.php | added 1 condition(s) | ~458 |
 | 15:06 | Edited tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php | modified it() | ~700 |
 | 15:09 | Session end: 88 writes across 35 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 43 reads | ~161442 tok |
+| 15:42 | Edited resources/js/Layouts/SaasLayout.jsx | 49→50 lines | ~1065 |
+| 15:42 | Edited resources/js/Components/UserDropdown.jsx | inline fix | ~28 |
+| 15:42 | Edited resources/js/Components/UserDropdown.jsx | 2→4 lines | ~92 |
+| 15:43 | Edited resources/js/Components/SyncProductsModal.jsx | CSS: dark | ~332 |
+| 15:43 | Edited resources/js/Components/Products/PublishTargetModal.jsx | 7→11 lines | ~285 |
+| 15:47 | Created tests/Feature/Foundation/DashboardNavigationVisibilityTest.php | — | ~1392 |
+| 15:47 | Edited tests/Feature/Foundation/DashboardNavigationVisibilityTest.php | modified it() | ~466 |
+| 15:49 | Edited tests/Feature/Foundation/DashboardNavigationVisibilityTest.php | 8→10 lines | ~116 |
+| 15:49 | Edited tests/Feature/Foundation/DashboardNavigationVisibilityTest.php | modified it() | ~443 |
+| 15:50 | Edited tests/Feature/Foundation/DashboardNavigationVisibilityTest.php | modified where() | ~193 |
+| 15:51 | Created tests/Feature/Foundation/AgencyNavigationSeparationTest.php | — | ~767 |
+| 15:52 | Created tests/Feature/Foundation/ProductFrontendCoverageTest.php | — | ~1258 |
+| 15:53 | Created tests/Feature/Foundation/OperationsNavigationTest.php | — | ~1089 |
+| 15:54 | Edited tests/Feature/Foundation/OperationsNavigationTest.php | 4→4 lines | ~50 |
+| 15:55 | Created tests/Feature/Foundation/ChannelFrontendCoverageTest.php | — | ~1274 |
+| 15:55 | Edited tests/Feature/Foundation/ChannelFrontendCoverageTest.php | 6→6 lines | ~116 |
+| 15:55 | Edited tests/Feature/Foundation/ChannelFrontendCoverageTest.php | 11→11 lines | ~142 |
+| 15:56 | Edited tests/Feature/Foundation/ChannelFrontendCoverageTest.php | 8→8 lines | ~99 |
+| 15:58 | Session end: 106 writes across 43 files (Create.jsx, ProductVariantCanonicalizationTest.php, ProductWizardVariantPersistenceTest.php, ProductOptionSnapshot.php, ProductPublishReadinessService.php) | 57 reads | ~193053 tok |
+
+## Session: 2026-08-20 21:02
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:08 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 2 condition(s) | ~448 |
+| 21:08 | Edited app/Services/Publishing/ProductChannelPublisher.php | isVariable() → remotely() | ~783 |
+| 21:08 | Edited app/Services/Sync/ProductPublishService.php | modified __construct() | ~406 |
+| 21:08 | Edited app/Services/Sync/ProductPublishService.php | added 1 condition(s) | ~312 |
+| 21:08 | Edited app/Services/Sync/ProductPublishService.php | modified mapResult() | ~299 |
+| 21:09 | Edited app/Services/Publishing/ProductChannelPublisher.php | 7→10 lines | ~155 |
+| 21:10 | Created tests/Feature/Foundation/ShopifySimpleToVariablePublishTest.php | — | ~2877 |
+| 21:11 | Edited app/Services/Publishing/ProductChannelPublisher.php | 3→7 lines | ~118 |
+| 21:11 | Created tests/Feature/Foundation/ShopifyPublishMirrorsSaasProductTest.php | — | ~2161 |
+| 21:18 | Session end: 9 writes across 4 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php) | 17 reads | ~73767 tok |
+| 21:24 | Edited app/Services/Publishing/ProductPublishReadinessService.php | modified if() | ~116 |
+| 21:24 | Edited app/Services/Publishing/ProductChannelPublisher.php | modified if() | ~1605 |
+| 21:25 | Edited app/Connectors/ShopifyConnector.php | removed 58 lines | ~24 |
+| 21:26 | Created tests/Feature/Foundation/ShopifySimpleToVariablePublishTest.php | — | ~3240 |
+| 21:26 | Edited tests/Feature/Foundation/ShopifyPublishMirrorsSaasProductTest.php | 9→9 lines | ~99 |
+| 21:27 | Edited tests/Feature/Foundation/ShopifyPublishMirrorsSaasProductTest.php | 9→9 lines | ~99 |
+| 21:27 | Edited tests/Feature/Foundation/ShopifySimpleToVariablePublishTest.php | 10→10 lines | ~122 |
+| 21:29 | Session end: 16 writes across 6 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 19 reads | ~82574 tok |
+| 21:42 | Edited app/Services/Publishing/ProductOptionSnapshot.php | added 1 condition(s) | ~660 |
+| 21:42 | Edited app/Services/Publishing/ProductPublishReadinessService.php | added 1 condition(s) | ~222 |
+| 21:42 | Edited app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php | 10→14 lines | ~174 |
+| 21:43 | Edited app/Services/Catalog/ProductVariantWizardService.php | modified archiveAll() | ~439 |
+| 21:43 | Edited app/Services/Catalog/ProductVariantWizardService.php | removed 10 lines | ~33 |
+| 21:43 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified if() | ~194 |
+| 21:43 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 condition(s) | ~418 |
+| 21:44 | Edited app/Services/Sync/ProductSyncService.php | added 1 condition(s) | ~394 |
+| 21:44 | Edited app/Services/Sync/ProductSyncService.php | added 1 import(s) | ~63 |
+| 21:44 | Edited app/Services/Sync/ProductSyncService.php | inline fix | ~22 |
+| 21:46 | Created tests/Feature/Foundation/ProductSimpleVariableStateConsistencyTest.php | — | ~2116 |
+| 21:47 | Created tests/Feature/Foundation/ShopifySimpleProductReadinessTest.php | — | ~2417 |
+| 21:50 | Edited app/Services/Catalog/ProductVariantWizardService.php | added 2 condition(s) | ~434 |
+| 21:54 | Session end: 29 writes across 13 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 25 reads | ~107663 tok |
+| 22:02 | Edited app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php | modified simplePayload() | ~363 |
+| 22:02 | Edited app/Connectors/ShopifyConnector.php | added nullish coalescing | ~782 |
+| 22:03 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 1 condition(s) | ~353 |
+| 22:03 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 5 condition(s) | ~1462 |
+| 22:03 | Edited app/Services/Publishing/ProductChannelPublisher.php | modified if() | ~82 |
+| 22:03 | Edited app/Services/Publishing/ProductChannelPublisher.php | modified if() | ~181 |
+| 22:04 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 1 condition(s) | ~214 |
+| 22:05 | Created tests/Feature/Foundation/ShopifySimpleSkuPublishTest.php | — | ~3015 |
+| 22:05 | Edited app/Services/Publishing/ProductChannelPublisher.php | added error handling | ~295 |
+| 22:06 | Created tests/Feature/Foundation/ShopifyVariantSkuPublishTest.php | — | ~1461 |
+| 22:08 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | 10→13 lines | ~200 |
+| 22:09 | Edited tests/Feature/Foundation/ShopifySimpleProductReadinessTest.php | added 1 condition(s) | ~456 |
+| 22:12 | Session end: 41 writes across 16 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 28 reads | ~121113 tok |
+| 22:20 | Session end: 41 writes across 16 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 34 reads | ~125019 tok |
+| 22:25 | Edited app/Services/Publishing/ProductChannelPublisher.php | expanded (+6 lines) | ~191 |
+| 22:25 | Edited app/Services/Publishing/ProductChannelPublisher.php | saveDefaultVariantId() → saveDefaultVariantMetadata() | ~306 |
+| 22:25 | Edited app/Services/Publishing/ProductChannelPublisher.php | saveDefaultVariantId() → saveDefaultVariantMetadata() | ~112 |
+| 22:25 | Edited app/Services/Publishing/ProductChannelPublisher.php | added 1 condition(s) | ~215 |
+| 22:26 | Edited app/Connectors/ShopifyConnector.php | added 6 condition(s) | ~1943 |
+| 22:26 | Edited app/Services/Sync/ProductPushService.php | modified value() | ~379 |
+| 22:26 | Edited app/Services/Sync/ProductPushService.php | added nullish coalescing | ~1158 |
+| 22:27 | Edited app/Services/Sync/ProductPushService.php | modified catch() | ~155 |
+| 22:27 | Edited app/Services/Sync/ProductPushService.php | modified catch() | ~91 |
+| 22:27 | Edited app/Services/Sync/ProductPushService.php | 2→2 lines | ~50 |
+| 22:27 | Edited app/Http/Controllers/Dashboard/ProductController.php | 7→10 lines | ~165 |
+| 22:28 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified describeStockPushResult() | ~420 |
+| 22:28 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 23→25 lines | ~619 |
+| 22:30 | Created tests/Feature/Foundation/ShopifyInventorySyncTest.php | — | ~3870 |
+| 22:31 | Created tests/Feature/Foundation/ShopifyStockAdjustmentPushTest.php | — | ~2026 |
+| 22:34 | Session end: 56 writes across 20 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 39 reads | ~156511 tok |
+| 22:56 | Edited app/Http/Controllers/Dashboard/ProductController.php | expanded (+6 lines) | ~343 |
+| 22:56 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified use() | ~89 |
+| 22:57 | Edited app/Http/Controllers/Dashboard/ProductController.php | added nullish coalescing | ~557 |
+| 22:57 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 10→14 lines | ~236 |
+| 22:58 | Edited app/Connectors/ShopifyConnector.php | added 5 condition(s) | ~1168 |
+| 22:59 | Created tests/Feature/Foundation/ProductEditVariantStockDisplayTest.php | — | ~2522 |
+| 23:00 | Created tests/Feature/Foundation/ProductEditVariantStockDisplayTest.php | — | ~2662 |
+| 23:01 | Created tests/Feature/Foundation/ShopifyVariantInventorySyncTest.php | — | ~2875 |
+| 23:04 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 condition(s) | ~64 |
+| 23:06 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified use() | ~670 |
+| 23:07 | Edited tests/Feature/Foundation/ProductEditVariantStockDisplayTest.php | modified function() | ~319 |
+| 23:07 | Edited tests/Feature/Foundation/ProductEditVariantStockDisplayTest.php | 3→2 lines | ~14 |
+| 23:08 | Edited app/Http/Controllers/Dashboard/ProductController.php | 11→13 lines | ~209 |
+| 23:08 | Edited tests/Feature/Foundation/ShopifyVariantInventorySyncTest.php | 1→4 lines | ~86 |
+| 23:09 | Edited tests/Feature/Foundation/ShopifyStockAdjustmentPushTest.php | added 4 import(s) | ~124 |
+| 23:09 | Edited tests/Feature/Foundation/ShopifyStockAdjustmentPushTest.php | modified saspLinkedVariant() | ~1149 |
+| 23:12 | Session end: 72 writes across 22 files (ProductChannelPublisher.php, ProductPublishService.php, ShopifySimpleToVariablePublishTest.php, ShopifyPublishMirrorsSaasProductTest.php, ProductPublishReadinessService.php) | 49 reads | ~175008 tok |
+| 18:31 | Edited app/Services/Sync/ProductPublishService.php | 12→13 lines | ~214 |
+| 18:31 | Edited app/Services/Sync/ProductPublishService.php | 5→5 lines | ~86 |
+| 18:34 | Edited tests/Feature/Foundation/WooCommerceOutboundSyncTest.php | modified it() | ~379 |
+| 18:35 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | modified it() | ~639 |
+| 18:37 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | 6→7 lines | ~105 |
+| 18:37 | Edited tests/Feature/Foundation/ProductPublishTargetingTest.php | 11→10 lines | ~138 |
+| 18:39 | Created tests/Feature/Foundation/WooCommerceCanonicalPublishTest.php | — | ~2099 |
+| 18:39 | Edited resources/js/Components/Products/PublishTargetModal.jsx | 3→3 lines | ~215 |
+| 18:40 | Edited resources/js/Components/Products/PublishTargetModal.jsx | 21→22 lines | ~513 |
+| 18:40 | Edited resources/js/Components/Products/PublishTargetModal.jsx | 5→5 lines | ~167 |
+| 18:40 | Created tests/Feature/Foundation/ProductPublishCanonicalPathTest.php | — | ~1432 |
+| 18:41 | Created app/Services/Catalog/ProductStockSnapshotService.php | — | ~1111 |
+
+## Session: 2026-08-21 18:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 18:44 | Edited app/Services/Catalog/ProductStockSnapshotService.php | modified snapshot() | ~523 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 1 import(s) | ~29 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified edit() | ~44 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | 8→11 lines | ~150 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | applyVariantStockProps() → applyToVariant() | ~89 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | removed 42 lines | ~23 |
+| 18:45 | Edited app/Http/Controllers/Dashboard/ProductController.php | 2→1 lines | ~8 |
+| 18:46 | Created tests/Feature/Foundation/ProductStockSnapshotTest.php | — | ~1501 |
+| 18:47 | S5: extracted ProductStockSnapshotService, wired into ProductController::edit for simple+variant, fixed simple total_stock to read WarehouseInventoryBalance not legacy sellableStocks | app/Services/Catalog/ProductStockSnapshotService.php, app/Http/Controllers/Dashboard/ProductController.php, tests/Feature/Foundation/ProductStockSnapshotTest.php | 4 new tests pass + 12 regression pass | ~15k |
+| 18:49 | Created app/Services/Catalog/ProductDiagnosticService.php | — | ~2721 |
+| 18:50 | Created app/Console/Commands/DiagnoseProductCommand.php | — | ~358 |
+| 18:50 | Created app/Console/Commands/RepairProductCommand.php | — | ~551 |
+| 18:51 | Created tests/Feature/Foundation/ProductRepairCommandTest.php | — | ~3626 |
+| 18:52 | Edited app/Services/Catalog/ProductDiagnosticService.php | 3→2 lines | ~17 |
+| 18:52 | Edited app/Services/Catalog/ProductDiagnosticService.php | expanded (+8 lines) | ~271 |
+| 18:52 | Edited app/Services/Catalog/ProductDiagnosticService.php | removed 11 lines | ~16 |
+| 18:52 | Edited app/Services/Catalog/ProductDiagnosticService.php | removed 65 lines | ~42 |
+| 18:53 | Edited tests/Feature/Foundation/ProductRepairCommandTest.php | removed 54 lines | ~25 |
+| 18:53 | Edited tests/Feature/Foundation/ProductRepairCommandTest.php | modified function() | ~319 |
+| 18:53 | S7: added ProductDiagnosticService + catalog:diagnose-product/catalog:repair-product commands (ghost variants, missing pivots, missing Shopify metadata); confirmed duplicate product/listing checks are dead code since DB unique constraints already prevent them | app/Services/Catalog/ProductDiagnosticService.php, app/Console/Commands/DiagnoseProductCommand.php, app/Console/Commands/RepairProductCommand.php, tests/Feature/Foundation/ProductRepairCommandTest.php | 9/9 tests pass | ~25k |
+| 18:55 | Created database/migrations/2026_08_21_000001_create_product_sync_batches_and_results_tables.php | — | ~566 |
+| 18:55 | Created app/Models/ProductSyncBatch.php | — | ~625 |
+| 18:55 | Created app/Models/ProductSyncResult.php | — | ~335 |
+| 18:55 | Created app/Jobs/ProductSyncJob.php | — | ~969 |
+| 18:55 | Created app/Http/Controllers/Dashboard/ProductSyncController.php | — | ~1324 |
+| 18:56 | Edited routes/dashboard.php | 2→2 lines | ~69 |
+| 18:56 | Created resources/js/Components/SyncProductsModal.jsx | — | ~3475 |
+| 18:57 | Created tests/Feature/Foundation/ProductQueuedSyncTest.php | — | ~1806 |
+| 18:58 | Edited app/Jobs/ProductSyncJob.php | inline fix | ~16 |
+| 18:58 | S3: queued product sync pipeline — ProductSyncBatch/ProductSyncResult models+migration, ProductSyncJob (one per connection), rewrote ProductSyncController::startSync to queue+return immediately, added GET sync-batches/{batch} status endpoint, updated SyncProductsModal.jsx to poll it; removed old cache-based getSyncProgress | database/migrations/2026_08_21_000001_..., app/Models/ProductSyncBatch.php, app/Models/ProductSyncResult.php, app/Jobs/ProductSyncJob.php, app/Http/Controllers/Dashboard/ProductSyncController.php, routes/dashboard.php, resources/js/Components/SyncProductsModal.jsx, tests/Feature/Foundation/ProductQueuedSyncTest.php | 6/6 new + 12/12 regression pass | ~45k |
+| 18:59 | Created app/Jobs/ExternalStockPushJob.php | — | ~858 |
+| 18:59 | Created tests/Feature/Foundation/ExternalStockPushJobTest.php | — | ~2166 |
+| 19:01 | Created tests/Feature/Foundation/ShopifySimpleDefaultVariantStrategyTest.php | — | ~2593 |
+| 19:01 | S6: added ExternalStockPushJob (optional async wrapper around ProductPushService push methods); adjustStock() stays synchronous by default per task wording | app/Jobs/ExternalStockPushJob.php, tests/Feature/Foundation/ExternalStockPushJobTest.php | 5/5 pass | ~15k |
+| 19:01 | S4: added consolidating ShopifySimpleDefaultVariantStrategyTest (behavior already existed from Task 6) confirming all 5 S4 invariants in one file | tests/Feature/Foundation/ShopifySimpleDefaultVariantStrategyTest.php | 4/4 pass, no code changes needed | ~10k |
+| 19:05 | Session end: 30 writes across 18 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 18 reads | ~84485 tok |
+| 19:52 | Created config/inventory.php | — | ~265 |
+| 19:52 | Created app/Jobs/ExternalStockPushJob.php | — | ~1422 |
+| 19:53 | Edited app/Services/Inventory/InventoryEngine.php | 2→2 lines | ~19 |
+| 19:53 | Edited app/Services/Inventory/InventoryEngine.php | added 1 condition(s) | ~588 |
+| 19:53 | Edited app/Services/Orders/StockMovementWriter.php | 8→8 lines | ~62 |
+| 19:53 | Edited app/Services/Orders/StockMovementWriter.php | modified queueStorefrontSync() | ~418 |
+| 19:53 | Edited app/Services/Pos/OrderProcessingService.php | added 2 import(s) | ~106 |
+| 19:53 | Edited app/Services/Pos/OrderProcessingService.php | modified __construct() | ~36 |
+| 19:53 | Edited app/Services/Pos/OrderProcessingService.php | added 3 condition(s) | ~722 |
+| 19:54 | Edited app/Services/Pos/OrderProcessingService.php | modified foreach() | ~55 |
+| 19:54 | Edited app/Http/Controllers/Pos/CheckoutController.php | inline fix | ~16 |
+| 19:54 | Edited app/Services/Inventory/WarehouseAllocationService.php | modified statusForAllocation() | ~242 |
+| 19:54 | Edited app/Services/Inventory/WarehouseAllocationService.php | added 1 import(s) | ~24 |
+| 19:54 | Edited app/Services/Orders/OrderWorkflowService.php | modified if() | ~607 |
+| 19:54 | Edited app/Services/Orders/OrderWorkflowService.php | removed 11 lines | ~2 |
+| 19:54 | Edited app/Services/Orders/OrderWorkflowService.php | 2→1 lines | ~6 |
+| 19:55 | Edited app/Services/Inventory/CatalogInventoryService.php | modified if() | ~386 |
+| 19:55 | Edited app/Support/OrderLineItems.php | added 3 condition(s) | ~1722 |
+| 19:55 | Edited app/Support/OrderLineItems.php | inline fix | ~36 |
+| 19:56 | Edited app/Services/Orders/OrderWorkflowService.php | added 1 condition(s) | ~199 |
+| 19:56 | Edited app/Services/Orders/OrderWorkflowService.php | added 1 condition(s) | ~131 |
+| 19:56 | Edited app/Services/Sync/OrderSyncService.php | modified __construct() | ~89 |
+| 19:56 | Edited app/Services/Sync/OrderSyncService.php | added 1 condition(s) | ~59 |
+| 19:56 | Edited app/Services/Sync/OrderSyncService.php | added error handling | ~415 |
+| 19:57 | Edited app/Services/Sync/OrderSyncService.php | modified catch() | ~35 |
+| 19:57 | Edited app/Services/Orders/ReturnInspectionService.php | modified __construct() | ~423 |
+| 19:57 | Edited app/Services/Orders/ReturnInspectionService.php | 4→8 lines | ~125 |
+| 19:57 | Edited app/Services/Orders/ReturnInspectionService.php | added 3 condition(s) | ~605 |
+| 19:57 | Edited app/Services/Orders/ReturnInspectionService.php | added 2 condition(s) | ~379 |
+| 19:58 | Edited tests/Feature/Orders/OrderWorkflowServiceTest.php | modified it() | ~357 |
+| 19:58 | Edited tests/Feature/Orders/OrderWorkflowServiceTest.php | inline fix | ~10 |
+| 19:58 | Edited tests/Feature/Orders/OrderWorkflowServiceTest.php | inline fix | ~16 |
+| 19:58 | Edited tests/Feature/Foundation/InventoryEngineTest.php | inline fix | ~10 |
+| 19:58 | Edited tests/Feature/Foundation/InventoryEngineTest.php | inline fix | ~15 |
+| 20:00 | Created tests/Feature/Orders/ZZDebugTest.php | — | ~310 |
+| 20:01 | Edited app/Support/OrderLineItems.php | modified captures() | ~183 |
+| 20:04 | Created tests/Feature/Foundation/OnlineOrderReservationPolicyTest.php | — | ~2201 |
+| 20:04 | Edited tests/Feature/Foundation/OnlineOrderReservationPolicyTest.php | modified oorpMerchant() | ~292 |
+| 20:05 | Created tests/Feature/Foundation/PosInventoryWorkflowTest.php | — | ~2750 |
+| 20:05 | Created tests/Feature/Foundation/OrderInventoryConsistencyTest.php | — | ~2220 |
+| 20:06 | Created tests/Feature/Foundation/OrderLineInventoryMappingTest.php | — | ~2411 |
+| 20:07 | Created tests/Feature/Foundation/ReturnInventoryEngineTest.php | — | ~2602 |
+| 20:07 | Edited tests/Feature/Foundation/ReturnInventoryEngineTest.php | added 1 import(s) | ~55 |
+| 20:07 | Edited tests/Feature/Foundation/ReturnInventoryEngineTest.php | modified rieReturnFor() | ~82 |
+| 20:08 | Created tests/Feature/Foundation/OrderExternalStockSyncTest.php | — | ~2380 |
+| 20:09 | Edited app/Support/OrderPresenter.php | added 1 import(s) | ~31 |
+| 20:09 | Edited app/Support/OrderPresenter.php | modified online() | ~112 |
+| 20:09 | Edited app/Support/OrderPresenter.php | expanded (+6 lines) | ~145 |
+| 20:09 | Edited app/Support/OrderPresenter.php | added nullish coalescing | ~506 |
+| 20:11 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | inline fix | ~45 |
+| 20:11 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | added optional chaining | ~508 |
+| 20:12 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified render() | ~268 |
+| 20:12 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | modified Show() | ~98 |
+| 20:12 | Edited resources/js/Pages/Dashboard/Orders/Show.jsx | CSS: dark, inventory | ~508 |
+| 20:13 | Orders+Inventory Consistency Phase (O1-O8): audited order/POS/return stock paths; widened OrderWorkflowService V2 engine gate to PosOrder; added config(inventory.reserve_online_pending_orders); fixed CatalogInventoryService SKU-fallback ambiguity; added SKU fallback+unmapped flag to OrderLineItems (found+fixed pre-existing arrow-fn $map-by-value bug); routed ReturnInspectionService through InventoryEngine for org stores; replaced SyncInventoryToWebhooks with ExternalStockPushJob as canonical push everywhere; added OrderPresenter inventory_status/unmapped_lines + minimal UI cards | app/Services/Orders/{OrderWorkflowService,ReturnInspectionService,StockMovementWriter}.php, app/Services/Pos/OrderProcessingService.php, app/Services/Inventory/{InventoryEngine,WarehouseAllocationService,CatalogInventoryService}.php, app/Services/Sync/OrderSyncService.php, app/Support/{OrderLineItems,OrderPresenter}.php, app/Jobs/ExternalStockPushJob.php, app/Http/Controllers/Pos/CheckoutController.php, app/Http/Controllers/Dashboard/OrderController.php, config/inventory.php, 6 new test files (37 tests) | all pass: 59 targeted + 365 Foundation + 117/127 Orders (2 pre-existing unrelated failures) | ~180k |
+| 20:15 | Session end: 84 writes across 42 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 40 reads | ~150138 tok |
+| 21:30 | Edited app/Support/PermissionCatalog.php | expanded (+7 lines) | ~276 |
+| 21:30 | Edited app/Support/PermissionCatalog.php | expanded (+6 lines) | ~209 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 5→5 lines | ~86 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 3→3 lines | ~62 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | 7→7 lines | ~98 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 3→3 lines | ~60 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | 3→3 lines | ~75 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | 3→3 lines | ~72 |
+| 21:32 | Edited resources/js/Pages/Dashboard/Operations/Packing.jsx | 3→3 lines | ~72 |
+| 21:33 | Edited resources/js/Pages/Dashboard/Operations/ReadyForDelivery.jsx | 3→3 lines | ~74 |
+| 21:33 | Edited resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx | 3→3 lines | ~74 |
+| 21:33 | Edited resources/js/Components/Departments/OperationsNav.jsx | 7→7 lines | ~185 |
+| 21:33 | Edited resources/js/Components/Departments/OperationsNav.jsx | inline fix | ~21 |
+| 21:34 | Edited resources/js/Layouts/SaasLayout.jsx | CSS: record | ~951 |
+| 21:36 | Created tests/Feature/Foundation/AdminOperationsNavigationClarityTest.php | — | ~1891 |
+| 21:36 | Created tests/Feature/Foundation/WorkerOperationsNavigationTest.php | — | ~1516 |
+| 21:37 | Created tests/Feature/Foundation/AgencyOperationsNavigationTest.php | — | ~1927 |
+| 21:37 | Edited tests/Feature/Foundation/AgencyOperationsNavigationTest.php | 3→3 lines | ~33 |
+| 21:39 | Admin Operations Navigation Clarity: restructured sidebar (Orders/Fulfillment Workboards/Supervisor Queues/Inventory), added operations.supervise permission + Supervisor role to separate worker workboards from supervisor monitoring queues without touching route gates, renamed page titles/subtitles, added missing Transfers nav item | app/Support/PermissionCatalog.php, resources/js/Layouts/SaasLayout.jsx, resources/js/Components/Departments/OperationsNav.jsx, 7 page JSX files (titles/subtitles), 3 new test files (15 tests) | all pass: 19 targeted + 380 Foundation | ~60k |
+| 21:40 | Session end: 102 writes across 56 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 49 reads | ~180054 tok |
+| 21:53 | Created database/migrations/2026_08_22_000001_add_source_tracking_to_orders_table.php | — | ~1404 |
+| 21:53 | Created app/Support/OrderSourceSummary.php | — | ~1428 |
+| 21:53 | Edited app/Models/Order.php | expanded (+7 lines) | ~87 |
+| 21:54 | Edited app/Models/Order.php | 1→2 lines | ~30 |
+| 21:54 | Edited app/Services/Sync/OrderSyncService.php | added 1 import(s) | ~32 |
+| 21:54 | Edited app/Services/Sync/OrderSyncService.php | 19→21 lines | ~359 |
+| 21:54 | Edited app/Support/OrderPresenter.php | added 1 import(s) | ~41 |
+| 21:54 | Edited app/Support/OrderPresenter.php | 5→4 lines | ~31 |
+| 21:54 | Edited app/Support/OrderPresenter.php | modified online() | ~86 |
+| 21:55 | Edited app/Support/OrderPresenter.php | 9→10 lines | ~103 |
+| 21:55 | Edited app/Support/OrderPresenter.php | modified posRow() | ~515 |
+| 21:55 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified if() | ~486 |
+| 21:56 | Edited app/Http/Controllers/Dashboard/OrderController.php | expanded (+8 lines) | ~219 |
+| 21:56 | Edited app/Http/Controllers/Dashboard/OrderController.php | 5→6 lines | ~82 |
+| 21:56 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | CSS: platform, connection | ~218 |
+| 21:56 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | expanded (+14 lines) | ~222 |
+| 21:56 | Edited resources/js/Pages/Dashboard/Orders/Index.jsx | CSS: value | ~154 |
+| 21:56 | Edited resources/js/Components/Departments/OperationsTable.jsx | expanded (+6 lines) | ~209 |
+| 21:57 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | expanded (+6 lines) | ~212 |
+| 21:57 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | modified toLocaleString() | ~287 |
+| 21:57 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | expanded (+7 lines) | ~246 |
+| 21:59 | Created tests/Feature/Foundation/OrderSourceTrackingTest.php | — | ~2459 |
+| 21:59 | Edited tests/Feature/Foundation/OrderSourceTrackingTest.php | 4→3 lines | ~23 |
+| 21:59 | Edited tests/Feature/Foundation/OrderSourceTrackingTest.php | added 1 import(s) | ~38 |
+| 21:59 | Edited tests/Feature/Foundation/OrderSourceTrackingTest.php | modified beforeEach() | ~25 |
+| 22:00 | Created tests/Feature/Foundation/OrderSourceFilteringTest.php | — | ~1970 |
+| 22:00 | Created tests/Feature/Foundation/OrderSourceUiPropsTest.php | — | ~1374 |
+| 22:01 | Edited app/Http/Controllers/Dashboard/OrderController.php | expanded (+9 lines) | ~201 |
+| 22:01 | Edited tests/Feature/Foundation/OrderSourceUiPropsTest.php | 7→9 lines | ~110 |
+| 22:02 | Created tests/Feature/Foundation/AgencyOrderSourceScopeTest.php | — | ~1809 |
+| 22:04 | Order Source Tracking Phase (OST1-OST8): added organization_id/source_type/source_platform/source_store_name/source_store_domain/source_channel_label/imported_at to orders table (reusing platform_order_id/order_number as external_order_id/number, no pos_orders changes needed); new OrderSourceSummary presenter; wired into OrderSyncService, OrderPresenter, Orders index filters+UI, order detail, Confirmation/Operations queues | database migration, app/Support/OrderSourceSummary.php, app/Models/Order.php, app/Services/Sync/OrderSyncService.php, app/Support/OrderPresenter.php, app/Http/Controllers/Dashboard/OrderController.php, 5 JSX files, 4 new test files (17 tests) | all pass: 34 targeted + 397 Foundation | ~140k |
+| 22:05 | Session end: 132 writes across 65 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 56 reads | ~219019 tok |
+| 22:21 | Edited app/Connectors/WooCommerceConnector.php | expanded (+6 lines) | ~198 |
+| 22:22 | Created app/Support/OrderAddressSummary.php | — | ~1958 |
+| 22:22 | Edited app/Support/OrderPresenter.php | added 2 condition(s) | ~316 |
+| 22:22 | Edited app/Support/OrderPresenter.php | expanded (+8 lines) | ~182 |
+| 22:23 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 condition(s) | ~377 |
+| 22:23 | Edited app/Http/Controllers/Dashboard/OrderController.php | data_get() → extract() | ~193 |
+| 22:24 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 condition(s) | ~344 |
+| 22:24 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified use() | ~367 |
+| 22:24 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 condition(s) | ~281 |
+| 22:25 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 4→4 lines | ~47 |
+| 22:25 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | CSS: dark | ~169 |
+| 22:26 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | added optional chaining | ~1236 |
+| 22:26 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 41→41 lines | ~1059 |
+| 22:27 | Created tests/Feature/Foundation/ConfirmationAddressPrefillTest.php | — | ~2529 |
+| 22:27 | Edited tests/Feature/Foundation/ConfirmationAddressPrefillTest.php | 2→1 lines | ~31 |
+| 22:28 | Edited app/Services/Sync/OrderSyncService.php | added nullish coalescing | ~173 |
+| 22:29 | Edited app/Services/Sync/OrderSyncService.php | added nullish coalescing | ~83 |
+| 22:30 | Edited tests/Feature/Foundation/ConfirmationAddressPrefillTest.php | modified it() | ~756 |
+| 22:30 | Created tests/Feature/Foundation/ConfirmationDeskClaimTest.php | — | ~2740 |
+| 22:31 | Edited tests/Feature/Foundation/ConfirmationDeskClaimTest.php | modified cdClaimOnlineOrder() | ~768 |
+| 22:35 | Session end: 152 writes across 70 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 58 reads | ~247764 tok |
+| 22:36 | Edited tests/Feature/Foundation/ConfirmationDeskClaimTest.php | cdClaimOnlineOrder() → cdClaimStockedOnlineOrder() | ~64 |
+| 22:36 | Edited tests/Feature/Foundation/ConfirmationDeskClaimTest.php | cdClaimOnlineOrder() → cdClaimStockedOnlineOrder() | ~87 |
+| 22:37 | Edited tests/Feature/Foundation/ConfirmationDeskClaimTest.php | modified it() | ~314 |
+| 22:37 | Edited tests/Feature/Foundation/ConfirmationDeskClaimTest.php | 5→10 lines | ~144 |
+| 22:40 | Created tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | — | ~2723 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | "store_id" → "city1.myshopify.com" | ~20 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | "store_id" → "city2.myshopify.com" | ~20 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | "store_id" → "city3.myshopify.com" | ~20 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | "store_id" → "city4.myshopify.com" | ~20 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | "store_id" → "city5.myshopify.com" | ~20 |
+| 22:41 | Edited tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php | modified cdCityShopifyConnection() | ~135 |
+| 00:29 | Confirmation Desk fix: address prefill (fixed real root causes - WooCommerce never preserved raw order payload, Shopify fallback used wrong keys, and OrderSyncService double-nested platform_data) + backend claim-gate enforcement for confirm/cancel/release, city normalization warning | app/Support/OrderAddressSummary.php (new), OrderConnectors WooCommerce fix, OrderSyncService platform_data unwrap, OrderPresenter city/address fields, OrderController+DepartmentController claim enforcement, Confirmation.jsx UI, 3 new test files (24 tests) | all pass: 34 targeted + 421 Foundation | ~180k |
+| 00:31 | Session end: 163 writes across 71 files (ProductStockSnapshotService.php, ProductController.php, ProductStockSnapshotTest.php, ProductDiagnosticService.php, DiagnoseProductCommand.php) | 59 reads | ~254901 tok |
+
+## Session: 2026-08-21 00:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-21 00:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-22 11:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-22 11:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-22 11:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-22 11:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-08-22 11:55
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:00 | Created database/migrations/2026_08_22_000002_add_shortage_tracking_to_inventory_reservations_table.php | — | ~449 |
+| 12:00 | Edited app/Models/InventoryReservation.php | 2→2 lines | ~119 |
+| 12:00 | Created app/Support/WaitingStockState.php | — | ~979 |
+| 12:01 | Created app/Services/Inventory/AllocationCompletionService.php | — | ~558 |
+| 12:01 | Edited app/Services/Inventory/InventoryTransferService.php | modified __construct() | ~139 |
+| 12:01 | Edited app/Services/Inventory/InventoryTransferService.php | modified topUpAllocation() | ~431 |
+| 12:02 | Created app/Services/Inventory/WaitingStockReallocationService.php | — | ~1427 |
+| 12:02 | Created app/Jobs/RecheckWaitingStockOrdersJob.php | — | ~474 |
+| 12:02 | Edited app/Services/Inventory/InventoryEngine.php | added 1 import(s) | ~31 |
+| 12:02 | Edited app/Services/Inventory/InventoryEngine.php | added 1 condition(s) | ~291 |
+| 12:04 | Edited app/Services/Inventory/WarehouseAllocationService.php | modified UI() | ~510 |
+| 12:04 | Edited app/Services/Inventory/WarehouseAllocationService.php | modified candidateWarehouses() | ~348 |
+| 12:04 | Edited app/Services/Inventory/WarehouseAllocationService.php | modified findTransferSource() | ~280 |
+| 12:05 | Edited app/Services/Inventory/WarehouseAllocationService.php | added nullish coalescing | ~714 |
+| 12:05 | Edited app/Services/Inventory/WarehouseAllocationService.php | 2→2 lines | ~45 |
+| 12:06 | Edited app/Support/OrderPresenter.php | expanded (+10 lines) | ~304 |
+| 12:06 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | added optional chaining | ~239 |
+| 12:07 | Edited app/Services/Orders/OperationsQueueService.php | added 7 import(s) | ~160 |
+| 12:07 | Edited app/Services/Orders/OperationsQueueService.php | modified __construct() | ~88 |
+| 12:08 | Edited app/Services/Orders/OperationsQueueService.php | added nullish coalescing | ~2610 |
+| 12:08 | Edited app/Services/Orders/OperationsQueueService.php | modified if() | ~89 |
+| 12:08 | Edited app/Http/Controllers/Dashboard/OperationsController.php | modified waitingStock() | ~92 |
+| 12:09 | Edited app/Http/Controllers/Dashboard/OperationsController.php | added error handling | ~612 |
+| 12:09 | Edited routes/dashboard.php | modified group() | ~354 |
+| 12:11 | Created resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | — | ~4186 |
+| 12:11 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | 6→6 lines | ~158 |
+| 12:15 | Created tests/Feature/Foundation/WaitingStockReallocationTest.php | — | ~2502 |
+| 12:15 | Created tests/Feature/Foundation/WaitingStockShortageRequestTest.php | — | ~2375 |
+| 12:16 | Edited tests/Feature/Foundation/WaitingStockShortageRequestTest.php | modified it() | ~572 |
+| 12:17 | Edited tests/Feature/Foundation/WaitingStockShortageRequestTest.php | modified it() | ~68 |
+| 12:17 | Edited tests/Feature/Foundation/WaitingStockShortageRequestTest.php | modified function() | ~102 |
+| 12:17 | Edited tests/Feature/Foundation/WaitingStockShortageRequestTest.php | modified it() | ~102 |
+| 12:17 | Created tests/Feature/Foundation/WaitingStockTransferFlowTest.php | — | ~1756 |
+| 12:18 | Edited tests/Feature/Foundation/WaitingStockTransferFlowTest.php | 3→4 lines | ~93 |
+| 12:19 | Created tests/Feature/Foundation/WaitingStockUiStateTest.php | — | ~2139 |
+| 12:19 | Created tests/Feature/Foundation/CityWarehouseAllocationShortageTest.php | — | ~2635 |
+| 12:22 | Waiting Stock Reallocation phase: fixed root cause of stuck waiting-stock orders (no recheck on manual restock) + hardcoded "Waiting for transfer" label bug in Packing.jsx; added WaitingStockReallocationService+RecheckWaitingStockOrdersJob (InventoryEngine hook fires on any available increase), WaitingStockState (transfer-aware label), AllocationCompletionService (shared unblock logic), transfer-request/restock-request actions, rebuilt WaitingForStock.jsx with shortage-line detail | 1 migration, 5 new PHP files, 6 modified services/controllers, 2 JSX files, 5 new test files (25 tests) | all pass: 49 targeted + 445 Foundation | ~220k |
+| 12:23 | Session end: 36 writes across 20 files (2026_08_22_000002_add_shortage_tracking_to_inventory_reservations_table.php, InventoryReservation.php, WaitingStockState.php, AllocationCompletionService.php, InventoryTransferService.php) | 13 reads | ~59488 tok |
+
+## Session: 2026-08-22 12:54
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 13:00 | Edited app/Services/Inventory/CatalogInventoryService.php | modified resolve() | ~496 |
+| 13:00 | Edited app/Services/Inventory/WarehouseAllocationService.php | added 3 condition(s) | ~627 |
+| 13:00 | Edited app/Services/Orders/OperationsQueueService.php | added 4 import(s) | ~127 |
+| 13:00 | Edited app/Services/Orders/OperationsQueueService.php | expanded (+24 lines) | ~755 |
+| 13:00 | Edited app/Services/Orders/OperationsQueueService.php | added nullish coalescing | ~1258 |
+| 13:01 | Edited app/Http/Controllers/Dashboard/OperationsController.php | added nullish coalescing | ~273 |
+| 13:01 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | added 1 import(s) | ~74 |
+| 13:01 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | modified delete() | ~96 |
+| 13:01 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | expanded (+10 lines) | ~384 |
+| 13:01 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | added optional chaining | ~551 |
+| 13:03 | Created tests/Feature/Foundation/WaitingStockVariantMappingTest.php | — | ~2323 |
+| 13:06 | Session end: 11 writes across 6 files (CatalogInventoryService.php, WarehouseAllocationService.php, OperationsQueueService.php, OperationsController.php, WaitingForStock.jsx) | 22 reads | ~63436 tok |
+| 13:18 | Edited tests/Feature/Foundation/WaitingStockVariantMappingTest.php | modified it() | ~591 |
+| 13:19 | Session end: 12 writes across 6 files (CatalogInventoryService.php, WarehouseAllocationService.php, OperationsQueueService.php, OperationsController.php, WaitingForStock.jsx) | 23 reads | ~66392 tok |
+| 13:29 | Created app/Services/Inventory/OrderLineInventoryResolution.php | — | ~423 |
+| 13:30 | Created app/Services/Inventory/OrderLineInventoryResolver.php | — | ~3063 |
+| 13:30 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified if() | ~183 |
+| 13:30 | Edited app/Connectors/WooCommerceConnector.php | modified foreach() | ~382 |
+| 13:31 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | added 1 import(s) | ~46 |
+| 13:31 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | added 7 condition(s) | ~847 |
+| 13:31 | Edited app/Services/Inventory/OrderLineInventoryResolution.php | 2→3 lines | ~48 |
+| 13:32 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified if() | ~176 |
+| 13:32 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified if() | ~113 |
+| 13:32 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified resolveViaProductListing() | ~433 |
+| 13:32 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | added 1 import(s) | ~24 |
+| 13:32 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified itemForVariant() | ~21 |
+| 13:32 | Created app/Support/OrderLineItems.php | — | ~1561 |
+| 13:34 | Edited app/Services/Inventory/CatalogInventoryService.php | removed 78 lines | ~45 |
+| 13:34 | Edited app/Services/Inventory/WarehouseAllocationService.php | modified requirements() | ~303 |
+| 13:34 | Edited app/Services/Inventory/WarehouseAllocationService.php | added 3 condition(s) | ~736 |
+| 13:35 | Edited app/Services/Orders/OperationsQueueService.php | added 2 import(s) | ~106 |
+| 13:35 | Edited app/Services/Orders/OperationsQueueService.php | modified __construct() | ~80 |
+| 13:35 | Edited app/Services/Orders/OperationsQueueService.php | added 2 condition(s) | ~1145 |
+| 13:36 | Edited app/Services/Orders/OperationsQueueService.php | modified buildShortageSummary() | ~2502 |
+| 13:37 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | modified return() | ~892 |
+| 13:37 | Edited resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx | CSS: dark | ~692 |
+| 13:42 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | modified resolve() | ~507 |
+| 13:43 | Edited app/Support/OrderLineItems.php | modified resolve() | ~51 |
+| 13:45 | Edited app/Support/OrderLineItems.php | expanded (+12 lines) | ~384 |
+| 13:47 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | added 2 condition(s) | ~428 |
+| 13:52 | Created tests/Feature/Foundation/OnlineOrderLineInventoryResolverTest.php | — | ~2807 |
+| 13:53 | Created tests/Feature/Foundation/ShopifyOrderLineInventoryMappingTest.php | — | ~2489 |
+| 13:53 | Edited tests/Feature/Foundation/ShopifyOrderLineInventoryMappingTest.php | 4→4 lines | ~68 |
+| 13:54 | Created tests/Feature/Foundation/WooCommerceOrderLineInventoryMappingTest.php | — | ~2741 |
+| 13:55 | Created tests/Feature/Foundation/WaitingStockMappingRepairTest.php | — | ~2364 |
+| 13:56 | Edited app/Services/Inventory/OrderLineInventoryResolver.php | 2→2 lines | ~36 |
+| 13:58 | Session end: 44 writes across 14 files (CatalogInventoryService.php, WarehouseAllocationService.php, OperationsQueueService.php, OperationsController.php, WaitingForStock.jsx) | 32 reads | ~128400 tok |
+| 14:16 | Edited app/Services/Catalog/ProductStockSnapshotService.php | added 1 import(s) | ~40 |
+| 14:17 | Edited app/Services/Catalog/ProductStockSnapshotService.php | added nullish coalescing | ~1292 |
+| 14:17 | Edited app/Http/Controllers/Dashboard/StockController.php | modified __construct() | ~300 |
+| 14:17 | Edited app/Http/Controllers/Dashboard/StockController.php | 3→4 lines | ~90 |
+| 14:18 | Edited app/Http/Controllers/Dashboard/StockController.php | expanded (+16 lines) | ~332 |
+| 14:18 | Edited app/Http/Controllers/Dashboard/StockController.php | modified variantEagerLoads() | ~206 |
+| 14:18 | Edited app/Http/Controllers/Dashboard/StockController.php | modified presentProduct() | ~1071 |
+| 14:21 | Edited app/Http/Controllers/Dashboard/StockController.php | modified __construct() | ~425 |
+| 14:22 | Edited app/Http/Controllers/Dashboard/StockController.php | modified adjustStock() | ~93 |
+| 14:23 | Edited app/Http/Controllers/Dashboard/StockController.php | added 14 condition(s) | ~3645 |
+| 14:23 | Edited routes/dashboard.php | 3→5 lines | ~131 |
+| 14:24 | Created tests/Feature/Stocks/InventoryStockUiSnapshotTest.php | — | ~1266 |
+| 14:25 | Created tests/Feature/Stocks/StockAdjustmentPreviewTest.php | — | ~1735 |
+| 14:25 | Edited tests/Feature/Stocks/StockAdjustmentPreviewTest.php | 2→2 lines | ~50 |
+| 14:26 | Created tests/Feature/Stocks/StockAdjustmentFeedbackTest.php | — | ~1894 |
+| 14:26 | Edited tests/Feature/Stocks/StockAdjustmentFeedbackTest.php | 3→2 lines | ~36 |
+| 14:26 | Created tests/Feature/Stocks/WaitingStockReleaseFeedbackTest.php | — | ~1245 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 3→6 lines | ~78 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 5→5 lines | ~61 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 5→5 lines | ~47 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 4→4 lines | ~41 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 4→4 lines | ~51 |
+| 14:29 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | added 2 condition(s) | ~1463 |
+| 14:30 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | expanded (+12 lines) | ~273 |
+| 14:30 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | modified catch() | ~206 |
+| 14:30 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 4→8 lines | ~99 |
+| 14:30 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | 10→14 lines | ~254 |
+| 14:30 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | CSS: hover | ~252 |
+| 14:31 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | added optional chaining | ~1650 |
+| 14:31 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | added optional chaining | ~995 |
+| 14:32 | Edited resources/js/Pages/Dashboard/Stock.jsx | 4→4 lines | ~55 |
+| 14:32 | Edited resources/js/Pages/Dashboard/Stock.jsx | modified ProductCard() | ~251 |
+| 14:32 | Edited resources/js/Pages/Dashboard/Stock.jsx | CSS: dark | ~560 |
+| 14:32 | Edited resources/js/Pages/Dashboard/Stock.jsx | CSS: dark | ~508 |
+| 14:33 | Edited resources/js/Pages/Dashboard/Stock.jsx | modified StockTableRow() | ~140 |
+| 14:33 | Edited resources/js/Pages/Dashboard/Stock.jsx | CSS: dark | ~241 |
+| 14:33 | Edited resources/js/Pages/Dashboard/Stock.jsx | 2→2 lines | ~52 |
+| 14:36 | Session end: 81 writes across 23 files (CatalogInventoryService.php, WarehouseAllocationService.php, OperationsQueueService.php, OperationsController.php, WaitingForStock.jsx) | 39 reads | ~186448 tok |
+
+## Session: 2026-08-24 13:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:12 | Created app/Services/Catalog/ProductCleanupSafetyService.php | — | ~3021 |
+| 14:13 | Created app/Services/Catalog/ProductCleanupService.php | — | ~1898 |
+| 14:13 | Created app/Http/Controllers/Dashboard/ProductCleanupController.php | — | ~1519 |
+| 14:13 | Edited routes/dashboard.php | added 1 import(s) | ~46 |
+| 14:13 | Edited routes/dashboard.php | modified group() | ~282 |
+| 14:14 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified use() | ~722 |
+| 14:14 | Edited app/Http/Controllers/Dashboard/ProductController.php | 7→12 lines | ~284 |
+| 14:14 | Created app/Console/Commands/CatalogCleanupPreviewCommand.php | — | ~551 |
+| 14:15 | Created app/Console/Commands/PurgeProductCommand.php | — | ~585 |
+| 14:15 | Edited app/Console/Commands/PurgeProductCommand.php | added 1 import(s) | ~42 |
+| 14:15 | Edited app/Console/Commands/PurgeProductCommand.php | modified handle() | ~137 |
+| 14:15 | Created app/Console/Commands/PurgeImportedProductsCommand.php | — | ~816 |
+| 14:16 | Created resources/js/Components/Products/ProductCleanupBar.jsx | — | ~4671 |
+| 14:16 | Edited resources/js/Components/Products/ProductCleanupBar.jsx | inline fix | ~13 |
+| 14:16 | Edited resources/js/Components/Products/ProductCleanupBar.jsx | useState() → useEffect() | ~106 |
+| 14:16 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | added 1 import(s) | ~98 |
+| 14:17 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | added 5 condition(s) | ~782 |
+| 14:17 | Edited resources/js/Components/Products/ProductCleanupBar.jsx | modified ProductCleanupBar() | ~793 |
+| 14:17 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | setSearch() → reload() | ~568 |
+| 14:18 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 7→11 lines | ~168 |
+| 14:19 | Created tests/Feature/Foundation/ProductArchiveTest.php | — | ~899 |
+| 14:19 | Edited tests/Feature/Foundation/ProductArchiveTest.php | 10→14 lines | ~142 |
+| 14:20 | Created tests/Feature/Foundation/ProductChannelUnlinkTest.php | — | ~1876 |
+| 14:20 | Created tests/Feature/Foundation/ProductResyncResetTest.php | — | ~1754 |
+| 14:21 | Created tests/Feature/Foundation/ProductPurgeSafetyTest.php | — | ~2410 |
+| 14:21 | Created tests/Feature/Foundation/ProductBulkCleanupTest.php | — | ~2684 |
+| 14:24 | Edited tests/Feature/Foundation/ProductPurgeSafetyTest.php | modified it() | ~390 |
+| 14:24 | Edited tests/Feature/Foundation/ProductPurgeSafetyTest.php | 5→1 lines | ~19 |
+| 14:43 | Session end: 28 writes across 15 files (ProductCleanupSafetyService.php, ProductCleanupService.php, ProductCleanupController.php, dashboard.php, ProductController.php) | 57 reads | ~82797 tok |
+| 15:25 | Edited app/Services/Catalog/ProductCleanupSafetyService.php | added nullish coalescing | ~2105 |
+| 15:25 | Edited app/Services/Catalog/ProductCleanupService.php | modified purge() | ~306 |
+| 15:25 | Edited app/Services/Catalog/ProductCleanupService.php | expanded (+7 lines) | ~74 |
+| 15:26 | Edited app/Services/Catalog/ProductCleanupService.php | added 1 condition(s) | ~466 |
+| 15:26 | Edited app/Http/Controllers/Dashboard/ProductCleanupController.php | modified resetSync() | ~460 |
+| 15:26 | Edited routes/dashboard.php | 1→2 lines | ~68 |
+| 15:26 | Edited resources/js/Components/Products/ProductCleanupBar.jsx | 3→3 lines | ~52 |
+| 15:27 | Edited resources/js/Components/Products/ProductCleanupBar.jsx | modified PurgeModal() | ~3185 |
+| 15:27 | Edited app/Services/Catalog/ProductCleanupService.php | modified purge() | ~340 |
+| 15:27 | Edited app/Services/Catalog/ProductCleanupService.php | 10→12 lines | ~94 |
+| 15:28 | Edited tests/Feature/Foundation/ProductBulkCleanupTest.php | modified it() | ~2657 |
+| 15:30 | Edited tests/Feature/Foundation/ProductBulkCleanupTest.php | modified it() | ~474 |
+| 15:30 | Edited tests/Feature/Foundation/ProductBulkCleanupTest.php | 12→15 lines | ~312 |
+| 15:31 | Edited tests/Feature/Foundation/ProductPurgeSafetyTest.php | modified it() | ~445 |
+| 15:34 | Session end: 42 writes across 15 files (ProductCleanupSafetyService.php, ProductCleanupService.php, ProductCleanupController.php, dashboard.php, ProductController.php) | 63 reads | ~109664 tok |
+| 16:23 | Created app/Http/Controllers/Dashboard/ConnectionProfileController.php | — | ~4747 |
+| 16:24 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added nullish coalescing | ~307 |
+| 16:24 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified catch() | ~123 |
+| 16:24 | Edited routes/dashboard.php | added 1 import(s) | ~48 |
+| 16:24 | Edited routes/dashboard.php | modified group() | ~559 |
+| 16:25 | Edited resources/js/Components/StatusBadge.jsx | 2→6 lines | ~121 |
+| 16:26 | Created resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | — | ~5658 |
+| 16:26 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | expanded (+8 lines) | ~398 |
+| 16:28 | Created tests/Feature/Foundation/ConnectionProfileTest.php | — | ~986 |
+| 16:28 | Edited tests/Feature/Foundation/ConnectionProfileTest.php | assertStatus() → assertNotFound() | ~161 |
+| 16:29 | Created tests/Feature/Foundation/ConnectionSyncResetTest.php | — | ~2851 |
+| 16:29 | Edited tests/Feature/Foundation/ConnectionSyncResetTest.php | modified it() | ~47 |
+| 16:29 | Edited tests/Feature/Foundation/ConnectionSyncResetTest.php | 5→3 lines | ~62 |
+| 16:29 | Edited tests/Feature/Foundation/ConnectionSyncResetTest.php | expanded (+8 lines) | ~269 |
+| 16:30 | Created tests/Feature/Foundation/ConnectionAuthClarityTest.php | — | ~1112 |
+| 16:30 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified test() | ~330 |
+| 16:31 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added error handling | ~251 |
+| 16:31 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 import(s) | ~31 |
+| 16:31 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | 2→1 lines | ~11 |
+| 16:31 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | 3→2 lines | ~24 |
+| 16:31 | Created tests/Feature/Foundation/ConnectionProductArchiveTest.php | — | ~1526 |
+| 16:32 | Created tests/Feature/Foundation/ConnectionScopeTest.php | — | ~1431 |
+| 16:34 | Session end: 64 writes across 23 files (ProductCleanupSafetyService.php, ProductCleanupService.php, ProductCleanupController.php, dashboard.php, ProductController.php) | 85 reads | ~175138 tok |
+| 17:07 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 import(s) | ~51 |
+| 17:08 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified test() | ~469 |
+| 17:08 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added nullish coalescing | ~400 |
+| 17:08 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | 8→12 lines | ~178 |
+| 17:08 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 condition(s) | ~88 |
+| 17:08 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 2 condition(s) | ~1937 |
+| 17:09 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | expanded (+9 lines) | ~266 |
+| 17:09 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added nullish coalescing | ~227 |
+| 17:11 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | modified toLocaleString() | ~705 |
+| 17:11 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | added nullish coalescing | ~296 |
+| 17:12 | Created tests/Feature/Foundation/ShopifyConnectionAuthStatusTest.php | — | ~2202 |
+| 17:13 | Edited tests/Feature/Foundation/ShopifyConnectionAuthStatusTest.php | modified it() | ~136 |
+| 17:13 | Edited tests/Feature/Foundation/ShopifyConnectionAuthStatusTest.php | 3→3 lines | ~55 |
+| 17:14 | Edited tests/Feature/Foundation/ConnectionProfileTest.php | modified cpShopifyClientCredentials() | ~684 |
+| 17:14 | Edited tests/Feature/Foundation/ConnectionAuthClarityTest.php | added nullish coalescing | ~964 |
+| 17:17 | Session end: 79 writes across 25 files (ProductCleanupSafetyService.php, ProductCleanupService.php, ProductCleanupController.php, dashboard.php, ProductController.php) | 91 reads | ~211014 tok |
+
+## Session: 2026-08-24 20:05
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:16 | Created ../../../../.claude/plans/parallel-prancing-flame.md | — | ~5036 |
+| 20:16 | Created database/migrations/2026_08_24_000001_create_delivery_providers_table.php | — | ~436 |
+| 20:16 | Created database/migrations/2026_08_24_000002_create_delivery_connections_table.php | — | ~543 |
+| 20:16 | Created database/migrations/2026_08_24_000003_create_delivery_provider_cities_table.php | — | ~305 |
+| 20:17 | Created database/migrations/2026_08_24_000004_create_city_delivery_provider_mappings_table.php | — | ~394 |
+| 20:17 | Created database/migrations/2026_08_24_000005_create_shipments_table.php | — | ~893 |
+| 20:17 | Created database/migrations/2026_08_24_000006_create_shipment_events_table.php | — | ~336 |
+| 20:17 | Created database/migrations/2026_08_24_000007_create_delivery_notes_table.php | — | ~385 |
+| 20:17 | Created database/migrations/2026_08_24_000008_create_delivery_note_shipments_table.php | — | ~234 |
+| 20:17 | Created app/Models/DeliveryProvider.php | — | ~116 |
+| 20:17 | Created app/Models/DeliveryConnection.php | — | ~792 |
+| 20:18 | Created app/Models/Shipment.php | — | ~1177 |
+| 20:18 | Created app/Models/ShipmentEvent.php | — | ~236 |
+| 20:18 | Created app/Models/DeliveryProviderCity.php | — | ~191 |
+| 20:18 | Created app/Models/CityDeliveryProviderMapping.php | — | ~198 |
+| 20:18 | Created app/Models/DeliveryNote.php | — | ~317 |
+| 20:18 | Created app/Models/DeliveryNoteShipment.php | — | ~74 |
+| 20:18 | Edited app/Models/Order.php | modified inventoryAllocation() | ~94 |
+| 20:18 | Created app/Contracts/DeliveryProviderConnectorInterface.php | — | ~729 |
+| 20:19 | Created app/Connectors/Delivery/OzonExpressConnector.php | — | ~3682 |
+| 20:19 | Created app/Connectors/Delivery/OzonStatusMapper.php | — | ~608 |
+| 20:20 | Created app/Services/Delivery/OzonShipmentService.php | — | ~1687 |
+| 20:20 | Created app/Services/Delivery/ShipmentTrackingService.php | — | ~1384 |
+| 20:20 | Edited app/Services/Delivery/ShipmentTrackingService.php | removed 6 lines | ~12 |
+| 20:20 | Edited app/Services/Delivery/ShipmentTrackingService.php | 3→2 lines | ~14 |
+| 20:20 | Created app/Services/Delivery/OzonCityMappingService.php | — | ~593 |
+| 20:21 | Created app/Services/Delivery/DeliveryNoteService.php | — | ~798 |
+| 20:21 | Created app/Jobs/TrackActiveShipmentsJob.php | — | ~466 |
+| 20:21 | Edited routes/console.php | added 1 import(s) | ~62 |
+| 20:21 | Edited routes/console.php | modified catch() | ~112 |
+| 20:21 | Edited app/Support/PermissionCatalog.php | expanded (+10 lines) | ~317 |
+| 20:21 | Edited app/Support/PermissionCatalog.php | 9→10 lines | ~118 |
+| 20:21 | Edited app/Support/PermissionCatalog.php | 3→3 lines | ~53 |
+| 20:22 | Created app/Http/Controllers/Dashboard/DeliveryConnectionController.php | — | ~1671 |
+| 20:22 | Created app/Http/Controllers/Dashboard/DeliveryShipmentController.php | — | ~540 |
+| 20:22 | Created app/Http/Controllers/Dashboard/DeliveryNoteController.php | — | ~704 |
+| 20:23 | Edited routes/dashboard.php | modified group() | ~619 |
+| 20:23 | Edited routes/dashboard.php | added 3 import(s) | ~80 |
+| 20:23 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 import(s) | ~44 |
+| 20:23 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified use() | ~524 |
+| 20:23 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 2→7 lines | ~103 |
+| 20:23 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 condition(s) | ~418 |
+| 20:24 | Edited resources/js/Components/StatusBadge.jsx | expanded (+8 lines) | ~180 |
+| 20:24 | Created resources/js/Pages/Dashboard/Delivery/Connections.jsx | — | ~3497 |
+| 20:24 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | 7→12 lines | ~199 |
+| 20:24 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~40 |
+| 20:24 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 8→9 lines | ~119 |
+| 20:24 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~26 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 2→2 lines | ~41 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added 1 import(s) | ~110 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~49 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: dark | ~596 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | modified post() | ~170 |
+| 20:25 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: hover, disabled | ~410 |
+| 20:26 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | modified ShowOnline() | ~109 |
+| 20:26 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | 2→4 lines | ~44 |
+| 20:26 | Edited app/Http/Controllers/Dashboard/OrderController.php | 3→4 lines | ~44 |
+| 20:26 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | modified DeliveryCard() | ~500 |
+| 20:26 | Edited resources/js/Layouts/SaasLayout.jsx | 3→4 lines | ~74 |
+| 20:27 | Created tests/Feature/Delivery/DeliveryProviderFoundationTest.php | — | ~689 |
+| 20:27 | Created tests/Feature/Delivery/OzonConnectionTest.php | — | ~1314 |
+| 20:27 | Edited tests/Feature/Delivery/OzonConnectionTest.php | 4→3 lines | ~33 |
+| 20:28 | Edited tests/Feature/Delivery/OzonConnectionTest.php | modified it() | ~230 |
+| 20:28 | Edited tests/Feature/Delivery/OzonConnectionTest.php | added nullish coalescing | ~266 |
+| 20:28 | Created tests/Feature/Delivery/OzonCreateShipmentTest.php | — | ~1494 |
+| 20:29 | Created tests/Feature/Delivery/OzonTrackingTest.php | — | ~1974 |
+| 20:29 | Created tests/Feature/Delivery/OzonCityMappingTest.php | — | ~991 |
+| 20:30 | Created tests/Feature/Delivery/OzonDeliveryNoteTest.php | — | ~1301 |
+| 20:30 | Created tests/Feature/Delivery/OzonShipmentUiPropsTest.php | — | ~1327 |
+| 20:30 | Edited tests/Feature/Delivery/OzonShipmentUiPropsTest.php | 14→9 lines | ~128 |
+| 20:32 | Edited tests/Feature/Delivery/DeliveryProviderFoundationTest.php | 4→7 lines | ~102 |
+| 20:32 | Edited tests/Feature/Delivery/OzonCreateShipmentTest.php | 4→5 lines | ~66 |
+| 20:32 | Edited tests/Feature/Delivery/OzonTrackingTest.php | 2→3 lines | ~57 |
+| 20:32 | Edited tests/Feature/Delivery/OzonTrackingTest.php | 2→3 lines | ~58 |
+| 20:33 | Edited tests/Feature/Delivery/OzonDeliveryNoteTest.php | 2→3 lines | ~57 |
+| 20:33 | Edited tests/Feature/Delivery/OzonShipmentUiPropsTest.php | 2→3 lines | ~57 |
+| 20:34 | Edited tests/Feature/Delivery/OzonTrackingTest.php | modified it() | ~141 |
+| 20:35 | Edited tests/Feature/Delivery/OzonTrackingTest.php | modified fake() | ~182 |
+| 20:35 | Edited tests/Feature/Delivery/OzonTrackingTest.php | removed 9 lines | ~28 |
+| 20:38 | Edited app/Http/Controllers/Dashboard/DeliveryNoteController.php | inline fix | ~18 |
+| 20:38 | Edited app/Http/Controllers/Dashboard/DeliveryNoteController.php | inline fix | ~27 |
+| 20:38 | Edited app/Services/Delivery/DeliveryNoteService.php | added 1 import(s) | ~34 |
+| 20:38 | Edited app/Services/Delivery/DeliveryNoteService.php | modified foreach() | ~136 |
+| 20:47 | Session end: 83 writes across 46 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 40 reads | ~131574 tok |
+| 21:25 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 1 condition(s) | ~867 |
+| 21:25 | Edited app/Services/Delivery/OzonCityMappingService.php | modified syncCities() | ~349 |
+| 21:26 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | added 1 import(s) | ~64 |
+| 21:26 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | added 1 condition(s) | ~378 |
+| 21:26 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | expanded (+6 lines) | ~245 |
+| 21:26 | Edited tests/Feature/Delivery/OzonCityMappingTest.php | modified it() | ~393 |
+| 21:27 | Created tests/Feature/Delivery/OzonCitySyncTest.php | — | ~2199 |
+| 21:27 | Created tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | — | ~1348 |
+| 21:28 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | modified it() | ~105 |
+| 21:29 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | modified it() | ~346 |
+| 21:30 | Edited tests/Feature/Delivery/OzonConnectionTest.php | modified it() | ~342 |
+| 21:32 | Session end: 94 writes across 48 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 46 reads | ~150763 tok |
+| 21:44 | Edited database/migrations/2026_08_24_000002_create_delivery_connections_table.php | expanded (+11 lines) | ~233 |
+| 21:44 | Edited app/Models/DeliveryConnection.php | modified casts() | ~163 |
+| 21:45 | Edited app/Models/DeliveryConnection.php | expanded (+6 lines) | ~166 |
+| 21:45 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 1 condition(s) | ~1073 |
+| 21:45 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | 23→28 lines | ~405 |
+| 21:46 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | modified syncCities() | ~606 |
+| 21:46 | Edited routes/dashboard.php | 2→3 lines | ~74 |
+| 21:46 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~28 |
+| 21:46 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | added optional chaining | ~199 |
+| 21:46 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | CSS: Connection | ~263 |
+| 21:46 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | CSS: dark, hover, disabled | ~365 |
+| 21:46 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | modified disconnect() | ~152 |
+| 21:46 | Edited resources/js/Components/StatusBadge.jsx | 2→4 lines | ~84 |
+| 21:47 | Edited tests/Feature/Delivery/OzonCitySyncTest.php | modified it() | ~906 |
+| 21:48 | Created tests/Feature/Delivery/OzonConnectionStatusTest.php | — | ~2198 |
+| 21:48 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | modified it() | ~454 |
+| 21:48 | Edited tests/Feature/Delivery/OzonConnectionTest.php | modified withArgs() | ~136 |
+| 21:50 | Session end: 111 writes across 49 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 50 reads | ~164340 tok |
+| 22:06 | Edited database/migrations/2026_08_24_000002_create_delivery_connections_table.php | unsignedInteger() → sync() | ~166 |
+| 22:07 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 4 condition(s) | ~1088 |
+| 22:07 | Created database/migrations/2026_08_25_000001_add_pricing_fields_to_delivery_provider_cities_table.php | — | ~452 |
+| 22:07 | Edited app/Models/DeliveryProviderCity.php | modified casts() | ~119 |
+| 22:09 | Created app/Services/Delivery/DeliveryCityMappingSuggestionService.php | — | ~2074 |
+| 22:09 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | added 1 condition(s) | ~318 |
+| 22:09 | Edited app/Services/Delivery/OzonCityMappingService.php | added nullish coalescing | ~225 |
+| 22:09 | Edited app/Services/Delivery/OzonCityMappingService.php | added 2 condition(s) | ~496 |
+| 22:09 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | modified __construct() | ~607 |
+| 22:10 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | added nullish coalescing | ~436 |
+| 22:10 | Edited routes/dashboard.php | 3→5 lines | ~159 |
+| 22:11 | Created resources/js/Pages/Dashboard/Delivery/Connections.jsx | — | ~5676 |
+| 22:11 | Edited resources/js/Components/StatusBadge.jsx | 2→4 lines | ~103 |
+| 22:12 | Edited tests/Feature/Delivery/OzonCitySyncTest.php | modified it() | ~633 |
+| 22:12 | Created tests/Feature/Delivery/OzonCityMappingSuggestionTest.php | — | ~1978 |
+| 22:13 | Edited tests/Feature/Delivery/OzonCityMappingSuggestionTest.php | modified beforeEach() | ~168 |
+| 22:13 | Edited tests/Feature/Delivery/OzonCityMappingSuggestionTest.php | modified it() | ~211 |
+| 22:14 | Created tests/Feature/Delivery/OzonCityMappingBulkTest.php | — | ~1773 |
+| 22:15 | Edited tests/Feature/Delivery/OzonCityMappingBulkTest.php | modified it() | ~259 |
+| 22:16 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | 4→6 lines | ~82 |
+| 22:16 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | modified it() | ~509 |
+| 22:17 | Edited tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php | modified it() | ~61 |
+| 22:18 | Session end: 133 writes across 53 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 54 reads | ~185933 tok |
+| 22:31 | Created app/Support/Delivery/CityNameNormalizer.php | — | ~560 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | 6→6 lines | ~55 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | removed 21 lines | ~38 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | inline fix | ~8 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | inline fix | ~10 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | inline fix | ~9 |
+| 22:31 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | removed 32 lines | ~1 |
+| 22:32 | Created app/Services/Delivery/DeliveryCityMappingResolver.php | — | ~2876 |
+| 22:32 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | 15→17 lines | ~207 |
+| 22:32 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | suggestion() → suggestInternalCity() | ~226 |
+| 22:32 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | modified buildError() | ~190 |
+| 22:33 | Edited app/Services/Delivery/OzonShipmentService.php | modified __construct() | ~223 |
+| 22:33 | Edited app/Services/Delivery/OzonShipmentService.php | mappingFor() → resolve() | ~57 |
+| 22:33 | Edited app/Services/Delivery/OzonShipmentService.php | added 1 condition(s) | ~281 |
+| 22:33 | Edited app/Services/Delivery/OzonShipmentService.php | modified use() | ~276 |
+| 22:33 | Edited app/Services/Delivery/OzonShipmentService.php | removed 16 lines | ~2 |
+| 22:34 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | added 1 condition(s) | ~301 |
+| 22:34 | Edited app/Http/Middleware/HandleInertiaRequests.php | 5→10 lines | ~166 |
+| 22:35 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 6→6 lines | ~81 |
+| 22:35 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: DeliveryShipmentController | ~105 |
+| 22:35 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added nullish coalescing | ~318 |
+| 22:35 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 import(s) | ~95 |
+| 22:35 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 condition(s) | ~505 |
+| 22:36 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | inline fix | ~45 |
+| 22:36 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | 1→2 lines | ~51 |
+| 22:36 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | CSS: dark, match | ~379 |
+| 22:36 | Created tests/Feature/Delivery/DeliveryCityMappingResolverTest.php | — | ~2168 |
+| 22:36 | Edited tests/Feature/Delivery/DeliveryCityMappingResolverTest.php | inline fix | ~26 |
+| 22:38 | Created tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php | — | ~1878 |
+| 22:38 | Edited tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php | modified it() | ~211 |
+| 22:40 | Session end: 163 writes across 58 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 60 reads | ~207361 tok |
+| 22:49 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 5 condition(s) | ~1927 |
+| 22:49 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified extractError() | ~137 |
+| 22:49 | Created app/Services/Delivery/OzonShipmentCreationException.php | — | ~198 |
+| 22:50 | Edited app/Services/Delivery/OzonShipmentService.php | modified send() | ~118 |
+| 22:50 | Edited app/Services/Delivery/OzonShipmentService.php | withMessages() → OzonShipmentCreationException() | ~61 |
+| 22:50 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | added 1 import(s) | ~104 |
+| 22:50 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | modified catch() | ~159 |
+| 22:50 | Edited app/Http/Middleware/HandleInertiaRequests.php | 5→10 lines | ~201 |
+| 22:50 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 3→6 lines | ~111 |
+| 22:50 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added nullish coalescing | ~577 |
+| 22:51 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | modified Field() | ~230 |
+| 22:51 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 1→2 lines | ~88 |
+| 22:51 | Created tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php | — | ~1863 |
+| 22:52 | Created tests/Feature/Delivery/OzonShipmentUiErrorTest.php | — | ~1824 |
+| 22:54 | Session end: 177 writes across 61 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 60 reads | ~217944 tok |
+| 22:58 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified formatParcelPrice() | ~64 |
+| 22:58 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 1 condition(s) | ~430 |
+| 22:59 | Edited app/Connectors/Delivery/OzonExpressConnector.php | 10→13 lines | ~161 |
+| 22:59 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added nullish coalescing | ~860 |
+| 23:00 | Created tests/Feature/Delivery/OzonParcelPriceFormatTest.php | — | ~1211 |
+| 23:00 | Created tests/Feature/Delivery/OzonProviderErrorHandlingTest.php | — | ~1698 |
+| 23:01 | Edited tests/Feature/Delivery/OzonCreateShipmentTest.php | added nullish coalescing | ~720 |
+| 23:02 | Session end: 184 writes across 63 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 63 reads | ~226268 tok |
+| 23:15 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified createShipment() | ~1531 |
+| 23:15 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified normalizeParcelStock() | ~163 |
+| 23:15 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added nullish coalescing | ~771 |
+| 23:16 | Edited app/Services/Delivery/OzonShipmentService.php | added 1 import(s) | ~91 |
+| 23:16 | Edited app/Services/Delivery/OzonShipmentService.php | added nullish coalescing | ~641 |
+| 23:16 | Edited app/Services/Delivery/OzonShipmentService.php | expanded (+7 lines) | ~371 |
+| 23:17 | Edited tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php | modified it() | ~199 |
+| 23:17 | Edited tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php | 2→2 lines | ~32 |
+| 23:18 | Edited tests/Feature/Delivery/OzonShipmentUiErrorTest.php | modified it() | ~138 |
+| 23:20 | Created tests/Feature/Delivery/OzonParcelStockModeTest.php | — | ~3013 |
+| 23:21 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | modified stockModeProduct() | ~132 |
+| 23:21 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | modified it() | ~111 |
+| 23:21 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | modified it() | ~112 |
+| 23:21 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | modified it() | ~116 |
+| 23:24 | Session end: 198 writes across 64 files (parallel-prancing-flame.md, 2026_08_24_000001_create_delivery_providers_table.php, 2026_08_24_000002_create_delivery_connections_table.php, 2026_08_24_000003_create_delivery_provider_cities_table.php, 2026_08_24_000004_create_city_delivery_provider_mappings_table.php) | 68 reads | ~248305 tok |
+| 23:36 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified debugInfo() | ~637 |
+| 23:36 | Edited app/Services/Delivery/OzonShipmentService.php | added 2 import(s) | ~106 |
+| 23:37 | Edited app/Services/Delivery/OzonShipmentService.php | added nullish coalescing | ~623 |
+| 23:37 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | expanded (+15 lines) | ~879 |
+
+## Session: 2026-08-24 23:40
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 23:42 | Created tests/Feature/Delivery/OzonProductsPayloadTest.php | — | ~3070 |
+| 23:45 | Extended OzonExpressConnector::debugInfo() with parcel_stock_sent/price/city, receiver/phone/address_present, has_products, products_count, product_refs_preview | app/Connectors/Delivery/OzonExpressConnector.php | passed lint | ~800 |
+| 23:47 | Rewrote buildProductsPayload() + added resolveProductRef() fallback chain (line sku -> variant sku -> product sku -> external ids -> local ids -> skip) | app/Services/Delivery/OzonShipmentService.php | passed lint | ~900 |
+| 23:50 | Added new debug rows (provider_message, sent parcel-stock/price/city, receiver/phone/address presence, products count/refs) to shipmentIssue details block | resources/js/Pages/Dashboard/Departments/Dispatch.jsx | build passed | ~600 |
+| 23:55 | Created OzonProductsPayloadTest.php (11 tests: fallback chain unit tests via reflection + 2 end-to-end) | tests/Feature/Delivery/OzonProductsPayloadTest.php | 11/11 passed | ~1600 |
+| 23:57 | Ran OzonParcelStockModeTest, OzonProviderErrorHandlingTest, OzonCreateShipmentTest, full tests/Feature/Delivery, FulfillmentWorkflowTest, OrderInventoryConsistencyTest, npm run build | — | all passed (175 delivery tests, 0 regressions, build OK) | ~500 |
+| 23:59 | Logged bug-ozon-products-payload-fallback-and-rich-diagnostics and 2 Key Learnings entries | .wolf/buglog.json, .wolf/cerebrum.md | recorded | ~700 |
+| 23:45 | Session end: 1 writes across 1 files (OzonProductsPayloadTest.php) | 2 reads | ~6446 tok |
+| 00:06 | Edited app/Services/Delivery/OzonShipmentService.php | 1→6 lines | ~123 |
+| 00:06 | Edited app/Services/Delivery/OzonShipmentService.php | added nullish coalescing | ~412 |
+| 00:06 | Edited app/Services/Delivery/OzonShipmentService.php | 5→5 lines | ~81 |
+| 00:07 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified json_encode() | ~131 |
+| 00:07 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added nullish coalescing | ~327 |
+| 00:07 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified debugInfo() | ~765 |
+| 00:07 | Edited app/Http/Controllers/Dashboard/DeliveryConnectionController.php | 4→7 lines | ~123 |
+| 00:07 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 6→6 lines | ~157 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | expanded (+10 lines) | ~533 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | modified Select() | ~239 |
+| 00:08 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | expanded (+8 lines) | ~649 |
+| 00:09 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | inline fix | ~18 |
+| 00:09 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | inline fix | ~18 |
+| 00:09 | Edited tests/Feature/Delivery/OzonProductsPayloadTest.php | inline fix | ~18 |
+| 00:10 | Created tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php | — | ~3840 |
+
+## Session: 2026-08-25
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 00:05 | Fixed products payload key qty->qnty (Ozon's documented field name); added resolveParcelOpen()/resolveBooleanFlag() | app/Services/Delivery/OzonShipmentService.php | lint passed | ~600 |
+| 00:07 | Added normalizeParcelOpen()/normalizeBooleanFlag() last-resort guards, extended debugInfo() with parcel_open/fragile/replace_sent + products_json_preview | app/Connectors/Delivery/OzonExpressConnector.php | lint passed | ~700 |
+| 00:09 | Tightened validation: default_parcel_stock in:0,1, default_parcel_open in:1,2 (was boolean) | app/Http/Controllers/Dashboard/DeliveryConnectionController.php | lint passed | ~300 |
+| 00:11 | Replaced free-text parcel-stock field and boolean parcel-open checkbox with proper <select> dropdowns matching Ozon's documented option labels | resources/js/Pages/Dashboard/Delivery/Connections.jsx | build passed | ~600 |
+| 00:13 | Added parcel_open/fragile/replace_sent + products_json_preview rows to shipmentIssue debug block | resources/js/Pages/Dashboard/Departments/Dispatch.jsx | build passed | ~400 |
+| 00:15 | Created OzonShipmentParameterSemanticsTest.php (17 tests covering all documented parameter semantics) | tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php | 17/17 passed | ~1800 |
+| 00:17 | Fixed 3 existing tests asserting old 'qty' key -> 'qnty' | tests/Feature/Delivery/OzonParcelStockModeTest.php, OzonProductsPayloadTest.php | passed | ~200 |
+| 00:19 | Ran full tests/Feature/Delivery, FulfillmentWorkflowTest, OrderInventoryConsistencyTest, npm run build | — | all passed (192 delivery tests, 0 regressions, build OK) | ~500 |
+| 00:21 | Logged bug-ozon-products-qty-vs-qnty-and-parcel-open-semantics + Key Learning about docs-over-guessing | .wolf/buglog.json, .wolf/cerebrum.md | recorded | ~700 |
+| 00:12 | Session end: 16 writes across 8 files (OzonProductsPayloadTest.php, OzonShipmentService.php, OzonExpressConnector.php, DeliveryConnectionController.php, Connections.jsx) | 6 reads | ~39570 tok |
+| 00:24 | Edited app/Http/Middleware/HandleInertiaRequests.php | expanded (+9 lines) | ~202 |
+| 00:24 | Edited app/Models/Shipment.php | expanded (+11 lines) | ~181 |
+| 00:24 | Edited app/Models/Shipment.php | modified normalizedStatuses() | ~138 |
+| 00:25 | Edited resources/js/Components/StatusBadge.jsx | CSS: provider_unverified | ~43 |
+| 00:25 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added 1 condition(s) | ~213 |
+| 00:26 | Edited app/Connectors/Delivery/OzonExpressConnector.php | added nullish coalescing | ~2016 |
+| 00:27 | Edited app/Services/Delivery/OzonShipmentService.php | added 5 condition(s) | ~1922 |
+| 00:27 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | added 3 condition(s) | ~714 |
+| 00:33 | Edited tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php | added 1 condition(s) | ~143 |
+| 00:34 | Edited tests/Pest.php | modified something() | ~252 |
+| 00:34 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | modified it() | ~231 |
+| 00:34 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | added 1 condition(s) | ~173 |
+| 00:34 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | added 1 condition(s) | ~161 |
+| 00:35 | Edited tests/Feature/Delivery/OzonParcelStockModeTest.php | 7→7 lines | ~86 |
+| 00:35 | Edited tests/Feature/Delivery/OzonProductsPayloadTest.php | added 1 condition(s) | ~157 |
+| 00:36 | Edited tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php | added 1 condition(s) | ~159 |
+| 00:36 | Edited tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php | added 1 condition(s) | ~169 |
+| 00:37 | Edited tests/Feature/Delivery/OzonCreateShipmentTest.php | added 1 condition(s) | ~70 |
+| 00:38 | Edited tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php | added 1 condition(s) | ~341 |
+| 00:38 | Edited tests/Feature/Delivery/OzonShipmentUiErrorTest.php | 7→7 lines | ~94 |
+| 00:39 | Edited tests/Feature/Delivery/OzonShipmentUiPropsTest.php | 2→2 lines | ~61 |
+| 00:40 | Edited tests/Feature/Delivery/OzonTrackingTest.php | modified fake() | ~199 |
+| 00:40 | Edited tests/Feature/Delivery/DeliveryProviderFoundationTest.php | modified it() | ~150 |
+| 00:43 | Edited routes/dashboard.php | modified group() | ~195 |
+| 00:43 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified use() | ~740 |
+| 00:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: DeliveryShipmentController | ~142 |
+| 00:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added nullish coalescing | ~753 |
+| 00:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | expanded (+9 lines) | ~844 |
+| 00:44 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | modified OzonUnverifiedBanner() | ~512 |
+| 00:46 | Created tests/Feature/Delivery/OzonShipmentVerificationTest.php | — | ~4225 |
+| 00:47 | Edited tests/Feature/Delivery/OzonShipmentVerificationTest.php | modified it() | ~367 |
+| 00:47 | Created tests/Feature/Delivery/DeliveryBoardOzonShipmentTest.php | — | ~1724 |
+| 01:05 | Added Shipment::STATUS_PROVIDER_UNVERIFIED (excluded from ACTIVE/TERMINAL statuses) | app/Models/Shipment.php | — | ~400 |
+| 01:10 | Added OzonExpressConnector::verifyShipment()/probeTrackingNumber()/extractVerificationError()/addParcelResultAndMessage(); fixed extractTrackingNumber() to check ADD-PARCEL.NEW-PARCEL nested shape | app/Connectors/Delivery/OzonExpressConnector.php | lint passed | ~1800 |
+| 01:20 | Rewrote OzonShipmentService::send() to use updateOrCreate (unique constraint) + branch verified/unverified; added retryVerification() + verificationDebug() | app/Services/Delivery/OzonShipmentService.php | lint passed | ~1400 |
+| 01:25 | Added retryVerification controller action + warning/success branching | app/Http/Controllers/Dashboard/DeliveryShipmentController.php | lint passed | ~600 |
+| 01:27 | Added retry-verification route | routes/dashboard.php | — | ~100 |
+| 01:28 | Shared shipment_verification flash key | app/Http/Middleware/HandleInertiaRequests.php | — | ~150 |
+| 01:32 | Added ozon_unverified per-order prop (keyed by order, not just order_shipment_id) | app/Http/Controllers/Dashboard/DepartmentController.php | lint passed | ~700 |
+| 01:38 | Added shipment_verification banner + per-row OzonUnverifiedBanner + Retry verification button | resources/js/Pages/Dashboard/Departments/Dispatch.jsx | build passed | ~1000 |
+| 01:40 | Added provider_unverified badge color | resources/js/Components/StatusBadge.jsx | — | ~50 |
+| 01:45 | Added shared ozonVerifiedFakes() test helper (Http::fake only matches first-registered rule per URL, discovered via vendor source read) | tests/Pest.php | — | ~300 |
+| 01:55 | Updated 8 existing Delivery test files to fake parcel-info/tracking and guard assertSent closures against the new verification HTTP calls | tests/Feature/Delivery/*.php | 205/205 passed | ~2500 |
+| 02:00 | Created OzonShipmentVerificationTest.php (9 tests) and DeliveryBoardOzonShipmentTest.php (4 tests) | tests/Feature/Delivery/OzonShipmentVerificationTest.php, DeliveryBoardOzonShipmentTest.php | 13/13 passed | ~2600 |
+| 02:05 | Ran full tests/Feature/Delivery, FulfillmentWorkflowTest, OrderInventoryConsistencyTest, npm run build | — | all passed (205 delivery tests, 0 regressions, build OK) | ~500 |
+| 02:08 | Logged bug-ozon-tracking-number-not-found-in-dashboard-strict-verification + 3 Key Learnings entries (unique constraint, verification architecture, Http::fake ordering) | .wolf/buglog.json, .wolf/cerebrum.md | recorded | ~900 |
+| 00:53 | Session end: 48 writes across 24 files (OzonProductsPayloadTest.php, OzonShipmentService.php, OzonExpressConnector.php, DeliveryConnectionController.php, Connections.jsx) | 27 reads | ~103608 tok |
+| 01:31 | Created database/migrations/2026_08_25_000001_create_order_sync_batches_and_results_tables.php | — | ~804 |
+| 01:31 | Created database/migrations/2026_08_25_000002_create_order_notifications_table.php | — | ~426 |
+| 01:32 | Created app/Models/OrderSyncBatch.php | — | ~735 |
+| 01:32 | Created app/Models/OrderSyncResult.php | — | ~390 |
+| 01:33 | Created app/Models/OrderNotification.php | — | ~364 |
+| 01:33 | Created config/sync.php | — | ~226 |
+| 01:35 | Edited app/Services/Sync/OrderSyncService.php | modified syncFromPlatform() | ~1203 |
+| 01:35 | Created app/Jobs/OrderSyncJob.php | — | ~1407 |
+| 01:35 | Edited app/Jobs/OrderSyncJob.php | modified __construct() | ~36 |
+| 01:35 | Edited app/Jobs/OrderSyncJob.php | 5→5 lines | ~88 |
+| 01:36 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 import(s) | ~217 |
+| 01:36 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | expanded (+6 lines) | ~121 |
+| 01:36 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | expanded (+12 lines) | ~390 |
+| 01:37 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified syncOrders() | ~430 |
+| 01:37 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified parse() | ~73 |
+| 01:37 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 condition(s) | ~1043 |
+| 01:38 | Edited routes/dashboard.php | 1→2 lines | ~83 |
+| 01:38 | Edited app/Connectors/WooCommerceConnector.php | modified mapWebhookOrder() | ~159 |
+| 01:39 | Created app/Services/WooCommerce/WooCommerceWebhookVerifier.php | — | ~253 |
+| 01:39 | Created app/Services/WooCommerce/WooCommerceOrderMapper.php | — | ~285 |
+| 01:39 | Created app/Http/Controllers/Api/WooCommerceWebhookController.php | — | ~1685 |
+| 01:40 | Edited app/Http/Controllers/Api/WooCommerceWebhookController.php | 11→10 lines | ~149 |
+| 01:40 | Edited app/Http/Controllers/Api/WooCommerceWebhookController.php | 8→5 lines | ~95 |
+| 01:40 | Edited routes/api.php | added 1 import(s) | ~63 |
+| 01:41 | Edited routes/api.php | 3→6 lines | ~111 |
+| 01:41 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | expanded (+7 lines) | ~151 |
+| 01:42 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | added 1 condition(s) | ~194 |
+| 01:42 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | 3→3 lines | ~57 |
+| 01:42 | Created app/Listeners/CreateNewOrderNotifications.php | — | ~744 |
+| 01:42 | Edited app/Providers/AppServiceProvider.php | added 2 import(s) | ~76 |
+| 01:43 | Edited app/Providers/AppServiceProvider.php | 1→3 lines | ~33 |
+| 01:43 | Created app/Http/Controllers/Dashboard/OrderNotificationController.php | — | ~1054 |
+| 01:43 | Edited routes/dashboard.php | modified group() | ~192 |
+| 01:44 | Edited routes/dashboard.php | added 1 import(s) | ~46 |
+| 01:45 | Created resources/js/Hooks/useOrderNotifications.js | — | ~615 |
+| 01:45 | Edited resources/js/Layouts/SaasLayout.jsx | modified SaasLayout() | ~921 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | added 1 import(s) | ~38 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~14 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | 8→9 lines | ~132 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | modified SidebarLink() | ~303 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | inline fix | ~15 |
+| 01:46 | Edited resources/js/Layouts/SaasLayout.jsx | 3→7 lines | ~98 |
+| 01:47 | Edited resources/js/Components/NotificationBell.jsx | added optional chaining | ~437 |
+| 01:47 | Edited resources/js/Components/NotificationBell.jsx | 24→21 lines | ~424 |
+| 01:47 | Edited resources/js/Components/ToastNotification.jsx | CSS: order-notif, kind, message | ~550 |
+| 01:47 | Edited resources/js/Components/ToastNotification.jsx | 5→3 lines | ~18 |
+| 01:48 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: context | ~161 |
+| 01:48 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added 1 import(s) | ~40 |
+| 01:48 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | added 1 import(s) | ~33 |
+| 01:48 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | CSS: context | ~163 |
+| 01:49 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | added 1 import(s) | ~35 |
+| 01:49 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | CSS: context, order_id | ~176 |
+| 01:49 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | 3→3 lines | ~37 |
+| 01:49 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | CSS: current_order_batch | ~891 |
+| 01:50 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | added nullish coalescing | ~979 |
+| 01:51 | Created tests/Feature/Foundation/OrderSyncQueueTest.php | — | ~1565 |
+| 01:51 | Edited tests/Feature/Foundation/OrderSyncQueueTest.php | modified it() | ~244 |
+| 01:52 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | inline fix | ~41 |
+| 01:52 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 import(s) | ~22 |
+| 01:54 | Edited tests/Feature/Foundation/OrderSyncQueueTest.php | 3→3 lines | ~92 |
+| 02:07 | Edited tests/Feature/Foundation/OrderSyncQueueTest.php | 3→3 lines | ~72 |
+| 02:08 | Edited tests/Feature/Foundation/OrderSyncQueueTest.php | modified it() | ~251 |
+| 02:09 | Created tests/Feature/Foundation/ConnectionOrderSyncBatchTest.php | — | ~1775 |
+| 02:10 | Created tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php | — | ~1827 |
+| 02:10 | Edited tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php | added 1 import(s) | ~58 |
+| 02:10 | Edited tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php | 7→12 lines | ~219 |
+| 02:11 | Created tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php | — | ~2150 |
+| 02:11 | Edited tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php | 4→3 lines | ~21 |
+| 02:12 | Created tests/Feature/Foundation/OrderSyncIncrementalTest.php | — | ~2041 |
+| 02:13 | Edited tests/Feature/Foundation/OrderSyncIncrementalTest.php | modified osiWoo() | ~183 |
+| 02:14 | Edited tests/Feature/Foundation/OrderSyncIncrementalTest.php | 12→14 lines | ~319 |
+| 02:14 | Edited tests/Feature/Foundation/OrderSyncIncrementalTest.php | 11→10 lines | ~238 |
+| 02:15 | Edited tests/Feature/Foundation/OrderSyncIncrementalTest.php | 18→16 lines | ~356 |
+| 02:15 | Created tests/Feature/Foundation/OrderWebhookIdempotencyTest.php | — | ~1498 |
+| 02:16 | Edited tests/Feature/Foundation/OrderWebhookIdempotencyTest.php | 7→7 lines | ~131 |
+| 02:16 | Created tests/Feature/Foundation/NewOrderNotificationTest.php | — | ~1729 |
+| 02:18 | Edited tests/Feature/Foundation/NewOrderNotificationTest.php | added 1 import(s) | ~64 |
+| 02:19 | Edited tests/Feature/Foundation/NewOrderNotificationTest.php | modified nonMember() | ~234 |
+| 02:19 | Created tests/Feature/Foundation/OrderNotificationBadgeTest.php | — | ~2086 |
+
+## Session: 2026-08-25 (Order Sync / Webhooks / Notifications)
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 03:00 | Researched existing infra: ProductSyncBatch/Result/Job pattern, OrderSyncService::saveOrder() already idempotent, Shopify webhook stack, source_type/source_platform already on orders, unique index already on (platform_connection_id, platform_order_id), scheduled fallback already in routes/console.php, dead NotificationBell.jsx placeholder | (research) | narrowed scope significantly | ~4000 |
+| 03:20 | Created order_sync_batches/order_sync_results + order_notifications migrations, OrderSyncBatch/OrderSyncResult/OrderNotification models, config/sync.php | database/migrations/*, app/Models/OrderSyncBatch.php, OrderSyncResult.php, OrderNotification.php, config/sync.php | migrated cleanly | ~2500 |
+| 03:35 | Extended OrderSyncService::syncFromPlatform() with skipped/failed tracking + per-order fault isolation | app/Services/Sync/OrderSyncService.php | lint passed | ~800 |
+| 03:40 | Created OrderSyncJob (mirrors ProductSyncJob) | app/Jobs/OrderSyncJob.php | lint passed | ~900 |
+| 03:50 | Converted ConnectionProfileController::syncOrders()/queueOrderSync() to queued batch pattern, added getOrderSyncBatchStatus(), current_order_batch in show() | app/Http/Controllers/Dashboard/ConnectionProfileController.php | lint passed, fixed Carbon/CarbonImmutable type mismatch | ~1800 |
+| 04:00 | Added sync-orders/batches route; confirmed SyncPlatformOrders job still used by legacy Livewire ConnectionIndex (left untouched) | routes/dashboard.php | route:list verified | ~400 |
+| 04:10 | Built WooCommerce webhook stack: mapWebhookOrder() wrapper, WooCommerceWebhookVerifier, WooCommerceOrderMapper, WooCommerceWebhookController; added orders/cancelled (Shopify) + order.deleted (WooCommerce) topic handling | app/Connectors/WooCommerceConnector.php, app/Services/WooCommerce/*, app/Http/Controllers/Api/WooCommerceWebhookController.php, app/Http/Controllers/Api/ShopifyWebhookController.php, routes/api.php | lint passed | ~2200 |
+| 04:25 | Built notifications backend: OrderNotification model (already done), CreateNewOrderNotifications listener, AppServiceProvider registration, OrderNotificationController (counts/markSeen), routes | app/Listeners/CreateNewOrderNotifications.php, app/Http/Controllers/Dashboard/OrderNotificationController.php, app/Providers/AppServiceProvider.php, routes/dashboard.php | lint passed | ~1800 |
+| 04:45 | Migrated new tables to dev DB | — | migrate --force succeeded | ~100 |
+| 05:00 | Built frontend: useOrderNotifications polling hook, wired NotificationBell.jsx to live data, extended ToastNotification.jsx for polled notifications, added sidebar badges + mark-seen hooks on Orders/Confirmation/order-detail pages, ConnectionProfile.jsx queued-sync polling UI + queue-worker hint | resources/js/Hooks/useOrderNotifications.js, Components/NotificationBell.jsx, ToastNotification.jsx, Layouts/SaasLayout.jsx, Pages/Dashboard/Orders/Manage.jsx, Departments/Confirmation.jsx, Orders/ShowOnline.jsx, Integrations/ConnectionProfile.jsx | npm run build passed | ~4500 |
+| 05:20 | Wrote 8 new test files (37 tests total); hit and fixed 2 recurring bugs: Http::fake infinite-loop fixtures (non-sequence non-empty paginated response) and missing OrganizationMember rows for non-owner test users | tests/Feature/Foundation/OrderSyncQueueTest.php, ConnectionOrderSyncBatchTest.php, ShopifyOrderWebhookImportTest.php, WooCommerceOrderWebhookImportTest.php, OrderSyncIncrementalTest.php, OrderWebhookIdempotencyTest.php, NewOrderNotificationTest.php, OrderNotificationBadgeTest.php | 37/37 passed | ~9000 |
+| 05:50 | Ran full tests/Feature/Foundation (569 tests via vendor/bin/pest -d memory_limit=1024M, artisan test wrapper hit a pre-existing 128MB ceiling on this large suite unrelated to my changes), tests/Feature/Delivery (205), regression filters, npm run build | — | all passed; tests/Feature/Orders has 2 pre-existing failures + 9 pre-existing errors (orphaned Livewire blade views on this branch, and an already-known claim-gate/OrderChannelViewsTest gap from earlier in this session) unrelated to this ticket | ~1500 |
+| 06:00 | Logged bug-order-sync-inline-timeout-and-missing-webhook-notifications + 4 Key Learnings entries | .wolf/buglog.json, .wolf/cerebrum.md | recorded | ~1200 |
+| 02:35 | Session end: 127 writes across 58 files (OzonProductsPayloadTest.php, OzonShipmentService.php, OzonExpressConnector.php, DeliveryConnectionController.php, Connections.jsx) | 62 reads | ~233823 tok |

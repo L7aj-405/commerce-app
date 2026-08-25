@@ -1,793 +1,1145 @@
 {
-  "session_id": "session-2026-08-20-0136",
-  "started": "2026-08-20T00:36:55.994Z",
+  "session_id": "session-2026-08-24-2340",
+  "started": "2026-08-24T22:40:34.936Z",
   "files_read": {
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Create.jsx": {
-      "count": 3,
-      "tokens": 5309,
-      "first_read": "2026-08-20T00:37:08.971Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx": {
-      "count": 10,
-      "tokens": 14034,
-      "first_read": "2026-08-20T00:38:36.529Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceOutboundSyncTest.php": {
-      "count": 4,
-      "tokens": 2722,
-      "first_read": "2026-08-20T00:40:39.010Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php": {
-      "count": 7,
-      "tokens": 8446,
-      "first_read": "2026-08-20T00:40:43.783Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductAttribute.php": {
-      "count": 1,
-      "tokens": 315,
-      "first_read": "2026-08-20T00:40:49.600Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductAttributeValue.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php": {
       "count": 2,
-      "tokens": 375,
-      "first_read": "2026-08-20T00:40:52.715Z"
+      "tokens": 3157,
+      "first_read": "2026-08-24T22:41:06.106Z"
     },
     "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductVariant.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T00:40:55.897Z"
+      "first_read": "2026-08-24T22:41:48.803Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/VariantInventoryLink.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Delivery/Connections.jsx": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:41:04.495Z"
+      "tokens": 5747,
+      "first_read": "2026-08-24T23:04:41.499Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/InventoryItem.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php": {
+      "count": 3,
+      "tokens": 8471,
+      "first_read": "2026-08-24T23:04:54.640Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DeliveryConnectionController.php": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:42:04.635Z"
+      "tokens": 2906,
+      "first_read": "2026-08-24T23:05:11.453Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Concerns/BelongsToOrganization.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx": {
+      "count": 6,
+      "tokens": 9880,
+      "first_read": "2026-08-24T23:08:12.407Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Shipment.php": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:45:00.125Z"
+      "tokens": 1177,
+      "first_read": "2026-08-24T23:20:15.398Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Concerns/BelongsToTenantThroughProduct.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_24_000005_create_shipments_table.php": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:45:19.427Z"
+      "tokens": 893,
+      "first_read": "2026-08-24T23:20:37.188Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/TenantContext.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:45:32.757Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Scopes/TenantThroughProductScope.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T00:45:41.052Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductPublishService.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DeliveryShipmentController.php": {
       "count": 2,
-      "tokens": 1769,
-      "first_read": "2026-08-20T01:19:08.291Z"
+      "tokens": 1341,
+      "first_read": "2026-08-24T23:21:00.270Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductPushService.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php": {
+      "count": 4,
+      "tokens": 6950,
+      "first_read": "2026-08-24T23:21:07.847Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php": {
       "count": 2,
-      "tokens": 8482,
-      "first_read": "2026-08-20T01:19:15.255Z"
+      "tokens": 4771,
+      "first_read": "2026-08-24T23:23:10.933Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Middleware/HandleInertiaRequests.php": {
       "count": 1,
-      "tokens": 8744,
-      "first_read": "2026-08-20T01:19:36.973Z"
+      "tokens": 1154,
+      "first_read": "2026-08-24T23:24:06.939Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/WooCommerceConnector.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/StatusBadge.jsx": {
+      "count": 1,
+      "tokens": 1216,
+      "first_read": "2026-08-24T23:25:02.347Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Delivery/OzonShipmentService.php": {
+      "count": 1,
+      "tokens": 3268,
+      "first_read": "2026-08-24T23:26:48.254Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonCreateShipmentTest.php": {
+      "count": 1,
+      "tokens": 2219,
+      "first_read": "2026-08-24T23:32:53.267Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php": {
+      "count": 2,
+      "tokens": 1939,
+      "first_read": "2026-08-24T23:33:26.207Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelPriceFormatTest.php": {
+      "count": 1,
+      "tokens": 1211,
+      "first_read": "2026-08-24T23:33:49.261Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonDeliveryNoteTest.php": {
+      "count": 1,
+      "tokens": 1328,
+      "first_read": "2026-08-24T23:34:03.725Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Pest.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:20:13.273Z"
+      "first_read": "2026-08-24T23:34:12.949Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/SyncLog.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonProductsPayloadTest.php": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T01:21:10.125Z"
+      "tokens": 3070,
+      "first_read": "2026-08-24T23:35:31.184Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php": {
+      "count": 2,
+      "tokens": 3904,
+      "first_read": "2026-08-24T23:36:16.615Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php": {
+      "count": 1,
+      "tokens": 1857,
+      "first_read": "2026-08-24T23:37:50.149Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentUiErrorTest.php": {
+      "count": 1,
+      "tokens": 1824,
+      "first_read": "2026-08-24T23:38:34.096Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentUiPropsTest.php": {
+      "count": 1,
+      "tokens": 1313,
+      "first_read": "2026-08-24T23:39:07.645Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonTrackingTest.php": {
+      "count": 2,
+      "tokens": 2234,
+      "first_read": "2026-08-24T23:39:40.017Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/DeliveryProviderFoundationTest.php": {
+      "count": 1,
+      "tokens": 752,
+      "first_read": "2026-08-24T23:40:38.263Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonProviderErrorHandlingTest.php": {
+      "count": 1,
+      "tokens": 1698,
+      "first_read": "2026-08-24T23:40:58.762Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/ProductSyncJob.php": {
+      "count": 1,
+      "tokens": 960,
+      "first_read": "2026-08-25T00:16:37.757Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductSyncBatch.php": {
+      "count": 1,
+      "tokens": 625,
+      "first_read": "2026-08-25T00:16:45.036Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductSyncResult.php": {
+      "count": 1,
+      "tokens": 335,
+      "first_read": "2026-08-25T00:16:45.185Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_21_000001_create_product_sync_batches_and_results_tables.php": {
+      "count": 1,
+      "tokens": 566,
+      "first_read": "2026-08-25T00:16:51.214Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductSyncController.php": {
+      "count": 1,
+      "tokens": 1324,
+      "first_read": "2026-08-25T00:16:51.334Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/OrderSyncService.php": {
+      "count": 1,
+      "tokens": 2792,
+      "first_read": "2026-08-25T00:16:57.684Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php": {
+      "count": 3,
+      "tokens": 1732,
+      "first_read": "2026-08-25T00:17:10.454Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyOrderMapper.php": {
+      "count": 1,
+      "tokens": 271,
+      "first_read": "2026-08-25T00:17:21.809Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php": {
+      "count": 1,
+      "tokens": 7372,
+      "first_read": "2026-08-25T00:17:41.596Z"
     },
     "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/SyncPlatformOrders.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:21:25.586Z"
+      "first_read": "2026-08-25T00:18:05.840Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_22_000001_add_source_tracking_to_orders_table.php": {
       "count": 1,
-      "tokens": 4775,
-      "first_read": "2026-08-20T01:21:51.663Z"
+      "tokens": 1404,
+      "first_read": "2026-08-25T00:18:51.011Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishTargetingTest.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/PlatformConnection.php": {
       "count": 1,
-      "tokens": 3889,
-      "first_read": "2026-08-20T01:22:23.426Z"
+      "tokens": 982,
+      "first_read": "2026-08-25T00:19:29.980Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyCapabilityDiagnosticsTest.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php": {
       "count": 1,
-      "tokens": 2992,
-      "first_read": "2026-08-20T01:23:05.462Z"
+      "tokens": 12456,
+      "first_read": "2026-08-25T00:19:55.700Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductBulkPublishTest.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyWebhookVerifier.php": {
       "count": 1,
-      "tokens": 1672,
-      "first_read": "2026-08-20T01:23:17.702Z"
+      "tokens": 203,
+      "first_read": "2026-08-25T00:20:07.957Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductChannelListing.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T01:23:30.950Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductVariantChannelListing.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/ShopifyWebhookTest.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:23:40.466Z"
+      "first_read": "2026-08-25T00:20:16.595Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/BaseConnector.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookTest.php": {
+      "count": 1,
+      "tokens": 2169,
+      "first_read": "2026-08-25T00:20:26.632Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/WooCommerceConnector.php": {
+      "count": 2,
+      "tokens": 9372,
+      "first_read": "2026-08-25T00:20:33.939Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Events/OrderCreated.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:25:36.107Z"
+      "first_read": "2026-08-25T00:20:57.911Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Exceptions/ConnectorException.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:25:46.096Z"
+      "first_read": "2026-08-25T00:21:51.258Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Product.php": {
-      "count": 1,
-      "tokens": 1797,
-      "first_read": "2026-08-20T01:26:59.853Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_05_25_000003_create_product_variant_attribute_values_table.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Orders/OrderAssignmentService.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T01:38:45.496Z"
+      "first_read": "2026-08-25T00:22:10.274Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Concerns/BelongsToTenant.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T01:40:43.368Z"
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/NotificationBell.jsx": {
+      "count": 2,
+      "tokens": 1574,
+      "first_read": "2026-08-25T00:24:02.678Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php": {
-      "count": 1,
-      "tokens": 2797,
-      "first_read": "2026-08-20T01:42:35.798Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx": {
       "count": 4,
-      "tokens": 4325,
-      "first_read": "2026-08-20T01:44:54.885Z"
+      "tokens": 5072,
+      "first_read": "2026-08-25T00:27:58.408Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Catalog/ProductVariantWizardService.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductQueuedSyncTest.php": {
       "count": 1,
-      "tokens": 3145,
-      "first_read": "2026-08-20T10:47:38.267Z"
+      "tokens": 1806,
+      "first_read": "2026-08-25T00:29:06.836Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_05_25_000001_create_product_attributes_table.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T10:49:47.512Z"
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx": {
+      "count": 2,
+      "tokens": 1119,
+      "first_read": "2026-08-25T00:29:39.958Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_05_25_000002_create_product_attribute_values_table.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T10:49:54.742Z"
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx": {
+      "count": 2,
+      "tokens": 6691,
+      "first_read": "2026-08-25T00:30:12.919Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_05_15_000002_create_product_variants_table.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-20T10:53:45.113Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCanonicalizationTest.php": {
-      "count": 1,
-      "tokens": 2688,
-      "first_read": "2026-08-20T11:04:12.671Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/AdjustStockModal.jsx": {
-      "count": 1,
-      "tokens": 1977,
-      "first_read": "2026-08-20T13:27:25.505Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Inventory/CatalogInventoryService.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Orders/OrderSyncServiceTest.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T13:33:03.574Z"
+      "first_read": "2026-08-25T00:33:47.188Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductSyncService.php": {
-      "count": 3,
-      "tokens": 7476,
-      "first_read": "2026-08-20T13:48:31.633Z"
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ConnectionSyncResetTest.php": {
+      "count": 1,
+      "tokens": 2982,
+      "first_read": "2026-08-25T00:34:05.142Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_05_15_000001_create_products_table.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx": {
+      "count": 1,
+      "tokens": 13578,
+      "first_read": "2026-08-25T00:48:22.034Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx": {
+      "count": 1,
+      "tokens": 5697,
+      "first_read": "2026-08-25T00:48:44.984Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/ShowOnline.jsx": {
+      "count": 1,
+      "tokens": 4443,
+      "first_read": "2026-08-25T00:49:17.942Z"
+    },
+    "C:/Users/toshiba/AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/b5a1760f-89e1-4247-92d4-1309e5ade5b4/tasks/brx078h6g.output": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-20T13:48:52.979Z"
+      "first_read": "2026-08-25T01:05:42.930Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductChannelPublisher.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php": {
       "count": 1,
-      "tokens": 2991,
-      "first_read": "2026-08-20T13:50:11.674Z"
+      "tokens": 1640,
+      "first_read": "2026-08-25T01:07:20.671Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php": {
       "count": 1,
-      "tokens": 2177,
-      "first_read": "2026-08-20T14:06:25.049Z"
+      "tokens": 2196,
+      "first_read": "2026-08-25T01:14:47.432Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/NewOrderNotificationTest.php": {
+      "count": 1,
+      "tokens": 1729,
+      "first_read": "2026-08-25T01:17:34.493Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/User.php": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-08-25T01:18:00.965Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Create.jsx",
-      "action": "edit",
-      "tokens": 1186,
-      "at": "2026-08-20T00:39:40.920Z"
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonProductsPayloadTest.php",
+      "action": "create",
+      "tokens": 3289,
+      "at": "2026-08-24T22:42:27.540Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Create.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Delivery/OzonShipmentService.php",
       "action": "edit",
-      "tokens": 990,
-      "at": "2026-08-20T00:39:59.257Z"
+      "tokens": 132,
+      "at": "2026-08-24T23:06:39.335Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Create.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Delivery/OzonShipmentService.php",
+      "action": "edit",
+      "tokens": 442,
+      "at": "2026-08-24T23:06:49.017Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Delivery/OzonShipmentService.php",
+      "action": "edit",
+      "tokens": 86,
+      "at": "2026-08-24T23:06:54.667Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php",
+      "action": "edit",
+      "tokens": 141,
+      "at": "2026-08-24T23:07:06.187Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php",
+      "action": "edit",
+      "tokens": 350,
+      "at": "2026-08-24T23:07:15.283Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php",
+      "action": "edit",
+      "tokens": 819,
+      "at": "2026-08-24T23:07:31.028Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "action": "edit",
+      "tokens": 132,
+      "at": "2026-08-24T23:07:42.420Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "action": "edit",
+      "tokens": 157,
+      "at": "2026-08-24T23:07:53.315Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "action": "edit",
+      "tokens": 533,
+      "at": "2026-08-24T23:08:02.735Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "action": "edit",
+      "tokens": 239,
+      "at": "2026-08-24T23:08:09.083Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "action": "edit",
+      "tokens": 649,
+      "at": "2026-08-24T23:08:24.849Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
+      "action": "edit",
+      "tokens": 20,
+      "at": "2026-08-24T23:09:16.960Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
+      "action": "edit",
+      "tokens": 20,
+      "at": "2026-08-24T23:09:20.973Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonProductsPayloadTest.php",
+      "action": "edit",
+      "tokens": 20,
+      "at": "2026-08-24T23:09:24.589Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php",
+      "action": "create",
+      "tokens": 4114,
+      "at": "2026-08-24T23:10:07.106Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Middleware/HandleInertiaRequests.php",
+      "action": "edit",
+      "tokens": 216,
+      "at": "2026-08-24T23:24:16.206Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Shipment.php",
+      "action": "edit",
+      "tokens": 194,
+      "at": "2026-08-24T23:24:34.752Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Shipment.php",
+      "action": "edit",
+      "tokens": 147,
+      "at": "2026-08-24T23:24:45.136Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/StatusBadge.jsx",
+      "action": "edit",
+      "tokens": 43,
+      "at": "2026-08-24T23:25:11.363Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php",
+      "action": "edit",
+      "tokens": 228,
+      "at": "2026-08-24T23:25:59.288Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/Delivery/OzonExpressConnector.php",
+      "action": "edit",
+      "tokens": 2160,
+      "at": "2026-08-24T23:26:28.062Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Delivery/OzonShipmentService.php",
+      "action": "edit",
+      "tokens": 2059,
+      "at": "2026-08-24T23:27:20.704Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DeliveryShipmentController.php",
+      "action": "edit",
+      "tokens": 764,
+      "at": "2026-08-24T23:27:55.062Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php",
+      "action": "edit",
+      "tokens": 154,
+      "at": "2026-08-24T23:33:44.541Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Pest.php",
+      "action": "edit",
+      "tokens": 270,
+      "at": "2026-08-24T23:34:22.130Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
+      "action": "edit",
+      "tokens": 248,
+      "at": "2026-08-24T23:34:40.013Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
       "action": "edit",
       "tokens": 185,
-      "at": "2026-08-20T00:40:10.156Z"
+      "at": "2026-08-24T23:34:49.158Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCanonicalizationTest.php",
-      "action": "create",
-      "tokens": 2880,
-      "at": "2026-08-20T00:41:53.333Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php",
-      "action": "create",
-      "tokens": 2315,
-      "at": "2026-08-20T00:43:43.012Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
       "action": "edit",
-      "tokens": 758,
-      "at": "2026-08-20T00:44:31.630Z"
+      "tokens": 172,
+      "at": "2026-08-24T23:34:56.368Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonParcelStockModeTest.php",
       "action": "edit",
-      "tokens": 131,
-      "at": "2026-08-20T00:44:41.235Z"
+      "tokens": 92,
+      "at": "2026-08-24T23:35:03.282Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductOptionSnapshot.php",
-      "action": "create",
-      "tokens": 584,
-      "at": "2026-08-20T01:26:07.567Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductPublishReadinessService.php",
-      "action": "create",
-      "tokens": 1536,
-      "at": "2026-08-20T01:26:29.736Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php",
-      "action": "create",
-      "tokens": 1428,
-      "at": "2026-08-20T01:27:20.160Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/WooCommerce/WooCommerceProductPayloadMapper.php",
-      "action": "create",
-      "tokens": 1034,
-      "at": "2026-08-20T01:27:34.876Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonProductsPayloadTest.php",
       "action": "edit",
-      "tokens": 80,
-      "at": "2026-08-20T01:27:55.214Z"
+      "tokens": 168,
+      "at": "2026-08-24T23:35:41.169Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php",
       "action": "edit",
-      "tokens": 1129,
-      "at": "2026-08-20T01:28:11.654Z"
+      "tokens": 171,
+      "at": "2026-08-24T23:36:26.187Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/WooCommerceConnector.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php",
       "action": "edit",
-      "tokens": 82,
-      "at": "2026-08-20T01:28:20.078Z"
+      "tokens": 181,
+      "at": "2026-08-24T23:36:34.434Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/WooCommerceConnector.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonCreateShipmentTest.php",
       "action": "edit",
-      "tokens": 1305,
-      "at": "2026-08-20T01:28:36.404Z"
+      "tokens": 75,
+      "at": "2026-08-24T23:37:22.058Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_20_000002_create_product_publish_batches_and_results_tables.php",
-      "action": "create",
-      "tokens": 651,
-      "at": "2026-08-20T01:28:58.934Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductPublishBatch.php",
-      "action": "create",
-      "tokens": 672,
-      "at": "2026-08-20T01:29:31.411Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductPublishResult.php",
-      "action": "create",
-      "tokens": 410,
-      "at": "2026-08-20T01:29:44.189Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php",
       "action": "edit",
-      "tokens": 417,
-      "at": "2026-08-20T01:30:23.511Z"
+      "tokens": 365,
+      "at": "2026-08-24T23:38:03.239Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductChannelPublisher.php",
-      "action": "create",
-      "tokens": 3204,
-      "at": "2026-08-20T01:31:17.344Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/ProductPublishJob.php",
-      "action": "create",
-      "tokens": 1229,
-      "at": "2026-08-20T01:32:26.728Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentUiErrorTest.php",
       "action": "edit",
-      "tokens": 1427,
-      "at": "2026-08-20T01:33:07.459Z"
+      "tokens": 100,
+      "at": "2026-08-24T23:38:42.252Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentUiPropsTest.php",
       "action": "edit",
-      "tokens": 183,
-      "at": "2026-08-20T01:33:18.589Z"
+      "tokens": 65,
+      "at": "2026-08-24T23:39:15.300Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonTrackingTest.php",
       "action": "edit",
-      "tokens": 514,
-      "at": "2026-08-20T01:34:16.823Z"
+      "tokens": 214,
+      "at": "2026-08-24T23:40:01.557Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/DeliveryProviderFoundationTest.php",
       "action": "edit",
-      "tokens": 13,
-      "at": "2026-08-20T01:34:23.635Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
-      "action": "edit",
-      "tokens": 34,
-      "at": "2026-08-20T01:34:41.654Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
-      "action": "edit",
-      "tokens": 165,
-      "at": "2026-08-20T01:34:50.252Z"
+      "tokens": 160,
+      "at": "2026-08-24T23:40:46.395Z"
     },
     {
       "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 221,
-      "at": "2026-08-20T01:35:09.180Z"
+      "tokens": 208,
+      "at": "2026-08-24T23:43:12.705Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
+      "action": "edit",
+      "tokens": 793,
+      "at": "2026-08-24T23:43:39.945Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "action": "edit",
+      "tokens": 142,
+      "at": "2026-08-24T23:44:01.292Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "action": "edit",
+      "tokens": 753,
+      "at": "2026-08-24T23:44:12.206Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "action": "edit",
+      "tokens": 844,
+      "at": "2026-08-24T23:44:39.409Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "action": "edit",
+      "tokens": 512,
+      "at": "2026-08-24T23:44:58.022Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentVerificationTest.php",
       "action": "create",
-      "tokens": 2308,
-      "at": "2026-08-20T01:36:25.554Z"
+      "tokens": 4527,
+      "at": "2026-08-24T23:46:05.907Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/OzonShipmentVerificationTest.php",
       "action": "edit",
-      "tokens": 72,
-      "at": "2026-08-20T01:36:34.749Z"
+      "tokens": 393,
+      "at": "2026-08-24T23:47:07.617Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php",
-      "action": "edit",
-      "tokens": 78,
-      "at": "2026-08-20T01:36:43.367Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceCanonicalPublishMapperTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/DeliveryBoardOzonShipmentTest.php",
       "action": "create",
-      "tokens": 2439,
-      "at": "2026-08-20T01:37:28.110Z"
+      "tokens": 1847,
+      "at": "2026-08-24T23:47:48.756Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceCanonicalPublishMapperTest.php",
-      "action": "edit",
-      "tokens": 595,
-      "at": "2026-08-20T01:37:48.808Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishReadinessTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_25_000001_create_order_sync_batches_and_results_tables.php",
       "action": "create",
-      "tokens": 1761,
-      "at": "2026-08-20T01:38:32.797Z"
+      "tokens": 861,
+      "at": "2026-08-25T00:31:37.733Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishReadinessTest.php",
-      "action": "edit",
-      "tokens": 22,
-      "at": "2026-08-20T01:38:55.791Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishReadinessTest.php",
-      "action": "edit",
-      "tokens": 28,
-      "at": "2026-08-20T01:39:04.125Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_25_000002_create_order_notifications_table.php",
       "action": "create",
-      "tokens": 2887,
-      "at": "2026-08-20T01:40:09.750Z"
+      "tokens": 456,
+      "at": "2026-08-25T00:31:56.792Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/OrderSyncBatch.php",
+      "action": "create",
+      "tokens": 788,
+      "at": "2026-08-25T00:32:20.564Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/OrderSyncResult.php",
+      "action": "create",
+      "tokens": 418,
+      "at": "2026-08-25T00:32:45.397Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/OrderNotification.php",
+      "action": "create",
+      "tokens": 390,
+      "at": "2026-08-25T00:33:00.954Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/config/sync.php",
+      "action": "create",
+      "tokens": 242,
+      "at": "2026-08-25T00:33:26.564Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/OrderSyncService.php",
       "action": "edit",
-      "tokens": 36,
-      "at": "2026-08-20T01:40:18.488Z"
+      "tokens": 1289,
+      "at": "2026-08-25T00:35:00.312Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/OrderSyncJob.php",
+      "action": "create",
+      "tokens": 1508,
+      "at": "2026-08-25T00:35:34.308Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/OrderSyncJob.php",
       "action": "edit",
       "tokens": 38,
-      "at": "2026-08-20T01:40:26.680Z"
+      "at": "2026-08-25T00:35:49.159Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/OrderSyncJob.php",
       "action": "edit",
-      "tokens": 213,
-      "at": "2026-08-20T01:42:27.322Z"
+      "tokens": 94,
+      "at": "2026-08-25T00:35:59.161Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductPublishJobTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 140,
-      "at": "2026-08-20T01:42:46.611Z"
+      "tokens": 232,
+      "at": "2026-08-25T00:36:31.950Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 1146,
-      "at": "2026-08-20T01:45:25.961Z"
+      "tokens": 130,
+      "at": "2026-08-25T00:36:45.699Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 1149,
-      "at": "2026-08-20T01:45:44.761Z"
+      "tokens": 418,
+      "at": "2026-08-25T00:36:56.437Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 132,
-      "at": "2026-08-20T01:46:20.402Z"
+      "tokens": 460,
+      "at": "2026-08-25T00:37:15.270Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 482,
-      "at": "2026-08-20T01:46:32.577Z"
+      "tokens": 78,
+      "at": "2026-08-25T00:37:33.475Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/PublishTargetModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
       "action": "edit",
-      "tokens": 798,
-      "at": "2026-08-20T01:46:47.416Z"
+      "tokens": 1117,
+      "at": "2026-08-25T00:37:52.423Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 116,
-      "at": "2026-08-20T01:47:04.435Z"
+      "tokens": 89,
+      "at": "2026-08-25T00:38:27.467Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/WooCommerceConnector.php",
       "action": "edit",
-      "tokens": 27,
-      "at": "2026-08-20T01:47:12.965Z"
+      "tokens": 171,
+      "at": "2026-08-25T00:38:42.714Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
-      "action": "edit",
-      "tokens": 51,
-      "at": "2026-08-20T01:47:32.996Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
-      "action": "edit",
-      "tokens": 616,
-      "at": "2026-08-20T01:47:58.877Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_21_000001_add_is_active_to_product_attribute_values_table.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/WooCommerce/WooCommerceWebhookVerifier.php",
       "action": "create",
-      "tokens": 170,
-      "at": "2026-08-20T10:51:30.592Z"
+      "tokens": 271,
+      "at": "2026-08-25T00:39:09.362Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductAttributeValue.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/WooCommerce/WooCommerceOrderMapper.php",
+      "action": "create",
+      "tokens": 306,
+      "at": "2026-08-25T00:39:23.965Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/WooCommerceWebhookController.php",
+      "action": "create",
+      "tokens": 1805,
+      "at": "2026-08-25T00:39:55.129Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/WooCommerceWebhookController.php",
       "action": "edit",
-      "tokens": 47,
-      "at": "2026-08-20T10:51:55.666Z"
+      "tokens": 160,
+      "at": "2026-08-25T00:40:07.890Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductAttributeValue.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/WooCommerceWebhookController.php",
       "action": "edit",
-      "tokens": 97,
-      "at": "2026-08-20T10:52:12.844Z"
+      "tokens": 102,
+      "at": "2026-08-25T00:40:19.359Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/ProductAttributeValue.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/api.php",
+      "action": "edit",
+      "tokens": 68,
+      "at": "2026-08-25T00:40:45.019Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/api.php",
+      "action": "edit",
+      "tokens": 118,
+      "at": "2026-08-25T00:41:01.293Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
       "action": "edit",
       "tokens": 162,
-      "at": "2026-08-20T10:52:23.060Z"
+      "at": "2026-08-25T00:41:26.130Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductOptionSnapshot.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
       "action": "edit",
-      "tokens": 408,
-      "at": "2026-08-20T10:52:52.317Z"
+      "tokens": 207,
+      "at": "2026-08-25T00:42:14.468Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Catalog/ProductVariantWizardService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
+      "action": "edit",
+      "tokens": 61,
+      "at": "2026-08-25T00:42:26.095Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Listeners/CreateNewOrderNotifications.php",
       "action": "create",
-      "tokens": 5087,
-      "at": "2026-08-20T10:55:23.574Z"
+      "tokens": 797,
+      "at": "2026-08-25T00:42:45.729Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php",
       "action": "edit",
-      "tokens": 272,
-      "at": "2026-08-20T10:56:05.353Z"
+      "tokens": 82,
+      "at": "2026-08-25T00:42:55.060Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php",
       "action": "edit",
-      "tokens": 115,
-      "at": "2026-08-20T10:56:25.645Z"
+      "tokens": 35,
+      "at": "2026-08-25T00:43:00.983Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ProductController.php",
-      "action": "edit",
-      "tokens": 86,
-      "at": "2026-08-20T10:56:35.136Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
-      "action": "edit",
-      "tokens": 186,
-      "at": "2026-08-20T10:58:29.845Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
-      "action": "edit",
-      "tokens": 281,
-      "at": "2026-08-20T10:58:40.407Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/OrderNotificationController.php",
       "action": "create",
-      "tokens": 3355,
-      "at": "2026-08-20T11:00:26.785Z"
+      "tokens": 1129,
+      "at": "2026-08-25T00:43:30.741Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 90,
-      "at": "2026-08-20T11:00:39.790Z"
+      "tokens": 206,
+      "at": "2026-08-25T00:43:57.494Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 114,
-      "at": "2026-08-20T11:00:59.500Z"
+      "tokens": 50,
+      "at": "2026-08-25T00:44:30.459Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Hooks/useOrderNotifications.js",
       "action": "create",
-      "tokens": 1722,
-      "at": "2026-08-20T11:01:39.936Z"
+      "tokens": 615,
+      "at": "2026-08-25T00:45:21.097Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 436,
-      "at": "2026-08-20T11:03:12.451Z"
+      "tokens": 921,
+      "at": "2026-08-25T00:45:57.406Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCanonicalizationTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 221,
-      "at": "2026-08-20T11:04:27.366Z"
+      "tokens": 38,
+      "at": "2026-08-25T00:46:04.248Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/AdjustStockModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 451,
-      "at": "2026-08-20T13:28:51.240Z"
+      "tokens": 14,
+      "at": "2026-08-25T00:46:11.046Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Products/AdjustStockModal.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 395,
-      "at": "2026-08-20T13:29:07.270Z"
+      "tokens": 132,
+      "at": "2026-08-25T00:46:17.288Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 440,
-      "at": "2026-08-20T13:30:06.909Z"
+      "tokens": 303,
+      "at": "2026-08-25T00:46:27.015Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 182,
-      "at": "2026-08-20T13:30:19.081Z"
+      "tokens": 15,
+      "at": "2026-08-25T00:46:42.413Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Layouts/SaasLayout.jsx",
       "action": "edit",
-      "tokens": 587,
-      "at": "2026-08-20T13:31:20.730Z"
+      "tokens": 98,
+      "at": "2026-08-25T00:46:47.877Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/NotificationBell.jsx",
       "action": "edit",
-      "tokens": 119,
-      "at": "2026-08-20T13:31:51.891Z"
+      "tokens": 437,
+      "at": "2026-08-25T00:47:01.672Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/NotificationBell.jsx",
+      "action": "edit",
+      "tokens": 424,
+      "at": "2026-08-25T00:47:18.489Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx",
+      "action": "edit",
+      "tokens": 550,
+      "at": "2026-08-25T00:47:31.751Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx",
+      "action": "edit",
+      "tokens": 18,
+      "at": "2026-08-25T00:47:48.184Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "action": "edit",
+      "tokens": 161,
+      "at": "2026-08-25T00:48:30.145Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "action": "edit",
+      "tokens": 40,
+      "at": "2026-08-25T00:48:36.172Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "action": "edit",
+      "tokens": 33,
+      "at": "2026-08-25T00:48:51.017Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "action": "edit",
+      "tokens": 163,
+      "at": "2026-08-25T00:48:58.010Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "action": "edit",
+      "tokens": 35,
+      "at": "2026-08-25T00:49:13.334Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "action": "edit",
+      "tokens": 176,
+      "at": "2026-08-25T00:49:25.668Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "action": "edit",
+      "tokens": 37,
+      "at": "2026-08-25T00:49:38.738Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "action": "edit",
+      "tokens": 891,
+      "at": "2026-08-25T00:49:55.038Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "action": "edit",
+      "tokens": 979,
+      "at": "2026-08-25T00:50:24.979Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php",
       "action": "create",
-      "tokens": 1233,
-      "at": "2026-08-20T13:33:51.895Z"
+      "tokens": 1676,
+      "at": "2026-08-25T00:51:22.225Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php",
       "action": "edit",
-      "tokens": 59,
-      "at": "2026-08-20T13:34:04.240Z"
+      "tokens": 262,
+      "at": "2026-08-25T00:51:40.496Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductEditStockAdjustmentTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "action": "edit",
+      "tokens": 44,
+      "at": "2026-08-25T00:52:18.095Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "action": "edit",
+      "tokens": 23,
+      "at": "2026-08-25T00:52:24.197Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php",
+      "action": "edit",
+      "tokens": 99,
+      "at": "2026-08-25T00:54:23.579Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php",
+      "action": "edit",
+      "tokens": 78,
+      "at": "2026-08-25T01:07:31.147Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncQueueTest.php",
+      "action": "edit",
+      "tokens": 269,
+      "at": "2026-08-25T01:08:13.201Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ConnectionOrderSyncBatchTest.php",
       "action": "create",
-      "tokens": 2000,
-      "at": "2026-08-20T13:34:43.361Z"
+      "tokens": 1901,
+      "at": "2026-08-25T01:09:23.961Z"
     },
     {
-      "file": "C:/Users/toshiba/AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/358ee1f2-0cee-456b-910c-65b6637b1237/scratchpad/ReproBugTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php",
       "action": "create",
-      "tokens": 949,
-      "at": "2026-08-20T13:52:54.146Z"
+      "tokens": 1957,
+      "at": "2026-08-25T01:10:12.485Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductPushService.php",
-      "action": "edit",
-      "tokens": 313,
-      "at": "2026-08-20T13:55:55.512Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductChannelPublisher.php",
-      "action": "edit",
-      "tokens": 242,
-      "at": "2026-08-20T13:56:12.951Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Publishing/ProductChannelPublisher.php",
-      "action": "edit",
-      "tokens": 201,
-      "at": "2026-08-20T13:56:26.787Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductSyncService.php",
-      "action": "edit",
-      "tokens": 367,
-      "at": "2026-08-20T13:56:58.565Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductSyncService.php",
-      "action": "edit",
-      "tokens": 274,
-      "at": "2026-08-20T13:57:15.332Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductCrossChannelMappingTest.php",
-      "action": "create",
-      "tokens": 4104,
-      "at": "2026-08-20T13:58:36.250Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php",
-      "action": "create",
-      "tokens": 2361,
-      "at": "2026-08-20T13:59:55.070Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php",
       "action": "edit",
       "tokens": 62,
-      "at": "2026-08-20T14:00:11.242Z"
+      "at": "2026-08-25T01:10:47.662Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php",
       "action": "edit",
-      "tokens": 220,
-      "at": "2026-08-20T14:00:27.927Z"
+      "tokens": 234,
+      "at": "2026-08-25T01:10:58.543Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/ProductSyncService.php",
-      "action": "edit",
-      "tokens": 490,
-      "at": "2026-08-20T14:04:15.583Z"
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php",
+      "action": "create",
+      "tokens": 2303,
+      "at": "2026-08-25T01:11:48.761Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php",
       "action": "edit",
-      "tokens": 750,
-      "at": "2026-08-20T14:06:48.273Z"
+      "tokens": 23,
+      "at": "2026-08-25T01:11:58.028Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "action": "create",
+      "tokens": 2186,
+      "at": "2026-08-25T01:12:47.054Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "action": "edit",
+      "tokens": 196,
+      "at": "2026-08-25T01:13:26.382Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "action": "edit",
+      "tokens": 342,
+      "at": "2026-08-25T01:14:22.326Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "action": "edit",
+      "tokens": 255,
+      "at": "2026-08-25T01:14:34.426Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "action": "edit",
+      "tokens": 381,
+      "at": "2026-08-25T01:15:00.657Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderWebhookIdempotencyTest.php",
+      "action": "create",
+      "tokens": 1605,
+      "at": "2026-08-25T01:15:44.190Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderWebhookIdempotencyTest.php",
+      "action": "edit",
+      "tokens": 141,
+      "at": "2026-08-25T01:16:02.596Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/NewOrderNotificationTest.php",
+      "action": "create",
+      "tokens": 1852,
+      "at": "2026-08-25T01:16:46.091Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/NewOrderNotificationTest.php",
+      "action": "edit",
+      "tokens": 68,
+      "at": "2026-08-25T01:18:57.700Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/NewOrderNotificationTest.php",
+      "action": "edit",
+      "tokens": 250,
+      "at": "2026-08-25T01:19:07.696Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderNotificationBadgeTest.php",
+      "action": "create",
+      "tokens": 2235,
+      "at": "2026-08-25T01:19:54.088Z"
     }
   ],
   "edit_counts": {
-    "resources/js/Pages/Dashboard/Products/Create.jsx": 3,
-    "tests/Feature/Foundation/ProductVariantCanonicalizationTest.php": 2,
-    "tests/Feature/Foundation/ProductWizardVariantPersistenceTest.php": 3,
-    "app/Services/Publishing/ProductOptionSnapshot.php": 2,
-    "app/Services/Publishing/ProductPublishReadinessService.php": 1,
-    "app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php": 1,
-    "app/Services/Publishing/WooCommerce/WooCommerceProductPayloadMapper.php": 1,
-    "app/Connectors/ShopifyConnector.php": 3,
-    "app/Connectors/WooCommerceConnector.php": 2,
-    "database/migrations/2026_08_20_000002_create_product_publish_batches_and_results_tables.php": 1,
-    "app/Models/ProductPublishBatch.php": 1,
-    "app/Models/ProductPublishResult.php": 1,
-    "app/Services/Publishing/ProductChannelPublisher.php": 3,
-    "app/Jobs/ProductPublishJob.php": 1,
-    "app/Http/Controllers/Dashboard/ProductController.php": 9,
-    "routes/dashboard.php": 1,
-    "tests/Feature/Foundation/ShopifyCanonicalPublishMapperTest.php": 3,
-    "tests/Feature/Foundation/WooCommerceCanonicalPublishMapperTest.php": 2,
-    "tests/Feature/Foundation/ProductPublishReadinessTest.php": 3,
-    "tests/Feature/Foundation/ProductPublishJobTest.php": 5,
-    "resources/js/Components/Products/PublishTargetModal.jsx": 5,
-    "resources/js/Pages/Dashboard/Products/Edit.jsx": 10,
-    "database/migrations/2026_08_21_000001_add_is_active_to_product_attribute_values_table.php": 1,
-    "app/Models/ProductAttributeValue.php": 3,
-    "app/Services/Catalog/ProductVariantWizardService.php": 1,
-    "tests/Feature/Foundation/ProductWizardOptionValueRemovalTest.php": 3,
-    "tests/Feature/Foundation/ProductWizardVariantSkuGenerationTest.php": 2,
-    "resources/js/Components/Products/AdjustStockModal.jsx": 2,
-    "tests/Feature/Foundation/ProductWizardDoesNotWriteStockTest.php": 2,
-    "tests/Feature/Foundation/ProductEditStockAdjustmentTest.php": 1,
-    "../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/358ee1f2-0cee-456b-910c-65b6637b1237/scratchpad/ReproBugTest.php": 1,
-    "app/Services/Sync/ProductPushService.php": 1,
-    "app/Services/Sync/ProductSyncService.php": 3,
-    "tests/Feature/Foundation/ProductCrossChannelMappingTest.php": 1,
-    "tests/Feature/Foundation/ProductVariantCrossChannelMappingTest.php": 4
+    "tests/Feature/Delivery/OzonProductsPayloadTest.php": 3,
+    "app/Services/Delivery/OzonShipmentService.php": 4,
+    "app/Connectors/Delivery/OzonExpressConnector.php": 5,
+    "app/Http/Controllers/Dashboard/DeliveryConnectionController.php": 1,
+    "resources/js/Pages/Dashboard/Delivery/Connections.jsx": 3,
+    "resources/js/Pages/Dashboard/Departments/Dispatch.jsx": 5,
+    "tests/Feature/Delivery/OzonParcelStockModeTest.php": 6,
+    "tests/Feature/Delivery/OzonShipmentParameterSemanticsTest.php": 3,
+    "app/Http/Middleware/HandleInertiaRequests.php": 1,
+    "app/Models/Shipment.php": 2,
+    "resources/js/Components/StatusBadge.jsx": 1,
+    "app/Http/Controllers/Dashboard/DeliveryShipmentController.php": 1,
+    "tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php": 1,
+    "tests/Pest.php": 1,
+    "tests/Feature/Delivery/OzonCreateShipmentTest.php": 1,
+    "tests/Feature/Delivery/OzonSendShipmentCityMappingTest.php": 1,
+    "tests/Feature/Delivery/OzonShipmentUiErrorTest.php": 1,
+    "tests/Feature/Delivery/OzonShipmentUiPropsTest.php": 1,
+    "tests/Feature/Delivery/OzonTrackingTest.php": 1,
+    "tests/Feature/Delivery/DeliveryProviderFoundationTest.php": 1,
+    "routes/dashboard.php": 4,
+    "app/Http/Controllers/Dashboard/DepartmentController.php": 1,
+    "tests/Feature/Delivery/OzonShipmentVerificationTest.php": 2,
+    "tests/Feature/Delivery/DeliveryBoardOzonShipmentTest.php": 1,
+    "database/migrations/2026_08_25_000001_create_order_sync_batches_and_results_tables.php": 1,
+    "database/migrations/2026_08_25_000002_create_order_notifications_table.php": 1,
+    "app/Models/OrderSyncBatch.php": 1,
+    "app/Models/OrderSyncResult.php": 1,
+    "app/Models/OrderNotification.php": 1,
+    "config/sync.php": 1,
+    "app/Services/Sync/OrderSyncService.php": 1,
+    "app/Jobs/OrderSyncJob.php": 3,
+    "app/Http/Controllers/Dashboard/ConnectionProfileController.php": 8,
+    "app/Connectors/WooCommerceConnector.php": 1,
+    "app/Services/WooCommerce/WooCommerceWebhookVerifier.php": 1,
+    "app/Services/WooCommerce/WooCommerceOrderMapper.php": 1,
+    "app/Http/Controllers/Api/WooCommerceWebhookController.php": 3,
+    "routes/api.php": 2,
+    "app/Http/Controllers/Api/ShopifyWebhookController.php": 3,
+    "app/Listeners/CreateNewOrderNotifications.php": 1,
+    "app/Providers/AppServiceProvider.php": 2,
+    "app/Http/Controllers/Dashboard/OrderNotificationController.php": 1,
+    "resources/js/Hooks/useOrderNotifications.js": 1,
+    "resources/js/Layouts/SaasLayout.jsx": 7,
+    "resources/js/Components/NotificationBell.jsx": 2,
+    "resources/js/Components/ToastNotification.jsx": 2,
+    "resources/js/Pages/Dashboard/Orders/Manage.jsx": 2,
+    "resources/js/Pages/Dashboard/Departments/Confirmation.jsx": 2,
+    "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx": 2,
+    "resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx": 3,
+    "tests/Feature/Foundation/OrderSyncQueueTest.php": 5,
+    "tests/Feature/Foundation/ConnectionOrderSyncBatchTest.php": 1,
+    "tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php": 3,
+    "tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php": 2,
+    "tests/Feature/Foundation/OrderSyncIncrementalTest.php": 5,
+    "tests/Feature/Foundation/OrderWebhookIdempotencyTest.php": 2,
+    "tests/Feature/Foundation/NewOrderNotificationTest.php": 3,
+    "tests/Feature/Foundation/OrderNotificationBadgeTest.php": 1
   },
-  "anatomy_hits": 21,
-  "anatomy_misses": 22,
-  "repeated_reads_warned": 28,
+  "anatomy_hits": 50,
+  "anatomy_misses": 12,
+  "repeated_reads_warned": 25,
   "cerebrum_warnings": 0,
-  "stop_count": 5
+  "stop_count": 4
 }

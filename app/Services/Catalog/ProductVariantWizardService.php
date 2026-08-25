@@ -35,6 +35,26 @@ use Illuminate\Validation\ValidationException;
 class ProductVariantWizardService
 {
     /**
+     * Archive every active option/variant for a product with nothing left to
+     * keep — used when a product becomes simple, whether via the Product
+     * Edit form (variable -> simple) or an external sync that reports the
+     * remote product no longer has meaningful options/variants. Equivalent
+     * to sync($product, [], []): every active ProductVariant is soft-deleted
+     * (never hard-deleted, so a variant still carrying a
+     * ProductVariantChannelListing or inventory link keeps its history),
+     * every ProductAttributeValue is retired (hard-deleted when safe,
+     * flipped inactive when a still-referenced archived variant protects
+     * it), and any now-orphaned ProductAttribute is cleaned up the same way
+     * sync() already does for a fully-resubmitted-empty option list.
+     *
+     * @return array{variants: Collection<int, ProductVariant>, warnings: array<int, string>}
+     */
+    public function archiveAll(Product $product): array
+    {
+        return $this->sync($product, [], []);
+    }
+
+    /**
      * @param  array<int, array{name: string, values: array<int, string>}>  $options
      * @param  array<int, array{id?: ?string, sku?: ?string, price?: mixed, compare_price?: mixed, cost?: mixed, status?: ?string, options: array<string, string>}>  $variants
      * @param  bool  $regenerateSkus  When true, every active variant's SKU is regenerated, even if it already has one.
@@ -144,6 +164,25 @@ class ProductVariantWizardService
                     : null,
                 'cost' => isset($variantData['cost']) ? (float) $variantData['cost'] : (float) ($product->cost ?: 0),
             ];
+
+            if ($matched === null) {
+                // No active combo/id match — but an ARCHIVED variant (soft-
+                // deleted by a prior archiveAll()/sync() call, e.g. a
+                // variable-to-simple-and-back round trip) may already sit on
+                // this exact sku. product_variants has a unique
+                // (product_id, sku) index that soft-delete does not exempt,
+                // so blindly creating a new row here would throw a DB
+                // integrity violation. Restoring the archived row instead
+                // reuses its original id, which also transparently
+                // reconnects any ProductVariantChannelListing left over from
+                // before it was archived.
+                $trashed = $product->variants()->onlyTrashed()->where('sku', $sku)->first();
+
+                if ($trashed !== null && ! isset($claimedVariantIds[$trashed->id])) {
+                    $trashed->restore();
+                    $matched = $trashed;
+                }
+            }
 
             if ($matched !== null) {
                 $matched->update($attrs);

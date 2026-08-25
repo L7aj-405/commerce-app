@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Inventory;
 
-use App\Jobs\SyncInventoryToWebhooks;
+use App\Jobs\ExternalStockPushJob;
+use App\Jobs\RecheckWaitingStockOrdersJob;
 use App\Models\InventoryAdjustment;
 use App\Models\InventoryItem;
 use App\Models\InventoryLedgerEntry;
@@ -150,6 +151,17 @@ class InventoryEngine
             if ($queueSync && $beforeAvailable !== $afterAvailable && $warehouse->isSellable()) {
                 $this->queueSync($item,$beforeAvailable,$afterAvailable,$source,$eventType);
             }
+            // Waiting Stock Reallocation: available stock going UP at a
+            // sellable warehouse (a manual adjustment, a received transfer, a
+            // resellable return restock, a released reservation, …) may be
+            // exactly what an order stuck in WaitingForStock has been
+            // missing — recheck it instead of leaving it blocked until
+            // someone happens to look at a transfer that may not even exist.
+            // Never fires on available going DOWN (reserve/consume/ship), so
+            // this never competes with the mutation that just ran.
+            if ($afterAvailable > $beforeAvailable && $warehouse->isSellable()) {
+                RecheckWaitingStockOrdersJob::dispatch($item->id, $warehouse->id)->afterCommit();
+            }
             return $balance->fresh();
         });
     }
@@ -186,25 +198,32 @@ class InventoryEngine
 
     private function queueSync(InventoryItem $item, int $before, int $after, ?Model $source, string $eventType): void
     {
-        $productIds = [];
+        // (productId, variantId) pairs — never flattened into a bare product id
+        // list, so a variant-level movement pushes THAT variant's Shopify
+        // inventory_item_id/WooCommerce variation, not the parent product's.
+        $targets = [];
 
         $directIds = ProductInventoryLink::withoutOrganizationTenancy(
             fn () => ProductInventoryLink::query()->where('inventory_item_id', $item->id)->pluck('product_id')->all()
         );
-        $productIds = array_merge($productIds, $directIds);
+        foreach ($directIds as $productId) {
+            $targets[] = [$productId, null];
+        }
 
-        $variantProductIds = VariantInventoryLink::withoutOrganizationTenancy(
+        $variantLinks = VariantInventoryLink::withoutOrganizationTenancy(
             fn () => VariantInventoryLink::query()
                 ->where('inventory_item_id', $item->id)
                 ->with('variant:id,product_id')
                 ->get()
-                ->pluck('variant.product_id')
-                ->filter()
-                ->all()
         );
-        $productIds = array_values(array_unique(array_merge($productIds, $variantProductIds)));
+        foreach ($variantLinks as $link) {
+            if ($link->variant === null) {
+                continue;
+            }
+            $targets[] = [$link->variant->product_id, $link->product_variant_id];
+        }
 
-        foreach ($productIds as $productId) {
+        foreach ($targets as [$productId, $variantId]) {
             $product = \App\Models\Product::withoutTenancy(
                 fn () => \App\Models\Product::query()->with('store')->find($productId)
             );
@@ -225,7 +244,7 @@ class InventoryEngine
                 'notes' => $eventType,
             ]));
 
-            SyncInventoryToWebhooks::dispatch($product->store, $adjustment)->afterCommit();
+            ExternalStockPushJob::dispatch($productId, $variantId, null, $adjustment->id)->afterCommit();
         }
     }
 }

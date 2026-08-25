@@ -24,9 +24,9 @@ export default function ReadyForDelivery({ orders = [], is_agency_context = fals
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Ready for delivery',
-            subtitle: 'Packed orders staged and waiting for a carrier',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Ready for delivery' }],
+            title: 'Ready for Dispatch',
+            subtitle: 'Packed orders waiting for delivery assignment or handoff.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Ready for Dispatch' }],
         }}>
             <OperationsNav current="ready-delivery" />
 

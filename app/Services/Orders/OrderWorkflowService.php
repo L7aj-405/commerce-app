@@ -6,7 +6,6 @@ namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
-use App\Models\InventoryAllocation;
 use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\User;
@@ -113,13 +112,28 @@ class OrderWorkflowService
         ?User $actor,
         ?string $reason,
     ): ?FulfillmentStatus {
-        // V2 inventory semantics for online orders:
-        //   confirm => reserve available stock
+        // An online order line the platform clearly identified as a real
+        // product/variant/sku, but that never resolved to a local product,
+        // must never silently skip stock movement — block confirmation
+        // instead of quietly allocating only the lines that happened to
+        // match. A line the platform sent with no identifier at all (a
+        // genuine custom/service line) is not stock-required and never blocks.
+        if ($order instanceof Order && $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
+            $this->assertNoUnmappedStockedLines($order);
+        }
+
+        // V2 inventory semantics, shared by online orders AND POS delivery
+        // orders alike:
+        //   confirm (online) / checkout (POS) => reserve available stock
         //   ready_for_delivery => consume the reservation (goods leave the warehouse)
         //   cancellation before dispatch => release; cancellation after packing => restock
-        // POS checkout still uses the legacy stock writer for now; the Stock compatibility
-        // bridge mirrors those writes into the organization-level Inventory Engine.
-        if ($order instanceof Order) {
+        // A POS order never passes through Pending -> Confirmed here (it is
+        // born past that point — see FulfillmentType::initialFulfillmentStatus()
+        // and OrderProcessingService::commitInventoryViaEngine(), which does the
+        // equivalent allocate()/consume() at checkout time instead) — so that
+        // branch below is effectively online-order-only, while ready_for_delivery
+        // and cancellation are genuinely shared by both order types.
+        if ($order instanceof Order || $order instanceof PosOrder) {
             $order->loadMissing('store.organization');
 
             // Organization-backed stores use the V2 inventory engine. A small
@@ -127,10 +141,10 @@ class OrderWorkflowService
             // those rows keep the original Stock/StockLedger behavior until
             // they are migrated by the organization backfill.
             if ($order->store?->organization !== null) {
-                if ($current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
+                if ($order instanceof Order && $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
                     $allocation = $this->allocations->allocate($order, $order->shippingCity, $actor);
 
-                    return $this->statusAfterAllocation($allocation);
+                    return $this->allocations->statusForAllocation($allocation);
                 }
 
                 if ($target === FulfillmentStatus::ReadyForDelivery) {
@@ -183,14 +197,15 @@ class OrderWorkflowService
         return null;
     }
 
-    private function statusAfterAllocation(InventoryAllocation $allocation): FulfillmentStatus
+    private function assertNoUnmappedStockedLines(Order $order): void
     {
-        return match ($allocation->status) {
-            InventoryAllocation::STATUS_RESERVED => FulfillmentStatus::ReadyForPicking,
-            InventoryAllocation::STATUS_WAITING_TRANSFER,
-            InventoryAllocation::STATUS_INSUFFICIENT => FulfillmentStatus::WaitingForStock,
-            default => FulfillmentStatus::ReadyForPicking,
-        };
+        $hasUnmapped = collect(OrderLineItems::for($order))->contains(fn (array $line) => $line['unmapped']);
+
+        if ($hasUnmapped) {
+            throw ValidationException::withMessages([
+                'items' => 'Some lines are not linked to local inventory.',
+            ]);
+        }
     }
 
     /**

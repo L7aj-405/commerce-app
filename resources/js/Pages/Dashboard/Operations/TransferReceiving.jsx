@@ -31,9 +31,9 @@ export default function TransferReceiving({ transfers = [] }) {
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Transfer receiving',
-            subtitle: 'Inbound inventory transfers waiting to be received into a warehouse',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Transfer receiving' }],
+            title: 'Transfer Receiving',
+            subtitle: 'Receive internal transfers and release waiting orders.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Transfer Receiving' }],
         }}>
             <OperationsNav current="transfers" />
 

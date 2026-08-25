@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Pos;
 
+use App\Enums\FulfillmentStatus;
 use App\Enums\FulfillmentType;
-use App\Jobs\SyncInventoryToWebhooks;
+use App\Jobs\ExternalStockPushJob;
 use App\Models\InventoryAdjustment;
 use App\Models\PosOrder;
 use App\Models\PosOrderItem;
@@ -14,6 +15,7 @@ use App\Models\Product;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\Inventory\WarehouseAllocationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,8 @@ use Throwable;
 
 class OrderProcessingService
 {
+    public function __construct(private readonly WarehouseAllocationService $allocations) {}
+
     /**
      * Create a POS order with its line items. Runs in a single transaction so
      * a failure half-way through leaves no orphan rows.
@@ -116,10 +120,63 @@ class OrderProcessingService
     }
 
     /**
+     * Commit (instant sale) or reserve (delivery) this order's stock.
+     *
+     * Organization-backed stores go through the V2 inventory engine, exactly
+     * like online orders: `WarehouseAllocationService::allocate()` reserves
+     * available stock (never touching on_hand yet); an instant sale is then
+     * immediately `consume()`d (goods already left with the customer), while
+     * a delivery order stays reserved — its fulfillment_status is resolved to
+     * ready_for_picking/waiting_for_stock exactly like an online order's
+     * Pending -> Confirmed transition, and on_hand is only consumed later
+     * when the order reaches ready_for_delivery (OrderWorkflowService).
+     *
+     * Legacy (no organization) stores keep the original direct Stock write
+     * below, unchanged, until the organization backfill migrates them.
+     */
+    public function adjustInventory(PosOrder $order, ?User $actor = null): void
+    {
+        $order->loadMissing('store.organization');
+
+        if ($order->store?->organization !== null) {
+            $this->commitInventoryViaEngine($order, $actor ?? $order->cashier);
+
+            return;
+        }
+
+        $this->legacyAdjustInventory($order);
+    }
+
+    private function commitInventoryViaEngine(PosOrder $order, ?User $actor): void
+    {
+        $allocation = $this->allocations->allocate($order, null, $actor);
+
+        if ($order->fulfillment_status === FulfillmentStatus::Completed) {
+            // Instant sale — the goods already left with the customer;
+            // consume the reservation right away. allocate() already threw
+            // if stock was insufficient, so this never oversells.
+            $this->allocations->consume($order, $actor);
+
+            return;
+        }
+
+        // Delivery — leave it reserved. Resolve the persisted status the same
+        // way an online order's Pending -> Confirmed transition does: the
+        // warehouse either can act now (ready_for_picking) or is still
+        // waiting on a replenishment transfer allocate() already queued
+        // (waiting_for_stock).
+        $resolved = $this->allocations->statusForAllocation($allocation);
+
+        if ($resolved !== $order->fulfillment_status) {
+            $order->fill(['fulfillment_status' => $resolved, 'fulfillment_updated_at' => now()])->save();
+        }
+    }
+
+    /**
      * Decrement stock for each line item and write an InventoryAdjustment audit row.
      * Polymorphic `adjustable` is set to the PosOrder so the trail is reconstructable.
      */
-    public function adjustInventory(PosOrder $order): void
+    private function legacyAdjustInventory(PosOrder $order): void
     {
         $warehouse = $order->store->getPrimaryWarehouse() ?? $order->store->getDefaultWarehouse();
 
@@ -189,7 +246,7 @@ class OrderProcessingService
 
         foreach ($adjustments as $adjustment) {
             try {
-                SyncInventoryToWebhooks::dispatch($store, $adjustment);
+                ExternalStockPushJob::dispatch($adjustment->product_id, null, null, $adjustment->id);
             } catch (Throwable $e) {
                 Log::warning('Failed to queue webhook sync', [
                     'adjustment_id' => $adjustment->id,

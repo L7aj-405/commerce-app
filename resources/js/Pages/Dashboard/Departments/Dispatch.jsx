@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { usePage } from '@inertiajs/react';
+import { usePage, Link } from '@inertiajs/react';
 import {
     Truck, User, Package, Loader2, CheckCircle2, XCircle, ExternalLink,
-    MapPin, Clock, Send, FileText, Copy, Building2, Printer,
+    MapPin, Clock, Send, FileText, Copy, Building2, Printer, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DepartmentNav from '@/Components/Departments/DepartmentNav';
+import StatusBadge from '@/Components/StatusBadge';
 import useQueue from '@/Hooks/useQueue';
 import {
     StatTiles, SourceBadge, QueueToolbar, EmptyQueue, ReasonDialog,
@@ -25,9 +26,20 @@ const FAILURE_REASONS = [
     { value: 'other',              label: 'Other…' },
 ];
 
-export default function Dispatch({ store, orders = [], agents = [], couriers = [], manifests = [], stats = {}, departments = [] }) {
+export default function Dispatch({ store, orders = [], agents = [], couriers = [], manifests = [], stats = {}, departments = [], ozon_connected: ozonConnected = false }) {
     const currency = store?.currency ?? 'MAD';
-    const userId   = usePage().props.auth?.user?.id ?? null;
+    const page     = usePage();
+    const userId   = page.props.auth?.user?.id ?? null;
+    // Set alongside flash.error only for a "Send to Ozon" city-mapping
+    // failure — see DeliveryShipmentController::sendToOzon().
+    const cityIssue = page.props.flash?.city_issue;
+    // Set alongside flash.error only when Ozon rejected the parcel or its
+    // response couldn't be parsed (never a city-mapping problem).
+    const shipmentIssue = page.props.flash?.shipment_issue;
+    // Set alongside flash.warning when add-parcel returned a tracking
+    // number but parcel-info/tracking could not independently confirm it —
+    // see DeliveryShipmentController::sendToOzon()/retryVerification().
+    const shipmentVerification = page.props.flash?.shipment_verification;
 
     const q = useQueue(orders, { userId });
     const [assigning, setAssigning] = useState(null);   // order awaiting a carrier
@@ -40,11 +52,107 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Delivery & logistics',
+            title: 'Delivery Board',
             subtitle: 'Assign carriers, track shipments and confirm delivery',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Delivery' }],
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Delivery Board' }],
         }}>
             <DepartmentNav departments={departments} current="dispatch" />
+
+            {cityIssue && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>
+                        City &quot;{cityIssue.raw_city ?? 'unknown'}&quot; is not mapped to Ozon.
+                        {cityIssue.suggested_city_name && <> Suggested match: <strong>{cityIssue.suggested_city_name}</strong>.</>}
+                    </span>
+                    <Link
+                        href="/dashboard/delivery-connections"
+                        className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-surface border border-amber-500/40 text-xs font-semibold hover:bg-surface-2 transition"
+                    >
+                        Open city mapping <ExternalLink className="w-3 h-3" />
+                    </Link>
+                </div>
+            )}
+
+            {shipmentIssue && (
+                <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-300 text-sm">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>Ozon Express did not accept this parcel — see the toast above for the exact reason.</span>
+                    </div>
+                    {(shipmentIssue.http_status || (shipmentIssue.response_keys ?? []).length > 0) && (
+                        <details className="mt-2 text-xs text-content-muted">
+                            <summary className="cursor-pointer select-none hover:text-content">Debug details</summary>
+                            <dl className="mt-2 space-y-1 pl-1">
+                                {shipmentIssue.provider_message && <div>Provider message: <span className="font-mono">{shipmentIssue.provider_message}</span></div>}
+                                {shipmentIssue.http_status && <div>HTTP status: <span className="font-mono">{shipmentIssue.http_status}</span></div>}
+                                {shipmentIssue.content_type && <div>Content-Type: <span className="font-mono">{shipmentIssue.content_type}</span></div>}
+                                {(shipmentIssue.response_keys ?? []).length > 0 && (
+                                    <div>Response keys: <span className="font-mono">{shipmentIssue.response_keys.join(', ')}</span></div>
+                                )}
+                                <div className="pt-1 mt-1 border-t border-line/60">
+                                    <div>Sent parcel-stock: <span className="font-mono">{shipmentIssue.parcel_stock_sent ?? '—'}</span></div>
+                                    <div>Sent parcel-price: <span className="font-mono">{shipmentIssue.parcel_price_sent ?? '—'}</span></div>
+                                    <div>Sent parcel-city: <span className="font-mono">{shipmentIssue.parcel_city_sent ?? '—'}</span></div>
+                                    <div>Sent parcel-open: <span className="font-mono">{shipmentIssue.parcel_open_sent ?? '—'}</span></div>
+                                    <div>Sent parcel-fragile: <span className="font-mono">{shipmentIssue.parcel_fragile_sent ?? '—'}</span></div>
+                                    <div>Sent parcel-replace: <span className="font-mono">{shipmentIssue.parcel_replace_sent ?? '—'}</span></div>
+                                    <div>Receiver / phone / address present: <span className="font-mono">
+                                        {String(!!shipmentIssue.receiver_present)} / {String(!!shipmentIssue.phone_present)} / {String(!!shipmentIssue.address_present)}
+                                    </span></div>
+                                    <div>Products: <span className="font-mono">
+                                        {shipmentIssue.has_products ? `${shipmentIssue.products_count} sent` : 'none sent'}
+                                    </span></div>
+                                    {(shipmentIssue.product_refs_preview ?? []).length > 0 && (
+                                        <div>Product refs: <span className="font-mono">{shipmentIssue.product_refs_preview.join(', ')}</span></div>
+                                    )}
+                                    {shipmentIssue.products_json_preview && (
+                                        <div>Products JSON sent:
+                                            <pre className="mt-1 p-2 rounded bg-surface-3 border border-line overflow-x-auto whitespace-pre-wrap break-all">{shipmentIssue.products_json_preview}</pre>
+                                        </div>
+                                    )}
+                                </div>
+                                {shipmentIssue.response_preview && (
+                                    <div className="pt-1 mt-1 border-t border-line/60">
+                                        Response preview:
+                                        <pre className="mt-1 p-2 rounded bg-surface-3 border border-line overflow-x-auto whitespace-pre-wrap break-all">{shipmentIssue.response_preview}</pre>
+                                    </div>
+                                )}
+                            </dl>
+                        </details>
+                    )}
+                </div>
+            )}
+
+            {shipmentVerification && (
+                <div className="mb-4 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>Ozon returned a tracking number, but the parcel could not be verified in Ozon. Do not hand this parcel to carrier yet.</span>
+                    </div>
+                    {shipmentVerification.tracking_number_returned && (
+                        <p className="mt-1 font-mono text-xs">{shipmentVerification.tracking_number_returned}</p>
+                    )}
+                    <p className="mt-1.5 text-xs text-amber-700/90 dark:text-amber-300/80">
+                        Some Ozon accounts may require adding parcels to a Bon de Livraison before operational pickup. Verify with Ozon parcel-info/tracking.
+                    </p>
+                    <details className="mt-2 text-xs text-content-muted">
+                        <summary className="cursor-pointer select-none hover:text-content">Debug details</summary>
+                        <dl className="mt-2 space-y-1 pl-1">
+                            <div>Add-parcel result: <span className="font-mono">{shipmentVerification.add_parcel_result ?? '—'}</span></div>
+                            <div>Add-parcel message: <span className="font-mono">{shipmentVerification.add_parcel_message ?? '—'}</span></div>
+                            <div>parcel-info HTTP status: <span className="font-mono">{shipmentVerification.parcel_info_http_status ?? '—'}</span></div>
+                            <div>parcel-info message: <span className="font-mono">{shipmentVerification.parcel_info_provider_message ?? '—'}</span></div>
+                            <div>tracking HTTP status: <span className="font-mono">{shipmentVerification.tracking_http_status ?? '—'}</span></div>
+                            <div>tracking message: <span className="font-mono">{shipmentVerification.tracking_provider_message ?? '—'}</span></div>
+                            <div>Verification status: <span className="font-mono">{shipmentVerification.verification_status}</span></div>
+                            {shipmentVerification.verification_error && (
+                                <div>Verification error: <span className="font-mono">{shipmentVerification.verification_error}</span></div>
+                            )}
+                        </dl>
+                    </details>
+                </div>
+            )}
 
             <StatTiles tiles={[
                 { label: 'Awaiting carrier', value: stats.awaiting ?? 0,  icon: Package,      tone: 'amber' },
@@ -76,16 +184,37 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                         ) : (
                             <ul className="divide-y divide-line/60">
                                 {awaiting.map((o) => (
-                                    <li key={q.keyOf(o)} className="p-4 flex flex-wrap items-start justify-between gap-3">
-                                        <OrderSummary order={o} currency={currency} />
-                                        <button
-                                            disabled={q.isBusy(o)}
-                                            onClick={() => setAssigning(o)}
-                                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 transition"
-                                        >
-                                            {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                            Assign carrier
-                                        </button>
+                                    <li key={q.keyOf(o)} className="p-4 flex flex-col gap-3">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <OrderSummary order={o} currency={currency} />
+                                            <div className="flex items-center gap-2">
+                                                {ozonConnected && o.type === 'online' && (
+                                                    <button
+                                                        disabled={q.isBusy(o)}
+                                                        onClick={() => post(o, `/dashboard/delivery-shipments/orders/${o.id}/ozon`)}
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-surface border border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-40 transition"
+                                                    >
+                                                        {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
+                                                        {o.ozon_unverified ? 'Retry send to Ozon' : 'Send to Ozon'}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    disabled={q.isBusy(o)}
+                                                    onClick={() => setAssigning(o)}
+                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 transition"
+                                                >
+                                                    {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                                    Assign carrier
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {o.ozon_unverified && (
+                                            <OzonUnverifiedBanner
+                                                info={o.ozon_unverified}
+                                                busy={q.isBusy(o)}
+                                                onRetryVerification={() => post(o, `/dashboard/delivery-shipments/${o.ozon_unverified.id}/retry-verification`)}
+                                            />
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -108,7 +237,11 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                 <OrderSummary order={o} currency={currency} />
 
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <CarrierChip shipment={s} />
+                                                    <CarrierChip
+                                                        shipment={s}
+                                                        busy={busy}
+                                                        onRefreshTracking={s.provider ? () => post(o, `/dashboard/delivery-shipments/${s.provider.id}/refresh-tracking`) : null}
+                                                    />
                                                     {! done && (
                                                         <div className="flex items-center gap-2">
                                                             <button
@@ -218,6 +351,34 @@ function Section({ title, count, children }) {
     );
 }
 
+/** Persistent per-row banner for an Ozon parcel that add-parcel accepted but parcel-info/tracking could not confirm — the order stays "awaiting carrier" until this is retried. */
+function OzonUnverifiedBanner({ info, busy, onRetryVerification }) {
+    return (
+        <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+            <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                    <p>Ozon returned a tracking number, but the parcel could not be verified in Ozon. Do not hand this parcel to carrier yet.</p>
+                    {info.tracking_number && <p className="mt-1 font-mono">{info.tracking_number}</p>}
+                    <p className="mt-1.5 text-amber-700/90 dark:text-amber-300/80">
+                        Some Ozon accounts may require adding parcels to a Bon de Livraison before operational pickup. Verify with Ozon parcel-info/tracking.
+                    </p>
+                </div>
+            </div>
+            <div className="mt-2">
+                <button
+                    disabled={busy}
+                    onClick={onRetryVerification}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 disabled:opacity-40 transition"
+                >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    Retry verification
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function OrderSummary({ order, currency }) {
     return (
         <div className="min-w-0">
@@ -246,7 +407,7 @@ function OrderSummary({ order, currency }) {
     );
 }
 
-function CarrierChip({ shipment }) {
+function CarrierChip({ shipment, busy, onRefreshTracking }) {
     const internal = shipment.carrier_type === 'internal';
     const Icon = internal ? User : Building2;
 
@@ -261,6 +422,22 @@ function CarrierChip({ shipment }) {
                 <Icon className="w-3.5 h-3.5" />
                 {shipment.carrier_label}
             </span>
+
+            {shipment.provider && (
+                <div className="mt-1 flex items-center justify-end gap-1.5">
+                    <StatusBadge status={shipment.provider.status} type="shipment" />
+                    {onRefreshTracking && (
+                        <button
+                            disabled={busy}
+                            onClick={onRefreshTracking}
+                            aria-label="Refresh tracking"
+                            className="text-content-muted hover:text-content transition disabled:opacity-40"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+            )}
 
             {shipment.tracking_number && (
                 <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-content-muted">

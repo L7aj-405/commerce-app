@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Inventory;
 
-use App\Enums\FulfillmentStatus;
-use App\Models\InventoryAllocation;
 use App\Models\InventoryItem;
 use App\Models\InventoryReservation;
 use App\Models\InventoryTransfer;
@@ -19,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryTransferService
 {
-    public function __construct(private readonly InventoryEngine $inventory) {}
+    public function __construct(
+        private readonly InventoryEngine $inventory,
+        private readonly AllocationCompletionService $completion,
+    ) {}
 
     /** @param array<int,array{inventory_item_id:string,quantity:int,allocation_id?:?string}> $items */
     public function request(Organization $organization, Warehouse $source, Warehouse $destination, array $items, ?User $actor=null, string $reason='replenishment'): InventoryTransfer
@@ -103,30 +104,21 @@ class InventoryTransferService
         if ($reservation===null || $reservation->shortage_quantity<=0) return;
         $qty=min($line->quantity,$reservation->shortage_quantity);
         $this->inventory->reserve($line->inventoryItem,$line->transfer->destinationWarehouse,$qty,$reservation->allocation,$actor,'Reserved after transfer receipt');
-        $reservation->update(['reserved_quantity'=>$reservation->reserved_quantity+$qty,'shortage_quantity'=>$reservation->shortage_quantity-$qty,'status'=>($reservation->shortage_quantity-$qty)===0?InventoryReservation::STATUS_ACTIVE:InventoryReservation::STATUS_WAITING_TRANSFER]);
-        $allocation=$reservation->allocation;
-        if ($allocation->reservations()->where('shortage_quantity','>',0)->doesntExist()) {
-            $allocation->update(['status'=>InventoryAllocation::STATUS_RESERVED]);
-            $this->markSourceReadyForPicking($allocation);
-        }
-    }
-
-    private function markSourceReadyForPicking(InventoryAllocation $allocation): void
-    {
-        $source = $allocation->source;
-
-        if ($source === null) {
-            return;
-        }
-
-        $current = $source->fulfillment_status ?? null;
-
-        if ($current === FulfillmentStatus::WaitingForStock) {
-            $source->forceFill([
-                'fulfillment_status' => FulfillmentStatus::ReadyForPicking,
-                'fulfillment_updated_at' => now(),
-            ])->save();
-        }
+        $newShortage = $reservation->shortage_quantity-$qty;
+        $reservation->update([
+            'reserved_quantity'=>$reservation->reserved_quantity+$qty,
+            'shortage_quantity'=>$newShortage,
+            'status'=>$newShortage===0?InventoryReservation::STATUS_ACTIVE:InventoryReservation::STATUS_WAITING_TRANSFER,
+            'resolved_at'=>$newShortage===0?now():null,
+        ]);
+        // Only fully received quantity resolves a line — a partial receipt
+        // (received_quantity < quantity, tracked separately on $line) still
+        // leaves shortage_quantity > 0 above, which correctly keeps the
+        // allocation/order waiting (WaitingStockState then reports
+        // "ready_to_recheck" once the transfer itself is RECEIVED, so a
+        // supervisor can trigger WaitingStockReallocationService for any
+        // stock that arrived from elsewhere in the meantime).
+        $this->completion->syncIfComplete($reservation->allocation);
     }
 
     private function nextReference(Organization $organization): string

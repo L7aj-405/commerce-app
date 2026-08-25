@@ -70,14 +70,22 @@ export default function Index({ store, providers = [], connections = [] }) {
                                         </dl>
                                     )}
 
-                                    <div className="mt-4">
+                                    <div className="mt-4 flex flex-wrap gap-2">
                                         {connected ? (
-                                            <Link
-                                                href={store ? `/dashboard/integrations/${p.key}` : '#'}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 transition"
-                                            >
-                                                <Plug className="w-3.5 h-3.5" /> Configure
-                                            </Link>
+                                            <>
+                                                <Link
+                                                    href={store ? `/dashboard/integrations/${p.key}` : '#'}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 transition"
+                                                >
+                                                    <Plug className="w-3.5 h-3.5" /> Configure
+                                                </Link>
+                                                <Link
+                                                    href={`/dashboard/integrations/connections/${conn.id}`}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                                                >
+                                                    Connection profile
+                                                </Link>
+                                            </>
                                         ) : (
                                             <Link
                                                 href={store ? `/dashboard/integrations/${p.key}` : '#'}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     Boxes, AlertTriangle, DollarSign, History, Settings2, Package, Layers,
-    ArrowLeftRight, Warehouse, ChevronDown, LayoutGrid, Table as TableIcon,
+    ArrowLeftRight, Warehouse, ChevronDown, LayoutGrid, Table as TableIcon, Clock3,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatsCard from '@/Components/StatsCard';
@@ -168,9 +168,15 @@ export default function Stock({
 function ProductCard({ product, lowStockThreshold, scopedWarehouseName, onAdjust }) {
     const [open, setOpen] = useState(false);
 
-    const stock     = Number(product.total_stock ?? product.stock ?? 0);
-    const tone      = stockTone(stock, lowStockThreshold);
-    const pct       = Math.min(100, Math.max(0, Math.round((stock / (lowStockThreshold * 3)) * 100)));
+    // Headline is AVAILABLE (on_hand - reserved - transfer_reserved) — never
+    // labeled as a bare "Stock" number, since on_hand and available can
+    // genuinely differ once anything is reserved for an order.
+    const available = Number(product.available ?? product.total_stock ?? product.stock ?? 0);
+    const onHand     = Number(product.on_hand ?? available);
+    const reserved   = Number(product.reserved ?? 0);
+    const waiting    = Number(product.waiting_demand ?? 0);
+    const tone      = stockTone(available, lowStockThreshold);
+    const pct       = Math.min(100, Math.max(0, Math.round((available / (lowStockThreshold * 3)) * 100)));
     const breakdown = product.breakdown ?? [];
     const filtered  = !! scopedWarehouseName;
 
@@ -197,14 +203,30 @@ function ProductCard({ product, lowStockThreshold, scopedWarehouseName, onAdjust
                     )}
                 </div>
                 <div className="text-right flex-shrink-0">
+                    <div className="text-[9px] text-content-muted uppercase tracking-wider">Available</div>
                     <span className={`text-sm font-bold tabular-nums px-2 py-0.5 rounded-md ${tone.bg} ${tone.text}`}>
-                        {stock}
+                        {available}
                     </span>
                     {filtered && <div className="text-[9px] text-content-muted mt-1 uppercase tracking-wider">in {scopedWarehouseName}</div>}
                 </div>
             </div>
 
-            <div className="mt-4">
+            {/* Compact operational breakdown — on_hand/reserved/available are
+                never the same thing once anything is reserved for an order. */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-content-muted tabular-nums">
+                <span>On hand <b className="text-content">{onHand}</b></span>
+                <span>·</span>
+                <span>Reserved <b className="text-content">{reserved}</b></span>
+                <span>·</span>
+                <span>Available <b className="text-content">{available}</b></span>
+                {waiting > 0 && (
+                    <span className="ml-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-medium">
+                        <Clock3 className="w-2.5 h-2.5" /> Waiting {waiting}
+                    </span>
+                )}
+            </div>
+
+            <div className="mt-3">
                 <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
                     <div className={`h-full transition-all ${tone.bar}`} style={{ width: `${pct}%` }} />
                 </div>
@@ -239,8 +261,15 @@ function ProductCard({ product, lowStockThreshold, scopedWarehouseName, onAdjust
                                         <div key={v.id} className="pl-2 border-l-2 border-line/60">
                                             <div className="flex items-center justify-between text-[11px]">
                                                 <span className="text-content truncate">{v.name}</span>
-                                                <span className="tabular-nums text-content-muted">{v.stock}</span>
+                                                <span className="tabular-nums text-content-muted">
+                                                    On hand {v.on_hand ?? v.stock} · Reserved {v.reserved ?? 0} · Available {v.available ?? v.stock}
+                                                </span>
                                             </div>
+                                            {(v.waiting_demand ?? 0) > 0 && (
+                                                <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-medium">
+                                                    <Clock3 className="w-2.5 h-2.5" /> Waiting {v.waiting_demand}
+                                                </span>
+                                            )}
                                             {(v.breakdown ?? []).length > 0 && (
                                                 <div className="mt-1 flex flex-wrap gap-1">
                                                     {v.breakdown.map((w) => <WarehouseChip key={w.warehouse_id} name={w.name} qty={w.quantity} small />)}
@@ -319,7 +348,7 @@ function StockTable({ products, warehouseColumns, lowStockThreshold, onAdjust })
                     <thead>
                         <tr className="text-left text-[11px] uppercase tracking-wider text-content-muted border-b border-line">
                             <th className="px-4 py-3 font-medium">Product</th>
-                            <th className="px-4 py-3 font-medium">Total</th>
+                            <th className="px-4 py-3 font-medium">On hand · Reserved · Available</th>
                             {warehouseColumns.map((w) => (
                                 <th key={w.id} className="px-4 py-3 font-medium text-right whitespace-nowrap">{w.name}</th>
                             ))}
@@ -345,9 +374,11 @@ function StockTable({ products, warehouseColumns, lowStockThreshold, onAdjust })
 }
 
 function StockTableRow({ product, warehouseColumns, lowStockThreshold, onAdjust }) {
-    const stock = Number(product.total_stock ?? 0);
-    const tone  = stockTone(stock, lowStockThreshold);
-    const pct   = Math.min(100, Math.max(0, Math.round((stock / (lowStockThreshold * 3)) * 100)));
+    const available = Number(product.available ?? product.total_stock ?? 0);
+    const onHand    = Number(product.on_hand ?? available);
+    const reserved  = Number(product.reserved ?? 0);
+    const waiting   = Number(product.waiting_demand ?? 0);
+    const tone  = stockTone(available, lowStockThreshold);
     const qtyAt = (id) => product.breakdown?.find((w) => w.warehouse_id === id)?.quantity ?? 0;
 
     return (
@@ -367,10 +398,15 @@ function StockTableRow({ product, warehouseColumns, lowStockThreshold, onAdjust 
 
             <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${tone.bg} ${tone.text}`}>{stock}</span>
-                    <div className="w-14 h-1.5 rounded-full bg-surface-3 overflow-hidden hidden sm:block" title={tone.label}>
-                        <div className={`h-full ${tone.bar}`} style={{ width: `${pct}%` }} />
-                    </div>
+                    <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${tone.bg} ${tone.text}`} title="Available">{available}</span>
+                    {waiting > 0 && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-medium">
+                            <Clock3 className="w-2.5 h-2.5" /> {waiting}
+                        </span>
+                    )}
+                </div>
+                <div className="mt-1 text-[10px] text-content-muted tabular-nums whitespace-nowrap">
+                    On hand {onHand} · Reserved {reserved} · Available {available}
                 </div>
             </td>
 

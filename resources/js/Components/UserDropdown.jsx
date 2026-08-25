@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { User, Settings, Monitor, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, Monitor, LogOut, ChevronDown, ShieldCheck, Palette } from 'lucide-react';
 
 export default function UserDropdown() {
     const { auth } = usePage().props;
@@ -52,6 +52,8 @@ export default function UserDropdown() {
                     </header>
 
                     <MenuLink href="/settings/profile" icon={User}>Profile</MenuLink>
+                    <MenuLink href="/settings/security" icon={ShieldCheck}>Security</MenuLink>
+                    <MenuLink href="/settings/appearance" icon={Palette}>Appearance</MenuLink>
                     {can('stores.manage') && (
                         <MenuLink href="/dashboard/stores" icon={Settings}>Store settings</MenuLink>
                     )}

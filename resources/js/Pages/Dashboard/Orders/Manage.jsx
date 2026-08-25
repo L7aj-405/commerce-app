@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import {
     ShoppingCart, Monitor, Globe, Truck, LayoutGrid, Table2, Search, X,
     Eye, Printer, User, Phone, Mail, CreditCard, Clock, Package, Loader2,
@@ -62,6 +63,12 @@ const SOURCE_TONE = {
 
 export default function Manage({ store, orders = [], cities = [] }) {
     const currency = store?.currency ?? 'MAD';
+
+    // Opening the orders board is what "seen" means for the new-order badge
+    // — marks every unseen new_order notification for this user, once.
+    useEffect(() => {
+        axios.post('/dashboard/notifications/mark-seen', { context: 'orders_index' }).catch(() => {});
+    }, []);
 
     const permissions = usePage().props.auth?.permissions ?? [];
     const can = (perm) => ! perm || permissions.includes('*') || permissions.includes(perm);
@@ -485,6 +492,13 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                 <InfoRow icon={Truck} label="Fulfillment" value={order.fulfillment_label ?? order.source_label} />
                                 {order.payment_method && (
                                     <InfoRow icon={CreditCard} label="Payment" value={<span className="uppercase text-xs tracking-wider">{order.payment_method}</span>} />
+                                )}
+                                {order.source === 'online' && order.connection_label && (
+                                    <InfoRow
+                                        icon={Globe}
+                                        label="Store"
+                                        value={`${order.connection_label}${order.external_order_number ? ` · #${order.external_order_number}` : ''}`}
+                                    />
                                 )}
                             </Section>
 

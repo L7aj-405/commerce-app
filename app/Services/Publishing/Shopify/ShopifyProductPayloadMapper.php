@@ -38,7 +38,11 @@ class ShopifyProductPayloadMapper
 
         $snapshot = ProductOptionSnapshot::build($product);
 
-        if ($snapshot['options'] === []) {
+        // product.type is authoritative — a simple product always maps to
+        // the simple/default-variant payload, never a variable one, even if
+        // ProductOptionSnapshot somehow still returned something (it won't,
+        // see its own type guard; this mirrors WooCommerceProductPayloadMapper).
+        if (! $product->isVariable() || $snapshot['options'] === []) {
             return [
                 'ready' => true,
                 'errors' => [],
@@ -62,15 +66,29 @@ class ShopifyProductPayloadMapper
             'title' => $product->name,
             'body_html' => $product->description ?? '',
             'status' => $product->status === 'active' ? 'active' : 'draft',
-            'variants' => [
-                array_filter([
-                    'sku' => $product->sku ?? '',
-                    'price' => number_format((float) $product->price, 2, '.', ''),
-                ], fn ($v) => $v !== null),
-            ],
+            'variants' => [$this->defaultVariantPayload($product)],
         ];
 
         return $this->withOptionalFields($payload, $product);
+    }
+
+    /**
+     * The Shopify default variant payload for a simple product — SKU
+     * belongs to the variant, never the product parent, even for a simple
+     * product. Reused both when creating a product (embedded in the create
+     * payload) and by the publisher when explicitly updating an existing
+     * product's default variant by id.
+     */
+    public function defaultVariantPayload(Product $product): array
+    {
+        return array_filter([
+            'sku' => $product->sku ?? '',
+            'price' => number_format((float) $product->price, 2, '.', ''),
+            'compare_at_price' => $product->compare_price > 0
+                ? number_format((float) $product->compare_price, 2, '.', '')
+                : null,
+            'barcode' => ! empty($product->barcode) ? $product->barcode : null,
+        ], fn ($v) => $v !== null);
     }
 
     /**

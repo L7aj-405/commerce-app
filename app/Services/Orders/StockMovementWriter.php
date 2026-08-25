@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Orders;
 
+use App\Jobs\ExternalStockPushJob;
 use App\Models\InventoryAdjustment;
 use App\Models\Stock;
 use App\Models\StockLedger;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Jobs\SyncInventoryToWebhooks;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -83,20 +83,24 @@ class StockMovementWriter
         ]);
 
         if ($warehouse->isSellable()) {
-            $this->queueStorefrontSync($store, $productId, $source, $change, $before, $after, $ledgerType, $reference);
+            $this->queueStorefrontSync($store, $productId, $variantId, $source, $change, $before, $after, $ledgerType, $reference);
         }
 
         return $ledger;
     }
 
     /**
-     * Tell the connected storefronts the sellable quantity moved. The job
-     * recomputes the true sellable total itself; these columns are the audit of
-     * what triggered it.
+     * Tell the connected storefronts the sellable quantity moved, via the
+     * canonical external stock push (Shopify InventoryLevel / WooCommerce
+     * stock_quantity — see ExternalStockPushJob/ProductPushService), never the
+     * old ad-hoc delta-adjust webhook payload. The adjustment row stays as the
+     * audit trail / sync-status projection; the job mirrors its outcome back
+     * onto it.
      */
     private function queueStorefrontSync(
         Store $store,
         string $productId,
+        ?string $variantId,
         Model $source,
         int $change,
         int $before,
@@ -117,6 +121,6 @@ class StockMovementWriter
             'notes'           => $reference,
         ]);
 
-        SyncInventoryToWebhooks::dispatch($store, $adjustment);
+        ExternalStockPushJob::dispatch($productId, $variantId, null, $adjustment->id);
     }
 }

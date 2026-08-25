@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use App\Services\Sync\OrderSyncService;
 use App\Models\PlatformConnection;
+use App\Jobs\TrackActiveShipmentsJob;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -27,3 +28,7 @@ Schedule::call(function () {
         }
     }
 })->everyMinute();
+
+// Polls tracking for every active Ozon (and future provider) shipment. Kept as
+// its own schedule entry, separate from the order-sync call above.
+Schedule::job(new TrackActiveShipmentsJob())->everyFifteenMinutes();

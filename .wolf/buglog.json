@@ -2,6 +2,356 @@
   "version": 1,
   "bugs": [
     {
+      "id": "bug-ozon-parcel-stock-zero-default-and-missing-products-support",
+      "timestamp": "2026-08-25T04:00:00.000Z",
+      "error_message": "DeliveryConnection.settings.default_parcel_stock was confirmed (via tinker) saved as the string \"0\", yet Ozon rejected every parcel with \"Products data required for stock parcels\" — the error Ozon gives specifically for a STOCK parcel (parcel-stock=1) missing product data.",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php, app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Investigated the full chain (OzonShipmentService::send() -> resolveParcelStock() -> OzonExpressConnector::createShipment()'s array_filter) end-to-end, including a settings-cast round-trip test — the PREVIOUS session's resolveParcelStock() (`$options['parcel_stock'] ?? null` + `!== null && !== ''`) already correctly preserved an EXPLICIT \"0\" through to the payload; that specific reported mechanism could not be reproduced. The REAL gap: (1) the connector's own fallback, used whenever nothing is configured, was \"1\" (a stock parcel) — for any merchant who never explicitly set default_parcel_stock, every send defaulted into stock-parcel mode; (2) `products` was NEVER built or sent from order line items anywhere in the codebase — OzonShipmentService::send() had no products-building logic at all — so a stock parcel (whether via the \"1\" default or an explicit \"1\") was GUARANTEED to fail with exactly this error, every time, for every store.",
+      "fix": "Moved the authoritative parcel-stock resolution to `OzonShipmentService::resolveParcelStock(array $settings): string` (public static, directly testable) using `array_key_exists('default_parcel_stock', $settings)` — never `??`/`?:`/`empty()`, all of which treat \"0\" as absent — defaulting to \"0\" (not \"1\") when the key is missing OR explicitly empty. The connector's own `normalizeParcelStock()` is now only a last-resort '0' guard, never inventing '1'. Added `buildProductsPayload()` (reuses the existing, already-tested `OrderLineItems::for()` — read-only, no inventory logic touched) to build `[{ref, qty}]` from order line SKUs; `validateReadiness()` now blocks BEFORE calling Ozon when the resolved stock mode is \"1\" and no product SKUs exist (\"Ozon stock parcels require product details.\"); products are sent whenever available regardless of stock mode, per Ozon's own docs listing them as generally-helpful/optional. `debugInfo()`/`logCreateShipmentIssue()` now receive the actual outgoing payload and report parcel_stock_sent/parcel_price_sent/parcel_city_sent/has_products/products_count/provider_message — makes \"what did we actually send\" verifiable without guessing, which is what this investigation needed and didn't have last time.",
+      "tags": [
+        "delivery",
+        "ozon",
+        "parcel-stock",
+        "default-value-policy",
+        "products-payload",
+        "array_key_exists",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-ozon-parcel-price-comma-and-http-200-business-error",
+        "bug-ozon-create-shipment-narrow-tracking-key-and-missing-parcel-stock"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T04:00:00.000Z"
+    },
+    {
+      "id": "bug-ozon-parcel-price-comma-and-http-200-business-error",
+      "timestamp": "2026-08-25T03:00:00.000Z",
+      "error_message": "\"Send to Ozon\" failed with a real Ozon response: HTTP 200, {\"ADD-PARCEL\": {\"CUSTOMER\": {\"RESULT\": \"SUCCESS\", ...}, \"RESULT\": \"ERROR\", \"MESSAGE\": \"Price without commas\"}} — but the app still showed the generic \"Ozon did not return a tracking number.\"",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "TWO separate gaps: (1) parcel-price was sent as whatever `cod_amount` happened to be (a raw float or string) with no normalization at all — the reporter traced it to locale-formatted display values (e.g. the JS `fmtMoney()` helper's `toLocaleString(undefined, ...)`, which renders a comma decimal separator under a French/Moroccan browser locale) leaking into the value used for the API call; Ozon rejects any comma in parcel-price outright. (2) createShipment() decided success/failure purely from HTTP status + \"did a tracking number key exist\" — it never inspected Ozon's own embedded RESULT/MESSAGE business-error fields, so a 200-with-embedded-error response fell straight through to the generic missing-tracking-number message instead of surfacing Ozon's actual, specific complaint.",
+      "fix": "Added `OzonExpressConnector::formatParcelPrice()` (public static, directly unit-testable): accepts int/float/any reasonably-shaped string, strips currency labels and all whitespace (incl. non-breaking space), detects which of comma/dot is the DECIMAL separator by whichever appears LAST in the string (the other is treated as a thousands separator and stripped), then rounds to the nearest whole MAD (PHP's default half-away-from-zero) — matches Ozon's own examples exactly (93.99/\"93,99\"/\"93,99 MAD\" all -> \"94\"). Added extractProviderBusinessError(): checks body['ADD-PARCEL']/['add-parcel']['RESULT'] !== 'SUCCESS' BEFORE falling back to the generic no-tracking-number message, checked in BOTH the HTTP-failed branch and the no-tracking-number branch — HTTP status is never sufficient alone. A tracking number present in the body is still trusted as success on its own, regardless of whether RESULT is explicitly SUCCESS.",
+      "tags": [
+        "delivery",
+        "ozon",
+        "shipment-creation",
+        "money-formatting",
+        "locale-comma",
+        "business-error",
+        "http-200-error",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-ozon-create-shipment-narrow-tracking-key-and-missing-parcel-stock"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T03:00:00.000Z"
+    },
+    {
+      "id": "bug-ozon-create-shipment-narrow-tracking-key-and-missing-parcel-stock",
+      "timestamp": "2026-08-25T02:00:00.000Z",
+      "error_message": "With city mapping working correctly, \"Send to Ozon\" still failed every time with the generic \"Ozon did not return a tracking number.\"",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "TWO compounding gaps: (1) createShipment() only checked TWO tracking-number key variants (TRACKING-NUMBER, tracking_number) via a single generic unwrap() heuristic that only unwraps a body with EXACTLY one top-level key — a real response using any other casing (tracking-number, trackingNumber, TRACKING_NUMBER) or nested under a NAMED wrapper alongside other keys (e.g. {\"data\": {...}, \"success\": true}) was never read at all. (2) parcel-stock — REQUIRED by Ozon's docs — was built purely from `$options['parcel_stock'] ?? null`; when a store's Ozon connection had no `default_parcel_stock` configured (the common case — nothing in the UI ever required setting one), array_filter's null-drop silently OMITTED the field from the request entirely, and Ozon likely rejected the parcel for a reason the code never surfaced (the response body reading fell straight through to the generic missing-tracking-number message, since there was no distinct 'response failed to parse or had a provider error message' branch calling out that difference clearly enough).",
+      "fix": "Added extractTrackingNumber() checking all 5 documented key casings against 4 candidate locations (bare body, the existing unwrap() result, and explicit data/parcel/add-parcel/ADD-PARCEL wrapper keys). Added resolveParcelStock() so parcel-stock is NEVER omitted — falls back to Ozon's own documented default \"1\" when neither the request options nor the connection's settings provide one. Added a distinct non-JSON-response branch (checks `is_array($body)` right after decode) so an HTML/plain-text error page from Ozon reports \"Ozon create parcel returned a non-JSON response.\" instead of the misleading tracking-number message. extractError() now also checks MESSAGE/Message/ERROR-MESSAGE casings and is only used as the error text when a real provider message exists — the generic missing-tracking-number message is now the true last resort, never the first thing shown.",
+      "tags": [
+        "delivery",
+        "ozon",
+        "shipment-creation",
+        "parser",
+        "required-field-omitted",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-ozon-send-city-lookup-only-checked-shipping-city-id",
+        "bug-ozon-cities-uppercase-cities-object-shape-zero-imported"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T02:00:00.000Z"
+    },
+    {
+      "id": "bug-ozon-send-city-lookup-only-checked-shipping-city-id",
+      "timestamp": "2026-08-25T00:00:00.000Z",
+      "error_message": "\"Béni Mellal\" was already mapped to Ozon city \"Beni Mellal\" in the City mapping UI, but clicking \"Send to Ozon\" on an order whose city showed as \"beni mellal\" still returned \"This city is not mapped to an Ozon city. Please map it first.\"",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "OzonShipmentService::mappingFor() looked up CityDeliveryProviderMapping ONLY by $order->shipping_city_id (the internal City FK) — and returned null immediately (never even querying) whenever that column was null. But the Confirmation Desk does not require every order to be confirmed against a picked internal city (an agent can confirm without explicitly selecting one, and OrderAddressSummary::matchCity() — the auto-match used during confirmation — only does an EXACT case-sensitive name comparison, so an accented internal name like \"Béni Mellal\" never auto-matches a plain-ASCII platform string like \"beni mellal\" in the first place). The order's only city information was therefore the raw platform text sitting in platform_data, which the lookup never consulted at all — a real, correctly-saved mapping was simply never reachable from send-to-Ozon.",
+      "fix": "Replaced the single shipping_city_id-only lookup with DeliveryCityMappingResolver, which tries (1) shipping_city_id's own mapping, (2) the raw platform city text (OrderAddressSummary::extract()['city']) normalized (accent/case/punctuation-stripped via the same App\\Support\\Delivery\\CityNameNormalizer used by the Sync Cities suggestion UI) and matched against the internal city list, (3) the same small alias dictionary (Casa/Casablanca etc.), (4) a direct Ozon-city-name match as a last resort. Every DeliveryCityMappingSuggestionService alias/normalization logic was extracted into the shared CityNameNormalizer so the two can never drift apart — a city the Sync Cities UI calls \"matched\" now always resolves at send time too.",
+      "tags": [
+        "delivery",
+        "ozon",
+        "city-mapping",
+        "root-cause",
+        "accent-insensitive-matching"
+      ],
+      "related_bugs": [
+        "bug-ozon-cities-uppercase-cities-object-shape-zero-imported"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:00:00.000Z"
+    },
+    {
+      "id": "bug-ozon-cities-uppercase-cities-object-shape-zero-imported",
+      "timestamp": "2026-08-24T21:00:00.000Z",
+      "error_message": "Sync cities still imported 0 Ozon cities even after fixing the base-URL bug — the real https://api.ozonexpress.ma/cities response is {\"CITIES\": {\"37\": {\"ID\":37,\"NAME\":\"Agadir\",...}, \"49\": {...}}}, an OBJECT keyed by city id, not any of the shapes the parser recognized (bare list / {cities:[...]} / {data:[...]}).",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "listCities()'s shape-detection chain only checked lowercase 'cities' and 'data' keys, falling back to treating the body as a bare list. Ozon's real payload wraps rows in an UPPERCASE 'CITIES' key, and that key's VALUE is itself a JSON object (`{\"37\": {...}, \"49\": {...}}`) rather than a JSON array — json_decode(..., true) turns that into a PHP associative array keyed by \"37\"/\"49\"/etc, which array_is_list() correctly reports as NOT a list, so the old bare-list fallback never matched it either. Every row was silently dropped.",
+      "fix": "Extracted shape detection into extractCityRows(): checks 'CITIES' (uppercase, array_values() to flatten the id-keyed object into a plain list) FIRST, then 'cities', then 'data', then a bare list as before. The id/name extraction already handled ID/NAME casing from the previous fix, so no change needed there — only the outer wrapper detection was missing this specific real-world shape. Also captured REF/DELIVERED-PRICE/RETURNED-PRICE/REFUSED-PRICE per row into new nullable delivery_provider_cities columns (city_ref/delivered_price/returned_price/refused_price).",
+      "tags": [
+        "delivery",
+        "ozon",
+        "parser",
+        "response-shape",
+        "real-api-response"
+      ],
+      "related_bugs": [
+        "bug-ozon-sync-cities-wrong-base-url-zero-imported"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:00:00.000Z"
+    },
+    {
+      "id": "bug-delivery-migrations-already-applied-to-real-dev-db",
+      "timestamp": "2026-08-24T21:05:00.000Z",
+      "error_message": "N/A — discovered proactively: the user's IDE had database/migrations/2026_08_24_205731_add_city_sync_fields_to_delivery_connections_table.php open, a file this session never created.",
+      "file": "database/migrations/2026_08_24_000002_create_delivery_connections_table.php",
+      "root_cause": "An earlier session edited the delivery_connections CREATE migration in place to add last_city_sync_* columns (safe ONLY if that migration had never been run against a real database). It turned out the user's real dev DB had already run it — so the in-place edit was invisible there, and the user's own tooling generated a defensive ALTER migration (Schema::hasColumn guards) to add the missing columns for real. Left as-is, the create-migration's inline columns and the new ALTER migration would both try to add the same columns — harmless on a FRESH db (ALTER's hasColumn guard skips), but misleading/duplicated intent, and the ALTER migration defines last_city_sync_count as NOT NULL default(0) (no ->nullable()), which the create-migration's version didn't match.",
+      "fix": "Reverted the create migration back to NOT including the last_city_sync_* columns, leaving the user's new ALTER migration (2026_08_24_205731_...) as the sole, authoritative source for them — matches how the columns actually came to exist on the real dev DB. Adjusted application/test code to never write NULL to last_city_sync_count (it's NOT NULL default 0 per the real migration) — \"never synced\" is expressed via last_city_sync_at being null, not via the count.",
+      "tags": [
+        "migrations",
+        "delivery",
+        "real-db-drift",
+        "do-not-edit-applied-migrations"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:05:00.000Z"
+    },
+    {
+      "id": "bug-ozon-sync-cities-failure-disables-connection",
+      "timestamp": "2026-08-24T02:00:00.000Z",
+      "error_message": "A failed \"Sync cities\" click left DeliveryConnection with status='disabled', last_error='No Ozon cities were imported. Check the provider response.', while last_tested_at still showed an old successful test — a city-sync problem was disabling the whole (working) authenticated connection.",
+      "file": "app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "root_cause": "Two things stacked: (1) syncCities() wrote its failure message into the SAME `last_error` column that test() uses for authentication failures — there was only ever one error field, so a city-sync problem looked identical to an auth problem. (2) storeOzon() force-set `'status' => STATUS_DISABLED` on EVERY save via updateOrCreate, including edits to an already-connected connection (e.g. changing a setting) — so an earlier successful test() (status=connected) got silently reset to disabled the next time the form was submitted, for any reason. Neither of these was syncCities() itself setting status — it never touched that column — but the combination reproduced exactly the reported symptom.",
+      "fix": "Added last_city_sync_at/last_city_sync_error/last_city_sync_count as real columns (edited the still-uncommitted create migration directly per this project's one-migration-per-table convention, rather than adding an ALTER) — a completely separate lifecycle from status/last_error. syncCities() now only ever writes to the last_city_sync_* fields. Removed the unconditional `status => disabled` from storeOzon() entirely: a brand-new row gets the column's own default, and updating an existing connection leaves status untouched. Added a proper disconnect() action as the only remaining way to manually set status to disabled.",
+      "tags": [
+        "delivery",
+        "ozon",
+        "state-conflation",
+        "unconditional-status-reset",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-ozon-sync-cities-wrong-base-url-zero-imported"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T02:00:00.000Z"
+    },
+    {
+      "id": "bug-ozon-sync-cities-wrong-base-url-zero-imported",
+      "timestamp": "2026-08-24T01:00:00.000Z",
+      "error_message": "Clicking \"Sync cities\" on the Ozon connection page always showed a generic \"Done.\" toast, but DeliveryProviderCity::where('provider_code','ozon')->count() stayed 0 — no Ozon cities were ever actually imported, and no error was ever visible either way.",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php, app/Http/Controllers/Dashboard/DeliveryConnectionController.php, resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "TWO independent bugs stacked on top of each other: (1) OzonExpressConnector::listCities() (and testConnection()) called `/cities` through the customer-scoped client (`$this->client()`), which bases every OTHER Ozon endpoint at `https://api.ozonexpress.ma/customers/{customer_id}/{api_key}/...` — but per Ozon's docs, `/cities` is a plain TOP-LEVEL route (`https://api.ozonexpress.ma/cities`), not nested under the customer path, so every real request 404'd and listCities() always returned an empty list. (2) Independently, DeliveryConnectionController@syncCities (and @test) returned a Laravel `RedirectResponse` (`back()->with(...)`), but the frontend's `run()` helper in Connections.jsx calls it via plain `axios.post()` and reads `res.data.message` directly — axios follows the 302 redirect and resolves with the redirected PAGE'S HTML as `res.data`, so `res.data?.message` was always undefined and the UI fell back to its hardcoded 'Done.' string on EVERY outcome, success or failure alike, completely hiding the real result (this is why the zero-import bug went unnoticed — the UI could never have shown the real error even if bug #1 were the only problem).",
+      "fix": "Added a separate `citiesClient()` on the connector that bases at the bare host (no customer/key segment) for `/cities` only; every other endpoint (add-parcel, tracking, delivery-note routes) is untouched, still customer-scoped, per the docs. Changed `syncCities()` to return a real `JsonResponse` with `{ok, message, imported_count, updated_count, total_count}` instead of a redirect, matching the proven JSON pattern already used by ConnectionProfileController's identical axios-driven buttons. Widened the city-row parser to also accept plain `ID`/`NAME` keys (previously only `CITY_ID`/`id`/`city_id` and `CITY_NAME`/`name`/`city_name`). Zero cities imported (whether from an empty response or an unparseable shape) now returns ok:false with the literal message \"No Ozon cities were imported. Check the provider response.\" and writes it to `DeliveryConnection.last_error`; a connector-level failure does the same. Fixed the frontend's post-sync `router.reload()` to include `ozon_cities` in its `only` list (it was missing, so even a successful sync left the city-mapping dropdown showing the stale list).",
+      "tags": [
+        "delivery",
+        "ozon",
+        "wrong-base-url",
+        "axios-redirect-response-mismatch",
+        "silent-ui-failure",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T01:00:00.000Z"
+    },
+    {
+      "id": "bug-delivery-note-controller-authorize-method-collision",
+      "timestamp": "2026-08-24T00:00:00.000Z",
+      "error_message": "php artisan test --filter=OzonDeliveryNoteTest produced ZERO output (no JSON, no stdout/stderr, exit code 2) instead of a normal pass/fail report — every other new Delivery test file worked fine.",
+      "file": "app/Http/Controllers/Dashboard/DeliveryNoteController.php",
+      "root_cause": "app/Http/Controllers/Controller.php uses the `AuthorizesRequests` trait, which already declares a public `authorize($ability, $arguments)` method. DeliveryNoteController redeclared a private `authorize(Request, DeliveryNote): Store` helper with the same name — an incompatible method-visibility redeclaration, which is a PHP FATAL COMPILE ERROR the moment the class is autoloaded. Because PHP classes are only autoloaded on first reference (not when routes/dashboard.php merely does `[DeliveryNoteController::class, 'create']`), the fatal only fired when a test actually hit one of that controller's routes — which only OzonDeliveryNoteTest did, so only that file crashed the whole PHP process with no catchable output.",
+      "fix": "Renamed the private helper to `authorizeStore()`. General rule: never name a private/protected controller helper `authorize` in a controller extending the base Controller (or any class using AuthorizesRequests) — always name-check helper methods against inherited trait methods first when a whole-process crash produces no error output at all.",
+      "tags": [
+        "controllers",
+        "php-fatal-visibility-collision",
+        "authorizesrequests-trait",
+        "silent-crash",
+        "delivery"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T00:00:00.000Z"
+    },
+    {
+      "id": "bug-delivery-note-shipments-pivot-ulid-null-via-sync",
+      "timestamp": "2026-08-24T00:05:00.000Z",
+      "error_message": "SQLSTATE[23000]: Integrity constraint violation: 19 NOT NULL constraint failed: delivery_note_shipments.id when adding shipments to a delivery note.",
+      "file": "app/Services/Delivery/DeliveryNoteService.php",
+      "root_cause": "DeliveryNote::shipments() is a belongsToMany over the `delivery_note_shipments` pivot table, which — like every table in this project — uses a ULID primary key (`HasUlids` on the DeliveryNoteShipment model). Calling `$note->shipments()->syncWithoutDetaching([$shipment->id])` inserts a raw pivot row directly via query builder and never instantiates a DeliveryNoteShipment model, so HasUlids' `creating()` hook never fires and `id` is left null, violating the NOT NULL primary key.",
+      "fix": "Replaced the sync() call with `DeliveryNoteShipment::firstOrCreate(['delivery_note_id' => ..., 'shipment_id' => ...])`, which goes through normal Eloquent model creation and gets its ULID assigned correctly. General rule in this codebase: never use sync()/syncWithoutDetaching()/attach() on a belongsToMany whose pivot table has its own ULID primary key (rather than a plain composite key) — create the pivot model directly instead.",
+      "tags": [
+        "eloquent",
+        "belongstomany",
+        "ulid",
+        "pivot-table",
+        "delivery"
+      ],
+      "related_bugs": [
+        "bug-delivery-note-controller-authorize-method-collision"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T00:05:00.000Z"
+    },
+    {
+      "id": "bug-orderlineitems-direct-product-id-map-arrow-fn-by-value",
+      "timestamp": "2026-08-21T02:00:00.000Z",
+      "error_message": "~15 pre-existing tests (DepartmentDashboardTest, OrderDepartmentsTest) started failing with 'Some lines are not linked to local inventory.' ValidationException as soon as the new O4 unmapped-line confirmation-block check was added — even though their order items carried a real local product_id ULID that should have mapped fine.",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "OrderLineItems::localProductMap()'s FIRST (direct-ULID) match block used an ARROW function: ->each(fn (Product $product) => $map[(string) $product->id] = $product->id). PHP arrow functions capture enclosing-scope variables BY VALUE automatically, so the assignment inside the arrow function wrote to a throwaway copy of $map, never the real outer $map the method returns. Every OTHER block in the same file already used the correct `function (...) use (&$map): void { ... }` form, which is why only this exact path (a bare local product ULID with no platform_connection_id involvement) was silently broken. This bug pre-dated this session entirely — it was just never exposed because nothing had ever asserted the map actually succeeded for this path; silently resolving to null just meant 'no stock movement', which nobody was checking for.",
+      "fix": "Changed the arrow function to a regular closure with `use (&$map)`, matching every other block in the file. Verified via targeted debug dump (OrderLineItems::for($order) returning product_id: null for a real local ULID) before and after the fix.",
+      "tags": [
+        "orders",
+        "inventory",
+        "php-arrow-function-by-value",
+        "latent-bug",
+        "order-line-mapping"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T02:00:00.000Z"
+    },
+    {
+      "id": "bug-product-edit-variant-stock-props-silently-discarded",
+      "timestamp": "2026-08-21T01:00:00.000Z",
+      "error_message": "New per-variant stock props (stock_on_hand etc.) set in ProductController@edit were confirmed present via Log::debug immediately after being set, but never appeared in the actual Inertia response/test assertions — 'Undefined array key stock_on_hand'.",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Inertia::render('...', ['product' => $product, 'readiness' => $readiness->check($product)]) evaluates array values left-to-right; 'product' => $product stores an OBJECT REFERENCE. $readiness->check($product) (evaluated as the LAST array value) internally calls ProductOptionSnapshot::build($product), which does $product->load(['variants.attributeValues' => ..., 'variants.attributeValues.attribute']) — this REPLACES the `variants` relation with a freshly-queried collection of brand new ProductVariant instances. The stock props were set (via $product->variants->each(...)) on the OLD variant instances BEFORE this line, so they were silently discarded when 'variants' got swapped out from under the same $product object.",
+      "fix": "Compute $readinessCheck = $readiness->check($product); as its own statement BEFORE the variant-mutation block (which sets stock_on_hand/options/etc. on each variant), then pass the pre-computed $readinessCheck into the Inertia::render() array instead of calling $readiness->check($product) inline as a later array value.",
+      "tags": [
+        "inertia",
+        "eloquent",
+        "relation-reload",
+        "products",
+        "stock-display",
+        "root-cause"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T01:00:00.000Z"
+    },
+    {
+      "id": "bug-shopify-stock-quantity-never-syncs",
+      "timestamp": "2026-08-21T00:00:00.000Z",
+      "error_message": "Publishing product changes to Shopify updates title/SKU/price, but stock quantity does not change in Shopify. Also: adjusting stock via the SaaS 'Adjust stock' UI silently never reached Shopify at all.",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php, app/Services/Sync/ProductPushService.php, app/Connectors/ShopifyConnector.php, app/Services/Publishing/ProductChannelPublisher.php",
+      "root_cause": "Two compounding issues. (1) Shopify's quantity is never set via a product/variant update payload at all — it lives on InventoryLevel, keyed by inventory_item_id (per-variant, even for a 'simple' product's single default variant) + location_id, requiring a separate POST /inventory_levels/set.json call. Neither the canonical publish payload nor any 'update quantity' attempt on the product parent can ever work. (2) The actually-reachable adjust-stock flow (ProductController::adjustStock(), POST /dashboard/products/{product}/stock) had the platform HARDCODED to 'woocommerce' only when calling ProductPushService::pushStock()/pushVariantStock() — Shopify was never called from that endpoint at all, so even the pre-existing (partially correct) ProductPushService::shopifyVariantStock()/ShopifyConnector::pushStock() code was dead from the UI's perspective. What existed also re-fetched inventory_item_id and /locations.json (blindly taking index 0) on every single call, with nothing ever caching either.",
+      "fix": "ProductController::adjustStock() now pushes to BOTH 'woocommerce' and 'shopify' explicitly (YouCan untouched, keeps its own async path) — local inventory always commits first via InventoryEngine, platform pushes happen strictly after and never roll back on failure. ProductPushService::shopifyVariantStock() rewritten + new shopifySimpleStock() added: both resolve inventory_item_id from CACHED listing data first (ProductVariantChannelListing.external_inventory_item_id / ProductChannelListing.metadata.default_inventory_item_id), fetching+persisting via new ShopifyConnector::getVariantInventoryItemId()/getDefaultVariantInventoryItemId() only when missing. New ShopifyConnector::resolveLocationId() checks PlatformConnection.metadata.location_id first, otherwise fetches /locations.json (prefers active:true), and persists the choice for every future push. New ShopifyConnector::setInventoryLevel() is the only thing that actually changes Shopify stock (POST /inventory_levels/set.json, absolute available). No location resolvable -> exact message 'No Shopify location found for inventory sync.'. ProductChannelPublisher::publishShopify() now also captures inventory_item_id for FREE from the publish response (Shopify already returns it on every variant object) and persists it, so the first stock adjustment after a publish needs no extra fetch — but publish itself still never pushes quantity. Confirmed the canonical mapper never sent inventory_quantity/old_inventory_quantity in the first place; only the legacy console-command-only ShopifyConnector::createVariableProduct()/createVariant() still do (unreachable from the UI, left as a known limitation).",
+      "tags": [
+        "shopify",
+        "stock",
+        "inventory",
+        "inventory-level",
+        "location",
+        "publish",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-products-index-publish-auto-pushed-every-connection"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T00:00:00.000Z"
+    },
+    {
+      "id": "bug-shopify-simple-product-sku-never-updates",
+      "timestamp": "2026-08-20T23:00:00.000Z",
+      "error_message": "Publishing a SaaS product to Shopify updates the title successfully, but the SKU never changes in Shopify, for simple (non-variable) products.",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php, app/Connectors/ShopifyConnector.php, app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php",
+      "root_cause": "Shopify SKU lives on the variant, not the product parent, even for a 'simple' product (which still has exactly one default variant under the hood). ProductChannelPublisher::publishShopify()'s UPDATE path for a simple product sent the parent PUT with an id-less variants:[{sku,price}] array embedded (from ShopifyProductPayloadMapper::simplePayload()). Without an id, Shopify cannot tell 'update the existing default variant' from 'create a second one', so the sku the user actually sees never changed. This was made worse by a previous session deleting ShopifyConnector::updateVariantPayload() as apparently-dead code once the variable-product path stopped needing per-variant HTTP calls — simple products still needed that exact primitive.",
+      "fix": "Simple-product UPDATE now strips variants from the parent payload entirely (mirrors the existing unset() for variable products) and issues an explicit PUT /variants/{id}.json afterward. The default variant id is resolved in priority order: ProductChannelListing.metadata['default_variant_id'] -> the parent response's variants[0].id (already returned by updateProductPayload(), no extra call) -> a new ShopifyConnector::getDefaultVariantId() GET fallback (never throws, returns null on failure). Whichever id is resolved is saved back into metadata for future publishes. CREATE still embeds the variant in the initial payload (correct for a brand-new product) but now verifies the returned sku actually matches before reporting success. Re-added ShopifyConnector::updateVariantPayload(). Added ShopifyProductPayloadMapper::defaultVariantPayload() (sku/price/compare_at_price/barcode) as the single source of truth for both the create payload and the explicit update call. When the parent update succeeds but the variant SKU update fails, the result is now status='failed' with the literal message 'Product updated but Shopify default variant SKU update failed.' — never reported as full success — while the ProductChannelListing (whose parent DID update) is still kept, not rolled back.",
+      "tags": [
+        "shopify",
+        "publish",
+        "sku",
+        "variant",
+        "default-variant",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-shopify-options-without-variants-422"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T23:00:00.000Z"
+    },
+    {
+      "id": "bug-simple-product-blocked-by-stale-variable-canonical-state",
+      "timestamp": "2026-08-20T22:00:00.000Z",
+      "error_message": "A product previously tested as variable in SaaS/Shopify, then reverted to simple in Shopify and synced back, shows as simple in the Product Edit UI (stock on hand visible) but Publish Readiness still says \"Cannot publish to Shopify because one or more variants are missing option values.\"",
+      "file": "app/Services/Publishing/ProductOptionSnapshot.php, app/Services/Publishing/ProductPublishReadinessService.php, app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php, app/Services/Catalog/ProductVariantWizardService.php, app/Http/Controllers/Dashboard/ProductController.php, app/Services/Sync/ProductSyncService.php",
+      "root_cause": "Nothing ever archived a product's old canonical ProductAttribute/ProductAttributeValue/ProductVariant rows when it reverted from variable to simple via an external sync — ProductSyncService::saveProduct() correctly flips product.type to 'simple' from the incoming platform data, but never touched the leftover canonical rows. ProductOptionSnapshot::build() (the single place every readiness check and both platform mappers read through) ignored product.type entirely and just read whatever was still marked active, so the stale variable-state data kept feeding readiness/mapper decisions. Separately, ProductController@update's variable->simple branch only raw-deleted ProductVariant rows, never the ProductAttribute/ProductAttributeValue rows, so switching to simple via the SaaS edit form had the same leak. A secondary bug: an attribute with zero active values (a fully-retired option not yet garbage-collected) still appeared in the snapshot as a phantom {name, values:[]} entry.",
+      "fix": "product.type is now authoritative everywhere: ProductOptionSnapshot::build() short-circuits to empty options/variants when !$product->isVariable(), and filters out zero-active-value attributes. ProductPublishReadinessService::shopify() and ShopifyProductPayloadMapper::map() got matching explicit type checks (WooCommerce's already had this). New ProductVariantWizardService::archiveAll() (=sync($product,[],[])) is the shared archive primitive — soft-deletes all active variants (never hard-deletes one with a channel listing/inventory link) and retires all active option values — called from ProductController@update's variable->simple branch AND from ProductSyncService::saveProduct() whenever an authoritative pull flips a product from variable to simple. ProductController@edit also force-empties options/variants props for a simple product regardless of DB state. Fixing archiveAll() exposed a pre-existing latent bug (see bug-archived-variant-sku-unique-collision) that had to be fixed too for the round-trip (simple->variable->simple->variable) to work.",
+      "tags": [
+        "products",
+        "shopify",
+        "readiness",
+        "publish",
+        "sync",
+        "canonical-options",
+        "variants",
+        "type-consistency",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-archived-variant-sku-unique-collision",
+        "bug-shopify-options-without-variants-422"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T22:00:00.000Z"
+    },
+    {
+      "id": "bug-archived-variant-sku-unique-collision",
+      "timestamp": "2026-08-20T22:00:00.000Z",
+      "error_message": "SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: product_variants.product_id, product_variants.sku — thrown when regenerating variants with a SKU that a previously-archived (soft-deleted) variant already occupies",
+      "file": "app/Services/Catalog/ProductVariantWizardService.php",
+      "root_cause": "ProductVariantWizardService::sync()'s existing-variant matching only ever queries ACTIVE variants ($product->variants()->with('attributeValues')->get(), soft-deleted excluded by the default scope) — by design, so an archived variant is never silently resurrected by an unrelated combo. But product_variants has a (product_id, sku) unique index that soft-delete does not exempt. So calling sync() again with a sku a trashed row still occupies (e.g. switching simple -> variable -> simple -> variable with the same SKUs, which archiveAll() now makes a realistic path) tried to ProductVariant::create() a duplicate and hit the DB constraint.",
+      "fix": "Added a third matching tier in sync()'s per-variant loop: once combo-match and id-match both miss, look up $product->variants()->onlyTrashed()->where('sku', $sku)->first() (using the FINAL computed sku, after auto-generation) and restore() it instead of creating a new row. Bonus: this reuses the original variant id, so any leftover ProductVariantChannelListing from before the archive reconnects automatically instead of orphaning.",
+      "tags": [
+        "products",
+        "variants",
+        "sku",
+        "unique-constraint",
+        "soft-delete",
+        "wizard",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-simple-product-blocked-by-stale-variable-canonical-state"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T22:00:00.000Z"
+    },
+    {
+      "id": "bug-shopify-options-without-variants-422",
+      "timestamp": "2026-08-20T21:00:00.000Z",
+      "error_message": "Publishing a SaaS variable product to Shopify failed with HTTP 422: {\"errors\":{\"base\":[\"Product options must have corresponding variants. Please include variant data with your request.\"]}}",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php, app/Services/Publishing/ProductPublishReadinessService.php, app/Connectors/ShopifyConnector.php",
+      "root_cause": "Two independent causes, both producing an options-without-variants Shopify payload: (1) ProductChannelPublisher::publishShopify() stripped `variants` from the parent update PUT whenever the product was variable, intending a separate per-variant create/update loop afterward — that first (options-only) request already 422s, the later per-variant calls never got a chance to run. (2) ProductPublishReadinessService::shopify() only WARNED (not blocked) when a product had canonical options defined but zero active variants, so ShopifyProductPayloadMapper::map() happily built a payload with `options` set and an empty `variants` array.",
+      "fix": "ProductChannelPublisher::publishShopify() now always sends `options` and `variants` together in ONE request (parent create AND update) — the variant array is rebuilt from the canonical snapshot with each already-linked variant's remote id merged in so Shopify updates it in place instead of duplicating it; no more separate per-variant HTTP calls (ShopifyConnector::createVariantPayload()/updateVariantPayload() deleted as now-dead code). Returned variants are matched back to local variants by option1/option2/option3 combination (not SKU, since Shopify doesn't guarantee echoing it back the same way). ProductPublishReadinessService::shopify() moved the 'options but no variants' case from $warnings to $errors (STATUS_BLOCKED), so the mapper refuses to build the invalid payload at all and the publish is blocked before any HTTP call.",
+      "tags": [
+        "shopify",
+        "publish",
+        "422",
+        "options",
+        "variants",
+        "root-cause"
+      ],
+      "related_bugs": [
+        "bug-products-index-publish-auto-pushed-every-connection"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:00:00.000Z"
+    },
+    {
       "id": "bug-shopify-test-connection-scope-string-false-negative",
       "timestamp": "2026-08-20T00:00:00.000Z",
       "error_message": "Shopify connection page showed \"Failed — Missing read_products scope\" even though product import/sync was actually working",
@@ -5736,6 +6086,3180 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-20T14:04:15.591Z"
+    },
+    {
+      "id": "bug-348",
+      "timestamp": "2026-08-20T14:56:05.055Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Foundation/ChannelFrontendCoverageTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T14:56:05.055Z"
+    },
+    {
+      "id": "bug-349",
+      "timestamp": "2026-08-20T20:08:29.894Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/ProductPublishService.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 23→33 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T20:08:29.894Z"
+    },
+    {
+      "id": "bug-350",
+      "timestamp": "2026-08-20T20:09:23.099Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→10 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T20:09:23.099Z"
+    },
+    {
+      "id": "bug-352",
+      "timestamp": "2026-08-20T20:43:12.910Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Catalog/ProductVariantWizardService.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→4 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T20:43:12.910Z"
+    },
+    {
+      "id": "bug-353",
+      "timestamp": "2026-08-20T20:43:41.102Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 15→28 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T20:43:41.102Z"
+    },
+    {
+      "id": "bug-356",
+      "timestamp": "2026-08-20T21:02:31.581Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Publishing/Shopify/ShopifyProductPayloadMapper.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 17→31 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:02:31.581Z"
+    },
+    {
+      "id": "bug-357",
+      "timestamp": "2026-08-20T21:02:51.448Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:02:51.448Z"
+    },
+    {
+      "id": "bug-358",
+      "timestamp": "2026-08-20T21:03:06.998Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 11→22 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:03:06.998Z"
+    },
+    {
+      "id": "bug-359",
+      "timestamp": "2026-08-20T21:05:59.823Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:05:59.823Z"
+    },
+    {
+      "id": "bug-360",
+      "timestamp": "2026-08-20T21:09:08.292Z",
+      "error_message": "Wrong operator: === should be !==",
+      "file": "tests/Feature/Foundation/ShopifySimpleProductReadinessTest.php",
+      "root_cause": "Used \"===\" instead of \"!==\"",
+      "fix": "Changed operator === → !==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:09:08.292Z"
+    },
+    {
+      "id": "bug-362",
+      "timestamp": "2026-08-20T21:25:23.866Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Publishing/ProductChannelPublisher.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: private function recordVariantListing(ProductVariant $varian; $values = [",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T21:25:32.755Z"
+    },
+    {
+      "id": "bug-363",
+      "timestamp": "2026-08-20T21:26:53.643Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: $inventoryItemId = $listing !== null ? ($listing->metadata['",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-20T21:27:36.346Z"
+    },
+    {
+      "id": "bug-364",
+      "timestamp": "2026-08-20T21:27:12.992Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/ProductPushService.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 11→7 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:27:12.992Z"
+    },
+    {
+      "id": "bug-365",
+      "timestamp": "2026-08-20T21:27:53.836Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:27:53.837Z"
+    },
+    {
+      "id": "bug-366",
+      "timestamp": "2026-08-20T21:28:03.375Z",
+      "error_message": "Function not marked async",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:28:03.375Z"
+    },
+    {
+      "id": "bug-367",
+      "timestamp": "2026-08-20T21:28:34.109Z",
+      "error_message": "CSS fix: md",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "md: col-span-3 text-[11px] text-content-muted\">Stock is managed through inventory adjustments.</p> → col-span-3 text-[11px] text-content-muted\">Stock quantity is synced through inventory adjustments, not product publish.</p>",
+      "fix": "Changed md: col-span-3 text-[11px] text-content-muted\">Stock is managed through inventory adjustments.</p> → col-span-3 text-[11px] text-content-muted\">Stock quantity is synced through inventory adjustments, not product publish.</p>",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:28:34.109Z"
+    },
+    {
+      "id": "bug-369",
+      "timestamp": "2026-08-20T21:57:14.808Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:57:14.808Z"
+    },
+    {
+      "id": "bug-370",
+      "timestamp": "2026-08-20T21:57:32.665Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Products/Edit.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:57:32.665Z"
+    },
+    {
+      "id": "bug-371",
+      "timestamp": "2026-08-20T21:58:31.567Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 30→102 lines (14 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T21:58:31.567Z"
+    },
+    {
+      "id": "bug-372",
+      "timestamp": "2026-08-20T22:07:39.979Z",
+      "error_message": "Wrong reference: Stock should be Store",
+      "file": "tests/Feature/Foundation/ProductEditVariantStockDisplayTest.php",
+      "root_cause": "Used \"Stock\" instead of \"Store\"",
+      "fix": "Changed Stock → Store",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-20T22:07:39.979Z"
+    },
+    {
+      "id": "bug-374",
+      "timestamp": "2026-08-21T17:31:05.616Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Services/Sync/ProductPublishService.php",
+      "root_cause": "Condition was: if ($connection->platform === 'shopify')",
+      "fix": "Changed to: if (in_array($connection->platform, ['shopify', 'wooco)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:31:05.616Z"
+    },
+    {
+      "id": "bug-375",
+      "timestamp": "2026-08-21T17:34:45.023Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/WooCommerceOutboundSyncTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 10→23 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:34:45.023Z"
+    },
+    {
+      "id": "bug-376",
+      "timestamp": "2026-08-21T17:35:43.784Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ProductPublishTargetingTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 32→44 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:35:43.784Z"
+    },
+    {
+      "id": "bug-377",
+      "timestamp": "2026-08-21T17:45:02.427Z",
+      "error_message": "Wrong reference: ProductVariantWizardService should be ProductStockSnapshotService",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "Used \"ProductVariantWizardService\" instead of \"ProductStockSnapshotService\"",
+      "fix": "Changed ProductVariantWizardService → ProductStockSnapshotService",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T17:45:08.106Z"
+    },
+    {
+      "id": "bug-378",
+      "timestamp": "2026-08-21T17:52:35.475Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Catalog/ProductDiagnosticService.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→17 lines (4 removed) | Also: foreach ($this->duplicateProductIssues($product) a; $issues[] = $issue;",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T17:52:39.393Z"
+    },
+    {
+      "id": "bug-379",
+      "timestamp": "2026-08-21T17:56:04.732Z",
+      "error_message": "Incorrect value in code",
+      "file": "routes/dashboard.php",
+      "root_cause": "Had '/sync/progress'",
+      "fix": "Changed to '/sync-batches/{batch}'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T17:56:04.732Z"
+    },
+    {
+      "id": "bug-380",
+      "timestamp": "2026-08-21T18:53:02.397Z",
+      "error_message": "Wrong reference: SyncInventoryToWebhooks should be ExternalStockPushJob",
+      "file": "app/Services/Inventory/InventoryEngine.php",
+      "root_cause": "Used \"SyncInventoryToWebhooks\" instead of \"ExternalStockPushJob\"",
+      "fix": "Changed SyncInventoryToWebhooks → ExternalStockPushJob",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:53:02.397Z"
+    },
+    {
+      "id": "bug-381",
+      "timestamp": "2026-08-21T18:53:54.337Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Pos/OrderProcessingService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:53:54.337Z"
+    },
+    {
+      "id": "bug-382",
+      "timestamp": "2026-08-21T18:54:54.378Z",
+      "error_message": "Wrong reference: InventoryAllocation should be Order",
+      "file": "app/Services/Orders/OrderWorkflowService.php",
+      "root_cause": "Used \"InventoryAllocation\" instead of \"Order\"",
+      "fix": "Changed InventoryAllocation → Order",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:54:54.378Z"
+    },
+    {
+      "id": "bug-383",
+      "timestamp": "2026-08-21T18:55:04.611Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Inventory/CatalogInventoryService.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 26→36 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:55:04.611Z"
+    },
+    {
+      "id": "bug-384",
+      "timestamp": "2026-08-21T18:55:42.295Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 71→133 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:55:42.295Z"
+    },
+    {
+      "id": "bug-385",
+      "timestamp": "2026-08-21T18:55:48.743Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "Had 'sku'",
+      "fix": "Changed to 'product_sku'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:55:48.743Z"
+    },
+    {
+      "id": "bug-386",
+      "timestamp": "2026-08-21T18:56:38.454Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "Condition was: if (filled($order->customer_phone)",
+      "fix": "Changed to: if (config('inventory.reserve_online_pending_orders')",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:56:38.454Z"
+    },
+    {
+      "id": "bug-387",
+      "timestamp": "2026-08-21T18:56:51.249Z",
+      "error_message": "Missing error handling in softReservePending",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:56:51.249Z"
+    },
+    {
+      "id": "bug-388",
+      "timestamp": "2026-08-21T18:57:17.596Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Services/Orders/ReturnInspectionService.php",
+      "root_cause": "Condition was: if ($item->hasStockMovement()",
+      "fix": "Changed to: if ($item->isDispositioned()",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:57:17.596Z"
+    },
+    {
+      "id": "bug-389",
+      "timestamp": "2026-08-21T18:57:32.062Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/ReturnInspectionService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: private function destinationFor(Store $store, string $condit; OrderReturnItem::CONDITION_RESELLABLE => $this->resellableDe",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T18:57:52.101Z"
+    },
+    {
+      "id": "bug-390",
+      "timestamp": "2026-08-21T18:58:41.886Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Orders/OrderWorkflowServiceTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 23→26 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T18:58:41.886Z"
+    },
+    {
+      "id": "bug-391",
+      "timestamp": "2026-08-21T18:58:46.718Z",
+      "error_message": "Wrong reference: SyncInventoryToWebhooks should be ExternalStockPushJob",
+      "file": "tests/Feature/Orders/OrderWorkflowServiceTest.php",
+      "root_cause": "Used \"SyncInventoryToWebhooks\" instead of \"ExternalStockPushJob\"",
+      "fix": "Changed SyncInventoryToWebhooks → ExternalStockPushJob",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T18:58:50.413Z"
+    },
+    {
+      "id": "bug-392",
+      "timestamp": "2026-08-21T18:58:53.693Z",
+      "error_message": "Wrong reference: SyncInventoryToWebhooks should be ExternalStockPushJob",
+      "file": "tests/Feature/Foundation/InventoryEngineTest.php",
+      "root_cause": "Used \"SyncInventoryToWebhooks\" instead of \"ExternalStockPushJob\"",
+      "fix": "Changed SyncInventoryToWebhooks → ExternalStockPushJob",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T18:58:57.145Z"
+    },
+    {
+      "id": "bug-393",
+      "timestamp": "2026-08-21T19:09:53.192Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:09:53.192Z"
+    },
+    {
+      "id": "bug-394",
+      "timestamp": "2026-08-21T19:11:55.842Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T19:11:55.842Z"
+    },
+    {
+      "id": "bug-396",
+      "timestamp": "2026-08-21T20:32:01.512Z",
+      "error_message": "CSS fix: title, subtitle, label",
+      "file": "resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "root_cause": "title: 'Pick & pack', → 'Pick & Pack Workbench',; subtitle: 'Prepare confirmed orders and hand them to logistics', → 'Worker screen for picking, packing, and moving orders through warehouse steps.',; label: 'Pick & Pack' → 'Pick & Pack Workbench'",
+      "fix": "Changed title: 'Pick & pack', → 'Pick & Pack Workbench',; subtitle: 'Prepare confirmed orders and hand them to logistics', → 'Worker screen for picking, packing, and moving orders through warehouse steps.',; label: 'Pick & Pack' → 'Pick & Pack Workbench'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:01.512Z"
+    },
+    {
+      "id": "bug-397",
+      "timestamp": "2026-08-21T20:32:14.787Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Had 'Delivery & logistics'",
+      "fix": "Changed to 'Delivery Board'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:14.787Z"
+    },
+    {
+      "id": "bug-398",
+      "timestamp": "2026-08-21T20:32:23.859Z",
+      "error_message": "CSS fix: title, label",
+      "file": "resources/js/Pages/Dashboard/Orders/Returns/Index.jsx",
+      "root_cause": "title: 'Returns & inspection', → 'Returns Desk',; label: 'Returns' → 'Returns Desk'",
+      "fix": "Changed title: 'Returns & inspection', → 'Returns Desk',; label: 'Returns' → 'Returns Desk'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:23.859Z"
+    },
+    {
+      "id": "bug-399",
+      "timestamp": "2026-08-21T20:32:33.189Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "root_cause": "Had 'Confirmation desk'",
+      "fix": "Changed to 'Confirmation Desk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:33.189Z"
+    },
+    {
+      "id": "bug-400",
+      "timestamp": "2026-08-21T20:32:44.367Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx",
+      "root_cause": "Had 'Confirmed orders held until a transfer fills the ",
+      "fix": "Changed to 'Orders that cannot continue because sellable stoc",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:44.367Z"
+    },
+    {
+      "id": "bug-401",
+      "timestamp": "2026-08-21T20:32:49.620Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/Picking.jsx",
+      "root_cause": "Had 'Picking'",
+      "fix": "Changed to 'Picking Queue'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:49.620Z"
+    },
+    {
+      "id": "bug-402",
+      "timestamp": "2026-08-21T20:32:58.104Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/Packing.jsx",
+      "root_cause": "Had 'Packing'",
+      "fix": "Changed to 'Packing Queue'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:32:58.104Z"
+    },
+    {
+      "id": "bug-403",
+      "timestamp": "2026-08-21T20:33:02.703Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/ReadyForDelivery.jsx",
+      "root_cause": "Had 'Ready for delivery'",
+      "fix": "Changed to 'Ready for Dispatch'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:33:02.703Z"
+    },
+    {
+      "id": "bug-404",
+      "timestamp": "2026-08-21T20:33:07.196Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx",
+      "root_cause": "Had 'Transfer receiving'",
+      "fix": "Changed to 'Transfer Receiving'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:33:07.196Z"
+    },
+    {
+      "id": "bug-405",
+      "timestamp": "2026-08-21T20:33:39.438Z",
+      "error_message": "CSS fix: key",
+      "file": "resources/js/Components/Departments/OperationsNav.jsx",
+      "root_cause": "key: 'transfers',      label: 'Transfer receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight → 'transfers',      label: 'Transfer Receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight",
+      "fix": "Changed key: 'transfers',      label: 'Transfer receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight → 'transfers',      label: 'Transfer Receiving', href: '/dashboard/operations/transfers',     icon: ArrowLeftRight",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:33:39.438Z"
+    },
+    {
+      "id": "bug-406",
+      "timestamp": "2026-08-21T20:34:18.070Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Warehouses', href: '/dashboard/warehouses', icon: Building2, perm: 'warehouses.manage' → 'Transfers',  href: '/dashboard/stock/transfers', icon: ArrowLeftRight, perm: 'stock.view'",
+      "fix": "Changed label: 'Warehouses', href: '/dashboard/warehouses', icon: Building2, perm: 'warehouses.manage' → 'Transfers',  href: '/dashboard/stock/transfers', icon: ArrowLeftRight, perm: 'stock.view'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:34:18.070Z"
+    },
+    {
+      "id": "bug-407",
+      "timestamp": "2026-08-21T20:37:53.275Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Foundation/AgencyOperationsNavigationTest.php",
+      "root_cause": "Had 'active_store_id'",
+      "fix": "Changed to 'store_id'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:37:53.275Z"
+    },
+    {
+      "id": "bug-408",
+      "timestamp": "2026-08-21T20:55:55.328Z",
+      "error_message": "Wrong operator: !== should be ===",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Used \"!==\" instead of \"===\"",
+      "fix": "Changed operator !== → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:55:55.329Z"
+    },
+    {
+      "id": "bug-409",
+      "timestamp": "2026-08-21T20:56:05.587Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T20:56:05.587Z"
+    },
+    {
+      "id": "bug-410",
+      "timestamp": "2026-08-21T20:56:31.208Z",
+      "error_message": "CSS fix: value, status",
+      "file": "resources/js/Pages/Dashboard/Orders/Index.jsx",
+      "root_cause": "value: 'online', label: 'Online' → 'manual',      label: 'Manual'; status: filters.status ?? '', source: filters.source ?? '' → filters.status ?? '',",
+      "fix": "Changed value: 'online', label: 'Online' → 'manual',      label: 'Manual'; status: filters.status ?? '', source: filters.source ?? '' → filters.status ?? '',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T20:56:37.573Z"
+    },
+    {
+      "id": "bug-411",
+      "timestamp": "2026-08-21T21:22:49.942Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:22:49.942Z"
+    },
+    {
+      "id": "bug-412",
+      "timestamp": "2026-08-21T21:24:16.640Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:24:16.640Z"
+    },
+    {
+      "id": "bug-413",
+      "timestamp": "2026-08-21T21:24:53.517Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/DepartmentController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:24:53.517Z"
+    },
+    {
+      "id": "bug-414",
+      "timestamp": "2026-08-21T21:25:41.487Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:25:41.487Z"
+    },
+    {
+      "id": "bug-415",
+      "timestamp": "2026-08-21T21:26:01.477Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:26:01.477Z"
+    },
+    {
+      "id": "bug-416",
+      "timestamp": "2026-08-21T21:28:55.853Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: 'platform_data'          => $platformOrder['platform_data'] ",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-21T21:29:00.657Z"
+    },
+    {
+      "id": "bug-417",
+      "timestamp": "2026-08-21T21:30:03.110Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ConfirmationAddressPrefillTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 23→39 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:30:03.110Z"
+    },
+    {
+      "id": "bug-418",
+      "timestamp": "2026-08-21T21:37:11.581Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ConfirmationDeskClaimTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 19→25 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-21T21:37:11.581Z"
+    },
+    {
+      "id": "bug-419",
+      "timestamp": "2026-08-21T21:41:18.986Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Foundation/ConfirmationCityWarehouseSelectionTest.php",
+      "root_cause": "Had 'store_id'",
+      "fix": "Changed to 'city1.myshopify.com'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-08-21T21:41:40.210Z"
+    },
+    {
+      "id": "bug-420",
+      "timestamp": "2026-08-22T11:00:35.064Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Models/InventoryReservation.php",
+      "root_cause": "Had 'metadata'",
+      "fix": "Changed to 'restock_requested_at'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:00:35.064Z"
+    },
+    {
+      "id": "bug-421",
+      "timestamp": "2026-08-22T11:02:24.191Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Inventory/InventoryEngine.php",
+      "root_cause": "Was returning: $balance->fresh();",
+      "fix": "Now returns: restock, a released reservation, …) may be",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:02:24.191Z"
+    },
+    {
+      "id": "bug-422",
+      "timestamp": "2026-08-22T11:04:19.940Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Inventory/WarehouseAllocationService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * Manually request a transfer for one open shortage line — t; * behind Waiting for Stock's \"Request transfer\" button, for ",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T11:05:02.591Z"
+    },
+    {
+      "id": "bug-423",
+      "timestamp": "2026-08-22T11:06:58.627Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:06:58.627Z"
+    },
+    {
+      "id": "bug-424",
+      "timestamp": "2026-08-22T11:08:19.011Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/OperationsQueueService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:08:19.011Z"
+    },
+    {
+      "id": "bug-425",
+      "timestamp": "2026-08-22T11:08:54.812Z",
+      "error_message": "Wrong return value",
+      "file": "app/Http/Controllers/Dashboard/OperationsController.php",
+      "root_cause": "Was returning: $this->render($request, 'WaitingForStock', [Fulfil",
+      "fix": "Now returns: Inertia::render('Dashboard/Operations/WaitingForSt",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:08:54.812Z"
+    },
+    {
+      "id": "bug-426",
+      "timestamp": "2026-08-22T11:09:06.226Z",
+      "error_message": "Missing error handling in recheckWaitingStock",
+      "file": "app/Http/Controllers/Dashboard/OperationsController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:09:06.226Z"
+    },
+    {
+      "id": "bug-427",
+      "timestamp": "2026-08-22T11:16:53.729Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/WaitingStockShortageRequestTest.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 22→34 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T11:16:53.729Z"
+    },
+    {
+      "id": "bug-428",
+      "timestamp": "2026-08-22T12:00:10.857Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Inventory/CatalogInventoryService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 18→30 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:00:10.857Z"
+    },
+    {
+      "id": "bug-429",
+      "timestamp": "2026-08-22T12:00:39.070Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/OperationsQueueService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * Before rechecking each line, attempts a conservative self-; * (WarehouseAllocationService::repairReservationItem) for a ",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T12:00:58.016Z"
+    },
+    {
+      "id": "bug-430",
+      "timestamp": "2026-08-22T12:01:08.549Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OperationsController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:01:08.549Z"
+    },
+    {
+      "id": "bug-431",
+      "timestamp": "2026-08-22T12:01:18.659Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx",
+      "root_cause": "Had '@inertiajs/react'",
+      "fix": "Changed to 'react'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:01:18.659Z"
+    },
+    {
+      "id": "bug-432",
+      "timestamp": "2026-08-22T12:01:29.425Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx",
+      "root_cause": "hover: bg-surface-3 disabled:opacity-50 transition\" → text-content transition\"",
+      "fix": "Changed hover: bg-surface-3 disabled:opacity-50 transition\" → text-content transition\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:01:29.425Z"
+    },
+    {
+      "id": "bug-433",
+      "timestamp": "2026-08-22T12:01:36.665Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:01:36.665Z"
+    },
+    {
+      "id": "bug-waiting-stock-variant-resolves-to-stale-product-link",
+      "timestamp": "2026-08-22T13:03:00.000Z",
+      "error_message": "Waiting-for-stock order not released after topping up the correct variant's stock: needed=1, available_in_target stayed 0, Recheck stock did nothing, Pick & Pack still blocked.",
+      "file": "app/Services/Inventory/CatalogInventoryService.php",
+      "root_cause": "CatalogInventoryService::resolve($productId, $variantId) fell through to the PARENT PRODUCT's ProductInventoryLink whenever a variant id was given but had no VariantInventoryLink yet. If the product already had a stale product-level InventoryItem link (e.g. from before it became variable, or an earlier order line that matched at product level), the variant-specific order line silently bound its InventoryReservation/shortage to that wrong product-level item instead of creating the variant's own item. Adjusting the variant's stock afterward updated a completely different InventoryItem, so the shortage's available balance never moved. Both the auto-dispatch (InventoryEngine::mutate -> RecheckWaitingStockOrdersJob) and the manual Recheck button were already correctly implemented and firing — they were just checking the wrong inventory_item_id.",
+      "fix": "1) CatalogInventoryService::resolve(): when $variantId is given, no longer falls back to ProductInventoryLink — goes straight to forCatalog($product, $variant) after the VariantInventoryLink miss, so a variant order line always gets its own item going forward. 2) WarehouseAllocationService::repairReservationItem(Order|PosOrder, InventoryReservation): new conservative self-heal for ALREADY-corrupted reservations — only repoints a reservation with reserved_quantity===0, and only when re-deriving requirements() finds exactly one freshly-resolved item missing a reservation on the allocation (never guesses on ambiguity). 3) OperationsQueueService::recheckOrder() now calls repairReservationItem() before WaitingStockReallocationService::recheck() for each line, and every line returns a concrete 'reason' string (used by OperationsController::recheckWaitingStock for the flash message) instead of a generic 'still not enough stock' — covers unmapped lines, insufficient-at-target, available-elsewhere-needs-transfer, and repaired-then-resolved cases. 4) buildShortageSummary() lines gained a 'debug' sub-object (shortage_id, inventory_item_id, product_id/product_variant_id via the link tables, target_warehouse_id/name, on_hand/reserved/transfer_reserved, last_rechecked_at/last_recheck_message stored in InventoryReservation.metadata) surfaced via a collapsible 'Diagnostics' toggle on WaitingForStock.jsx.",
+      "tags": [
+        "inventory",
+        "waiting-stock",
+        "variant",
+        "catalog-inventory-service",
+        "root-cause",
+        "manual-fix"
+      ],
+      "related_bugs": [
+        "bug-orderlineitems-direct-product-id-map-arrow-fn-by-value"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:03:00.000Z"
+    },
+    {
+      "id": "bug-435",
+      "timestamp": "2026-08-22T12:31:47.178Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Inventory/OrderLineInventoryResolution.php",
+      "root_cause": "Had 'local'",
+      "fix": "Changed to 'legacy_external_id'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:31:47.178Z"
+    },
+    {
+      "id": "bug-436",
+      "timestamp": "2026-08-22T12:32:03.065Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Inventory/OrderLineInventoryResolver.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→11 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:32:03.065Z"
+    },
+    {
+      "id": "bug-437",
+      "timestamp": "2026-08-22T12:32:34.435Z",
+      "error_message": "Wrong reference: App should be InventoryItem",
+      "file": "app/Services/Inventory/OrderLineInventoryResolver.php",
+      "root_cause": "Used \"App\" instead of \"InventoryItem\"",
+      "fix": "Changed App → InventoryItem",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:32:34.435Z"
+    },
+    {
+      "id": "bug-438",
+      "timestamp": "2026-08-22T12:34:15.989Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Inventory/CatalogInventoryService.php",
+      "root_cause": "54 lines replaced/restructured",
+      "fix": "Rewrote 78→4 lines (54 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:34:15.989Z"
+    },
+    {
+      "id": "bug-439",
+      "timestamp": "2026-08-22T12:34:25.838Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Inventory/WarehouseAllocationService.php",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 24→29 lines (13 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:34:25.838Z"
+    },
+    {
+      "id": "bug-440",
+      "timestamp": "2026-08-22T12:35:41.599Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Orders/OperationsQueueService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 53→99 lines (3 removed) | Also: return collect($rows)->map(function (array $row) u; $row['shortage'] = $this->buildShortageSummary($al",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T12:36:57.064Z"
+    },
+    {
+      "id": "bug-441",
+      "timestamp": "2026-08-22T12:37:24.112Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Operations/WaitingForStock.jsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 23→30 lines (6 removed) | Also: {lines.map((line) => (; <div key={`debug-${line.reservation_id}`} classNam",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T12:37:35.955Z"
+    },
+    {
+      "id": "bug-442",
+      "timestamp": "2026-08-22T12:45:50.514Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Support/OrderLineItems.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→21 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:45:50.514Z"
+    },
+    {
+      "id": "bug-443",
+      "timestamp": "2026-08-22T12:56:02.940Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Inventory/OrderLineInventoryResolver.php",
+      "root_cause": "Had 'Order line could not be linked to a local product",
+      "fix": "Changed to 'Order line is not linked to a local inventory ite",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T12:56:02.940Z"
+    },
+    {
+      "id": "bug-woocommerce-variation-id-never-captured",
+      "timestamp": "2026-08-22T14:00:00.000Z",
+      "error_message": "WooCommerce waiting-stock order (SKU jkrt44) never released: product_id present, product_variant_id empty, inventory_item_id empty, target warehouse Default Warehouse, on_hand=0, last_recheck_message='No available stock anywhere for this item yet' even after the correct variant's stock was set.",
+      "file": "app/Connectors/WooCommerceConnector.php",
+      "root_cause": "WooCommerceConnector::parseOrder() never read `variation_id` off a WooCommerce line item at all (only product_id/sku/name/quantity/price/total/external_id) — variation_id is WooCommerce's own field (0 for a simple-product line, the real variation id for a variable one). So a variable product's order line only ever carried the parent product_id; no variant identifier ever reached OrderLineItems or the resolver, no matter how correctly ProductVariantChannelListing was configured. Two compounding bugs in the resolution layer: (1) OrderLineItems::fromOnline()'s SKU-based variant fallback only fired when BOTH product_id and variant_id were unresolved, so a line whose product_id DID resolve never even tried matching its variant by SKU. (2) CatalogInventoryService::resolveOrderLine()/resolve(null variantId) could still attach a product-level InventoryItem to a VARIABLE product whenever no variant was found — never actually forbidden.",
+      "fix": "1) WooCommerceConnector::parseOrder(): emits 'variant_id' => variation_id>0 ? (string)variation_id : ''. 2) New App\\Services\\Inventory\\OrderLineInventoryResolver (+OrderLineInventoryResolution DTO) — single platform-agnostic resolver with explicit mapping_source priority (variant_listing -> product_listing [variable sub-resolves via variant listing then unique SKU on that product, NEVER falls back to product-level] -> legacy external_id -> raw-id-is-already-local-ULID -> store-wide SKU fallback -> unmapped), used by OrderLineItems::fromOnline() and (via WarehouseAllocationService::requirements() reading the already-resolved inventory_item_id) shortage/reservation creation, so both paths can never disagree again. 3) CatalogInventoryService::resolveOrderLine() deleted (dead, superseded, had the same forbidden fallback bug). 4) WarehouseAllocationService::reconcileAllocation() + OperationsQueueService::recheckOrder() repair ALREADY-broken pre-fix orders on manual Recheck: backfills a reservation for any line that was dropped entirely (no reservation row at all) by re-deriving requirements() from the order's current lines, after the existing repairReservationItem() per-reservation repair runs. 5) Waiting Stock diagnostics (OperationsQueueService::buildShortageSummary) now surface source_platform/platform_connection_id/external_product_id/external_variant_id/mapping_source per line AND synthesize a visible row for a fully-unmapped line that never got a reservation at all (previously totally invisible in the UI).",
+      "tags": [
+        "inventory",
+        "waiting-stock",
+        "woocommerce",
+        "shopify",
+        "order-line-mapping",
+        "connector",
+        "root-cause",
+        "manual-fix"
+      ],
+      "related_bugs": [
+        "bug-waiting-stock-variant-resolves-to-stale-product-link"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T14:00:00.000Z"
+    },
+    {
+      "id": "bug-445",
+      "timestamp": "2026-08-22T13:17:06.733Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Catalog/ProductStockSnapshotService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:17:06.733Z"
+    },
+    {
+      "id": "bug-446",
+      "timestamp": "2026-08-22T13:17:56.663Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:17:56.663Z"
+    },
+    {
+      "id": "bug-447",
+      "timestamp": "2026-08-22T13:18:13.430Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 13→17 lines (3 removed) | Also: private function presentProduct(Product $product, ; ? $product->variants->map(function (ProductVariant",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T13:18:33.586Z"
+    },
+    {
+      "id": "bug-448",
+      "timestamp": "2026-08-22T13:23:16.845Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/StockController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:23:16.845Z"
+    },
+    {
+      "id": "bug-449",
+      "timestamp": "2026-08-22T13:26:14.893Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Stocks/StockAdjustmentFeedbackTest.php",
+      "root_cause": "Had 'message'",
+      "fix": "Changed to 'missing'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:26:14.893Z"
+    },
+    {
+      "id": "bug-450",
+      "timestamp": "2026-08-22T13:29:04.640Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (2 removed) | Also: await axios.post(`/dashboard/stock/${product.id}/a; onClose();",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T13:30:19.433Z"
+    },
+    {
+      "id": "bug-451",
+      "timestamp": "2026-08-22T13:29:09.437Z",
+      "error_message": "CSS fix: hint",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "hint: 'Type the exact stock level for each item — it overwrites the current value.', → 'Sets the physical on-hand quantity. Waiting orders may reserve stock automatically after save.',",
+      "fix": "Changed hint: 'Type the exact stock level for each item — it overwrites the current value.', → 'Sets the physical on-hand quantity. Waiting orders may reserve stock automatically after save.',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-08-22T13:29:21.922Z"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-08-22T13:29:55.971Z",
+      "error_message": "Missing error handling in AdjustStockModal",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:29:55.971Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-08-22T13:30:10.640Z",
+      "error_message": "Wrong return value",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "Was returning: allRows;",
+      "fix": "Now returns: snap ? {",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-22T13:30:10.640Z"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-08-22T13:31:22.501Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/Dashboard/AdjustStockModal.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // Expected-after-save summary: the exact server preview onc; // else a naive client estimate (on_hand only — reserved/ava",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-22T13:31:46.525Z"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-08-22T13:32:17.466Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Stock.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→14 lines (3 removed) | Also: {stock}; <div className=\"mt-4\"> | Also: <span className={`text-xs font-bold tabular-nums p; <div className=\"w-14 h-1.5 rounded-full bg-surface",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-22T13:33:07.769Z"
+    },
+    {
+      "id": "bug-456",
+      "timestamp": "2026-08-24T13:14:31.759Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ProductController.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 7→12 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T13:14:31.759Z"
+    },
+    {
+      "id": "bug-457",
+      "timestamp": "2026-08-24T13:41:55+00:00",
+      "error_message": "Test for purge-safety reservation blocker failed: InventoryReservation blocker not reported after calling InventoryEngine::reserve().",
+      "file": "app/Services/Catalog/ProductCleanupSafetyService.php",
+      "root_cause": "InventoryEngine::reserve() only bumps WarehouseInventoryBalance.reserved + writes an InventoryLedgerEntry — it does NOT create an inventory_reservations row. That table is populated only by WarehouseAllocationService (order/PO allocation flow), which requires a real InventoryAllocation row as its FK parent.",
+      "fix": "Test now creates a real InventoryAllocation + InventoryReservation row directly (mirroring WarehouseAllocationService::allocate()/topUp()) instead of assuming InventoryEngine::reserve() produces one. Safety service check itself was already correct — the non-zero-balance blocker had already caught it, just under a different message.",
+      "tags": [
+        "inventory",
+        "testing",
+        "gotcha",
+        "product-cleanup"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T13:41:55+00:00"
+    },
+    {
+      "id": "bug-458",
+      "timestamp": "2026-08-24T14:25:37.216Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Catalog/ProductCleanupSafetyService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T14:25:37.216Z"
+    },
+    {
+      "id": "bug-459",
+      "timestamp": "2026-08-24T14:25:48.177Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Catalog/ProductCleanupService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 16→23 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T14:25:48.177Z"
+    },
+    {
+      "id": "bug-460",
+      "timestamp": "2026-08-24T14:25:54.968Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Catalog/ProductCleanupService.php",
+      "root_cause": "Was returning: ['product_id' => $product->id, 'purged' => true, '",
+      "fix": "Now returns: [",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T14:25:54.968Z"
+    },
+    {
+      "id": "bug-461",
+      "timestamp": "2026-08-24T14:27:22.026Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/Products/ProductCleanupBar.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T14:27:22.026Z"
+    },
+    {
+      "id": "bug-462",
+      "timestamp": "2026-08-24T14:30:40.206Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ProductBulkCleanupTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→15 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T14:30:40.206Z"
+    },
+    {
+      "id": "bug-463",
+      "timestamp": "2026-08-24T15:24:13.309Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:24:13.309Z"
+    },
+    {
+      "id": "bug-464",
+      "timestamp": "2026-08-24T15:24:36.972Z",
+      "error_message": "Wrong reference: DashboardController should be ConnectionProfileController",
+      "file": "routes/dashboard.php",
+      "root_cause": "Used \"DashboardController\" instead of \"ConnectionProfileController\"",
+      "fix": "Changed DashboardController → ConnectionProfileController",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:24:36.972Z"
+    },
+    {
+      "id": "bug-465",
+      "timestamp": "2026-08-24T15:26:10.439Z",
+      "error_message": "CSS fix: hover",
+      "file": "resources/js/Pages/Dashboard/Integrations/Index.jsx",
+      "root_cause": "hover: bg-content/10 transition\" → bg-indigo-500 transition\"",
+      "fix": "Changed hover: bg-content/10 transition\" → bg-indigo-500 transition\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:26:10.439Z"
+    },
+    {
+      "id": "bug-466",
+      "timestamp": "2026-08-24T15:30:54.064Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:30:54.064Z"
+    },
+    {
+      "id": "bug-467",
+      "timestamp": "2026-08-24T15:31:00.666Z",
+      "error_message": "Missing error handling in testWooCommerce",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:31:00.666Z"
+    },
+    {
+      "id": "bug-468",
+      "timestamp": "2026-08-24T15:31:12.828Z",
+      "error_message": "Wrong reference: ShopifyConnector should be WooCommerceConnector",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Used \"ShopifyConnector\" instead of \"WooCommerceConnector\"",
+      "fix": "Changed ShopifyConnector → WooCommerceConnector",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T15:31:12.828Z"
+    },
+    {
+      "id": "bug-469",
+      "timestamp": "2026-08-24T16:08:10.914Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 15→27 lines (4 removed) | Also: /** @return array{status:string,checked_at:?string; return ['status' => 'needs_setup', 'checked_at' =>",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T16:08:59.630Z"
+    },
+    {
+      "id": "bug-470",
+      "timestamp": "2026-08-24T16:08:20.543Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:08:20.543Z"
+    },
+    {
+      "id": "bug-471",
+      "timestamp": "2026-08-24T16:09:28.982Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:09:28.982Z"
+    },
+    {
+      "id": "bug-472",
+      "timestamp": "2026-08-24T16:11:43.591Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "root_cause": "dark: text-red-400\">{state.auth.error → text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5\">",
+      "fix": "Changed dark: text-red-400\">{state.auth.error → text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:11:43.591Z"
+    },
+    {
+      "id": "bug-473",
+      "timestamp": "2026-08-24T16:11:58.022Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:11:58.022Z"
+    },
+    {
+      "id": "bug-474",
+      "timestamp": "2026-08-24T16:13:46.059Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Foundation/ShopifyConnectionAuthStatusTest.php",
+      "root_cause": "Had '), [\n        '",
+      "fix": "Changed to 'write_products,read_orders'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:13:46.059Z"
+    },
+    {
+      "id": "bug-475",
+      "timestamp": "2026-08-24T16:14:32.790Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Foundation/ConnectionAuthClarityTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:14:32.790Z"
+    },
+    {
+      "id": "bug-458",
+      "timestamp": "2026-08-24T16:16:52+00:00",
+      "error_message": "Connection Profile shows Shopify auth error \"Missing read_products scope or app version not released with required scopes.\" even though product sync succeeds and products can be imported.",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "ShopifyAuthService::testConnection() hard-gates on str_contains(token.scope, \"read_products\") BEFORE ever calling GET /products.json — a token whose self-reported scope string does not literally contain that substring fails the whole connection even when the real endpoint returns 200. ConnectionProfileController::test() was delegating to this same flawed method via IntegrationsController::testConnection() for admin_client_credentials Shopify connections. Meanwhile ProductSyncService/ProductSyncJob call ShopifyConnector directly and never touch this gate at all, which is why product sync worked while test connection reported failure — two independent code paths, only one had the bug. A correct fix (ShopifyCapabilityDiagnosticsService, real per-endpoint checks with scope treated as advisory) already existed from an earlier session but was only wired into a separate /shopify/diagnostics endpoint, not the primary Test connection flow.",
+      "fix": "ConnectionProfileController::test() now calls ShopifyCapabilityDiagnosticsService::run() for admin_client_credentials Shopify connections instead of the old scope-gated ShopifyAuthService::testConnection(). authStatus() derives a richer auth response (status/error/warning + per-capability token/shop/products_read/orders_read/inventory_locations) from the persisted settings.diagnostics report — status is connected the moment EITHER shop.read or products.read genuinely passes; a scope-string mismatch only ever produces a warning, never an error. syncProducts()/syncOrders() also clear a stale scope-related settings.last_token_error the moment a real sync succeeds (clearStaleScopeError()). IntegrationsController::saveShopify/saveConnection now clear settings.diagnostics/last_token_error and metadata.auth_check whenever credentials are re-saved, so a stale verdict never survives a credential edit.",
+      "tags": [
+        "shopify",
+        "auth",
+        "false-positive",
+        "connection-profile",
+        "diagnostics"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T16:16:52+00:00"
+    },
+    {
+      "id": "bug-477",
+      "timestamp": "2026-08-24T19:20:47.113Z",
+      "error_message": "Wrong reference: Store should be User",
+      "file": "app/Services/Delivery/ShipmentTrackingService.php",
+      "root_cause": "Used \"Store\" instead of \"User\"",
+      "fix": "Changed Store → User",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:20:47.113Z"
+    },
+    {
+      "id": "bug-478",
+      "timestamp": "2026-08-24T19:21:47.900Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Support/PermissionCatalog.php",
+      "root_cause": "Had 'locked'",
+      "fix": "Changed to 'delivery.shipments.create'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:21:47.900Z"
+    },
+    {
+      "id": "bug-479",
+      "timestamp": "2026-08-24T19:24:51.340Z",
+      "error_message": "CSS fix: unmapped_cities",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "unmapped_cities: unmappedCities, mapped_cities: mappedCities → unmappedCities, mapped_cities: mappedCities, ozon_cities: ozonCities",
+      "fix": "Changed unmapped_cities: unmappedCities, mapped_cities: mappedCities → unmappedCities, mapped_cities: mappedCities, ozon_cities: ozonCities",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:24:51.340Z"
+    },
+    {
+      "id": "bug-480",
+      "timestamp": "2026-08-24T19:24:59.465Z",
+      "error_message": "Wrong reference: onMapped should be ozonCities",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "Used \"onMapped\" instead of \"ozonCities\"",
+      "fix": "Changed onMapped → ozonCities",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:24:59.465Z"
+    },
+    {
+      "id": "bug-481",
+      "timestamp": "2026-08-24T19:26:17.153Z",
+      "error_message": "Wrong return value",
+      "file": "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "root_cause": "Was returning: <div className=\"bg-surface-2 border border-line ro",
+      "fix": "Now returns: (",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:26:17.153Z"
+    },
+    {
+      "id": "bug-482",
+      "timestamp": "2026-08-24T19:26:33.332Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Integrations',   href: '/dashboard/integrations', icon: Plug,      perm: 'integrations.manage' → 'Delivery providers', href: '/dashboard/delivery-connections', icon: Truck, perm: 'delivery.connections.manage'",
+      "fix": "Changed label: 'Integrations',   href: '/dashboard/integrations', icon: Plug,      perm: 'integrations.manage' → 'Delivery providers', href: '/dashboard/delivery-connections', icon: Truck, perm: 'delivery.connections.manage'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:26:33.332Z"
+    },
+    {
+      "id": "bug-483",
+      "timestamp": "2026-08-24T19:28:16.468Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Delivery/OzonConnectionTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T19:28:16.468Z"
+    },
+    {
+      "id": "bug-484",
+      "timestamp": "2026-08-24T19:38:27.444Z",
+      "error_message": "Wrong reference: authorize should be authorizeStore",
+      "file": "app/Http/Controllers/Dashboard/DeliveryNoteController.php",
+      "root_cause": "Used \"authorize\" instead of \"authorizeStore\"",
+      "fix": "Changed authorize → authorizeStore",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T19:38:32.065Z"
+    },
+    {
+      "id": "bug-487",
+      "timestamp": "2026-08-24T20:25:38.485Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 66→87 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:25:38.485Z"
+    },
+    {
+      "id": "bug-488",
+      "timestamp": "2026-08-24T20:25:49.619Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/OzonCityMappingService.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 29→39 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:25:49.619Z"
+    },
+    {
+      "id": "bug-489",
+      "timestamp": "2026-08-24T20:26:18.955Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→34 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:26:18.955Z"
+    },
+    {
+      "id": "bug-490",
+      "timestamp": "2026-08-24T20:26:26.422Z",
+      "error_message": "CSS fix: only",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "only: ['connection', 'unmapped_cities', 'mapped_cities'] → ['connection']",
+      "fix": "Changed only: ['connection', 'unmapped_cities', 'mapped_cities'] → ['connection']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:26:26.422Z"
+    },
+    {
+      "id": "bug-491",
+      "timestamp": "2026-08-24T20:26:50.317Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonCityMappingTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 13→30 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:26:50.317Z"
+    },
+    {
+      "id": "bug-492",
+      "timestamp": "2026-08-24T20:28:06.018Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/DeliveryProviderCityUiPropsTest.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 14→9 lines (8 removed) | Also: $city = City::create(['country_code' => 'MA', 'cod; ->has('unmapped_cities', 0)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T20:29:05.526Z"
+    },
+    {
+      "id": "bug-494",
+      "timestamp": "2026-08-24T20:45:32.971Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:45:32.971Z"
+    },
+    {
+      "id": "bug-495",
+      "timestamp": "2026-08-24T20:46:02.735Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 34→53 lines (4 removed) | Also: /** The only action that turns an existing connect; public function disconnect(Request $request, Deliv",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T20:46:48.331Z"
+    },
+    {
+      "id": "bug-496",
+      "timestamp": "2026-08-24T20:46:27.987Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {connection.status !== 'disabled' && (; <button type=\"button\" disabled={busy !== null}",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T20:46:40.099Z"
+    },
+    {
+      "id": "bug-497",
+      "timestamp": "2026-08-24T20:46:33.570Z",
+      "error_message": "CSS fix: dark",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "dark: text-red-400\">{connection.last_error → text-amber-400\">{connection.last_city_sync_error",
+      "fix": "Changed dark: text-red-400\">{connection.last_error → text-amber-400\">{connection.last_city_sync_error",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:46:33.570Z"
+    },
+    {
+      "id": "bug-498",
+      "timestamp": "2026-08-24T20:47:31.855Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonCitySyncTest.php",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 46→73 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T20:47:31.855Z"
+    },
+    {
+      "id": "bug-500",
+      "timestamp": "2026-08-24T21:06:15.465Z",
+      "error_message": "Significant refactor of ",
+      "file": "database/migrations/2026_08_24_000002_create_delivery_connections_table.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 16→10 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:06:15.465Z"
+    },
+    {
+      "id": "bug-501",
+      "timestamp": "2026-08-24T21:07:07.298Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 51→102 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:07:07.298Z"
+    },
+    {
+      "id": "bug-502",
+      "timestamp": "2026-08-24T21:07:22.130Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/DeliveryProviderCity.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:07:22.130Z"
+    },
+    {
+      "id": "bug-503",
+      "timestamp": "2026-08-24T21:09:24.007Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/DeliveryCityMappingSuggestionService.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 21→28 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:09:24.007Z"
+    },
+    {
+      "id": "bug-504",
+      "timestamp": "2026-08-24T21:09:29.951Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/OzonCityMappingService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:09:29.951Z"
+    },
+    {
+      "id": "bug-505",
+      "timestamp": "2026-08-24T21:10:07.893Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:10:07.893Z"
+    },
+    {
+      "id": "bug-506",
+      "timestamp": "2026-08-24T21:15:24.607Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonCityMappingBulkTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→12 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:15:24.607Z"
+    },
+    {
+      "id": "bug-509",
+      "timestamp": "2026-08-24T21:31:32.292Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/DeliveryCityMappingSuggestionService.php",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 21→4 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:31:32.292Z"
+    },
+    {
+      "id": "bug-510",
+      "timestamp": "2026-08-24T21:31:36.255Z",
+      "error_message": "Wrong reference: self should be CityNameNormalizer",
+      "file": "app/Services/Delivery/DeliveryCityMappingSuggestionService.php",
+      "root_cause": "Used \"self\" instead of \"CityNameNormalizer\"",
+      "fix": "Changed self → CityNameNormalizer",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-24T21:31:43.177Z"
+    },
+    {
+      "id": "bug-511",
+      "timestamp": "2026-08-24T21:32:47.459Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/DeliveryCityMappingResolver.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:32:47.459Z"
+    },
+    {
+      "id": "bug-512",
+      "timestamp": "2026-08-24T21:32:55.461Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/DeliveryCityMappingResolver.php",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 27→14 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:32:55.461Z"
+    },
+    {
+      "id": "bug-513",
+      "timestamp": "2026-08-24T21:33:12.595Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Condition was: if ($order->shipping_city_id === null || $this->mappin)",
+      "fix": "Changed to: if (! $resolution['resolved'])",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:33:12.595Z"
+    },
+    {
+      "id": "bug-514",
+      "timestamp": "2026-08-24T21:33:23.223Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 16→23 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:33:23.223Z"
+    },
+    {
+      "id": "bug-515",
+      "timestamp": "2026-08-24T21:35:21.208Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:35:21.208Z"
+    },
+    {
+      "id": "bug-516",
+      "timestamp": "2026-08-24T21:36:51.181Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Delivery/DeliveryCityMappingResolverTest.php",
+      "root_cause": "Had 'is_active'",
+      "fix": "Changed to 'name'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:36:51.181Z"
+    },
+    {
+      "id": "bug-518",
+      "timestamp": "2026-08-24T21:49:21.917Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 54→166 lines (10 removed) | Also: $message = $body['message'] ?? $body['error'] ?? $; return is_string($message) ? $message : null;",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T21:49:29.880Z"
+    },
+    {
+      "id": "bug-519",
+      "timestamp": "2026-08-24T21:50:21.419Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "app/Http/Controllers/Dashboard/DeliveryShipmentController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:50:21.419Z"
+    },
+    {
+      "id": "bug-520",
+      "timestamp": "2026-08-24T21:50:51.668Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:50:51.668Z"
+    },
+    {
+      "id": "bug-522",
+      "timestamp": "2026-08-24T21:58:47.912Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Had 'parcel-nature'",
+      "fix": "Changed to 'cod_amount'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T21:58:47.912Z"
+    },
+    {
+      "id": "bug-523",
+      "timestamp": "2026-08-24T21:59:03.949Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: /**; * Ozon's own money format: a plain integer MAD string — no c",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T21:59:17.489Z"
+    },
+    {
+      "id": "bug-524",
+      "timestamp": "2026-08-24T22:01:12.717Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Delivery/OzonCreateShipmentTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:01:12.718Z"
+    },
+    {
+      "id": "bug-526",
+      "timestamp": "2026-08-24T22:15:24.220Z",
+      "error_message": "Wrong operator: !== should be ===",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Used \"!==\" instead of \"===\"",
+      "fix": "Changed operator !== → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:15:24.220Z"
+    },
+    {
+      "id": "bug-527",
+      "timestamp": "2026-08-24T22:15:39.283Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:15:39.283Z"
+    },
+    {
+      "id": "bug-528",
+      "timestamp": "2026-08-24T22:16:13.758Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:16:13.759Z"
+    },
+    {
+      "id": "bug-529",
+      "timestamp": "2026-08-24T22:17:18.226Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonCreateShipmentResponseParsingTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 9→12 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:17:18.226Z"
+    },
+    {
+      "id": "bug-531",
+      "timestamp": "2026-08-24T22:37:07.502Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:37:07.502Z"
+    },
+    {
+      "id": "bug-ozon-products-payload-fallback-and-rich-diagnostics",
+      "timestamp": "2026-08-24T22:44:47.942Z",
+      "error_message": "Send to Ozon still returns ADD-PARCEL.MESSAGE=\"Products data required for stock parcels\" even with default_parcel_stock=\"0\" saved; UI debug block only showed HTTP status/content-type/response keys/preview, not the actual payload sent.",
+      "file": "app/Services/Delivery/OzonShipmentService.php, app/Connectors/Delivery/OzonExpressConnector.php, resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Re-verified resolveParcelStock()/validateReadiness() from the prior ticket were unchanged and already correctly preserved an explicit \"0\" (array_key_exists-based, never empty()/??/?:) — could not reproduce parcel-stock itself reverting to \"1\". The real remaining gap was buildProductsPayload(): it only ever used [\"sku\"] as the product ref and silently skipped any line with no sku field, even when OrderLineItems had already resolved that line to a real local product/variant via external ids (so a matching local SKU existed but was never looked up). Combined with the UI debug block not surfacing what was actually sent (parcel-stock/parcel-price/parcel-city/products), there was no way to see from the failure message alone whether products were being omitted.",
+      "fix": "Added OzonShipmentService::resolveProductRef() implementing the full fallback chain: line SKU -> local ProductVariant::withoutTenancy() sku (by resolved variant_id) -> local Product::withoutTenancy() sku (by resolved product_id) -> external_variant_id -> external_product_id -> local variant_id -> local product_id -> null (skip; never falls back to the display name). buildProductsPayload() now delegates to it per line. OzonExpressConnector::debugInfo() extended with parcel_stock_sent, parcel_price_sent, parcel_city_sent, receiver_present, phone_present, address_present, has_products, products_count, product_refs_preview, provider_message (never exposes api_key/customer_id/full URL). Dispatch.jsx shipmentIssue debug <details> block updated to render all of the above.",
+      "tags": [
+        "ozon",
+        "delivery",
+        "products-payload",
+        "diagnostics",
+        "parcel-stock",
+        "fallback-chain"
+      ],
+      "related_bugs": [
+        "bug-ozon-parcel-stock-zero-default-and-missing-products-support"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T22:44:47.944Z"
+    },
+    {
+      "id": "bug-533",
+      "timestamp": "2026-08-24T23:06:49.033Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:06:49.033Z"
+    },
+    {
+      "id": "bug-534",
+      "timestamp": "2026-08-24T23:07:15.299Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:07:15.299Z"
+    },
+    {
+      "id": "bug-535",
+      "timestamp": "2026-08-24T23:07:42.428Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/DeliveryConnectionController.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:07:42.428Z"
+    },
+    {
+      "id": "bug-536",
+      "timestamp": "2026-08-24T23:08:02.746Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 12→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:08:02.746Z"
+    },
+    {
+      "id": "bug-537",
+      "timestamp": "2026-08-24T23:09:16.973Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Delivery/OzonParcelStockModeTest.php",
+      "root_cause": "Had 'qty'",
+      "fix": "Changed to 'qnty'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-24T23:09:20.984Z"
+    },
+    {
+      "id": "bug-538",
+      "timestamp": "2026-08-24T23:09:24.610Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Delivery/OzonProductsPayloadTest.php",
+      "root_cause": "Had 'qty'",
+      "fix": "Changed to 'qnty'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:09:24.610Z"
+    },
+    {
+      "id": "bug-ozon-products-qty-vs-qnty-and-parcel-open-semantics",
+      "timestamp": "2026-08-24T23:11:43.754Z",
+      "error_message": "Send to Ozon still returns ADD-PARCEL.MESSAGE=\"Products data required for stock parcels\" even after buildProductsPayload() correctly resolved a SKU-based ref and a quantity for every line.",
+      "file": "app/Services/Delivery/OzonShipmentService.php, app/Connectors/Delivery/OzonExpressConnector.php, app/Http/Controllers/Dashboard/DeliveryConnectionController.php, resources/js/Pages/Dashboard/Delivery/Connections.jsx, resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "The prior ticket's buildProductsPayload() built each product row as {\"ref\": ..., \"qty\": N} — but Ozon's own documented add-parcel products schema uses the key \"qnty\", not \"qty\". Ozon silently ignored the unrecognized \"qty\" field, so from Ozon's point of view the products array carried no usable quantity and it kept rejecting the parcel with the same \"Products data required for stock parcels\" message regardless of how correct the ref-resolution fallback chain was. Separately, parcel-open was being treated as a boolean in the UI/settings (checkbox) and forwarded as-is, but Ozon documents parcel-open as \"1\" (ouvrir le colis) / \"2\" (ne pas ouvrir) — not a boolean at all; a checked/unchecked value could never map to Ozon's real 1/2 vocabulary.",
+      "fix": "Renamed the products payload quantity key from \"qty\" to \"qnty\" in OzonShipmentService::buildProductsPayload(). Added OzonShipmentService::resolveParcelOpen() (\"1\"/\"2\", default \"1\") and resolveBooleanFlag() (\"1\"/\"0\", default \"0\", used for fragile/replace) plus matching last-resort connector-level normalizeParcelOpen()/normalizeBooleanFlag() guards in OzonExpressConnector — all four of parcel-stock/parcel-open/parcel-fragile/parcel-replace are now always sent as explicit strings, never omitted or left as a raw PHP bool. Changed the Delivery Connections UI: \"Default parcel stock\" and \"Default parcel open\" are now <select> dropdowns with Ozon's real documented option labels (Stock parcel/Ramassage, Ouvrir le colis/Ne pas ouvrir) instead of a free-text field and a mismatched boolean checkbox; validation tightened to in:0,1 / in:1,2. Extended debugInfo() and the Dispatch.jsx debug block with parcel_open_sent/parcel_fragile_sent/parcel_replace_sent/products_json_preview so a future mismatch between what was sent and what Ozon expected is visible without guessing.",
+      "tags": [
+        "ozon",
+        "delivery",
+        "products-payload",
+        "qty-vs-qnty",
+        "parcel-open",
+        "parameter-semantics"
+      ],
+      "related_bugs": [
+        "bug-ozon-products-payload-fallback-and-rich-diagnostics",
+        "bug-ozon-parcel-stock-zero-default-and-missing-products-support"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:11:43.755Z"
+    },
+    {
+      "id": "bug-540",
+      "timestamp": "2026-08-24T23:26:28.095Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:26:28.095Z"
+    },
+    {
+      "id": "bug-541",
+      "timestamp": "2026-08-24T23:27:20.739Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 42→150 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:27:20.739Z"
+    },
+    {
+      "id": "bug-542",
+      "timestamp": "2026-08-24T23:40:01.584Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonTrackingTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→12 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:40:01.584Z"
+    },
+    {
+      "id": "bug-543",
+      "timestamp": "2026-08-24T23:43:39.977Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/DepartmentController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:43:39.977Z"
+    },
+    {
+      "id": "bug-544",
+      "timestamp": "2026-08-24T23:44:12.230Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:44:12.230Z"
+    },
+    {
+      "id": "bug-545",
+      "timestamp": "2026-08-24T23:44:39.434Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 25→34 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:44:39.434Z"
+    },
+    {
+      "id": "bug-546",
+      "timestamp": "2026-08-24T23:47:07.653Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/OzonShipmentVerificationTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 20→27 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:47:07.653Z"
+    },
+    {
+      "id": "bug-ozon-tracking-number-not-found-in-dashboard-strict-verification",
+      "timestamp": "2026-08-24T23:51:22.574Z",
+      "error_message": "Ozon add-parcel returns HTTP 200 with ADD-PARCEL.RESULT=SUCCESS and a real tracking number (observed shape: ADD-PARCEL.NEW-PARCEL.TRACKING-NUMBER), but searching that tracking number in the Ozon dashboard finds nothing — the order was still marked sent/dispatched on our side.",
+      "file": "app/Connectors/Delivery/OzonExpressConnector.php, app/Services/Delivery/OzonShipmentService.php, app/Models/Shipment.php, app/Http/Controllers/Dashboard/DeliveryShipmentController.php, app/Http/Controllers/Dashboard/DepartmentController.php, app/Http/Middleware/HandleInertiaRequests.php, routes/dashboard.php, resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "add-parcel HTTP 200 + a tracking number was trusted as the final word — a single provider call was never enough to prove Ozon actually persisted the parcel. Also confirmed extractTrackingNumber() did not previously check the NEW-PARCEL-nested shape (ADD-PARCEL.NEW-PARCEL.TRACKING-NUMBER), only ADD-PARCEL.TRACKING-NUMBER directly.",
+      "fix": "Added OzonExpressConnector::verifyShipment() — after add-parcel returns a tracking number, calls parcel-info and, only if that does not confirm it, falls back to tracking; a shipment is verified only if one of the two independently recognizes the tracking number with no provider error/not-found signal. Added Shipment::STATUS_PROVIDER_UNVERIFIED (deliberately outside ACTIVE_STATUSES/TERMINAL_STATUSES). OzonShipmentService::send() now switched to Shipment::updateOrCreate() (required by the shipments table's hard unique constraint on store_id+shippable_type+shippable_id+provider_code) and only calls DispatchService::assign() — the thing that actually moves the order out of \"awaiting carrier\" — when verified=true; an unverified attempt is still persisted (status=provider_unverified, raw add-parcel + verification payloads stored) for diagnostics and retry, but the order stays exactly where it was. Added OzonShipmentService::retryVerification() + a new POST /delivery-shipments/{shipment}/retry-verification route/controller action. DepartmentController::dispatch() now also keys Ozon shipments by order (not just by order_shipment_id, which an unverified shipment never gets) so an unverified attempt is still visible on the board via a new ozon_unverified prop. Dispatch.jsx shows a persistent per-row warning banner with tracking number, a delivery-note (BL) hypothesis hint, and a Retry verification button; \"Send to Ozon\" doubles as \"Retry send to Ozon\" since an unverified shipment is not \"active\" and does not block re-sending. Also fixed extractTrackingNumber() to check the ADD-PARCEL.NEW-PARCEL nested shape.",
+      "tags": [
+        "ozon",
+        "delivery",
+        "verification",
+        "tracking-number",
+        "parcel-info",
+        "shipment-status",
+        "dispatch-board"
+      ],
+      "related_bugs": [
+        "bug-ozon-products-payload-fallback-and-rich-diagnostics",
+        "bug-ozon-products-qty-vs-qnty-and-parcel-open-semantics"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-24T23:51:22.578Z"
+    },
+    {
+      "id": "bug-548",
+      "timestamp": "2026-08-25T00:35:00.341Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Sync/OrderSyncService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 89→115 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:35:00.341Z"
+    },
+    {
+      "id": "bug-549",
+      "timestamp": "2026-08-25T00:37:15.303Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 29→35 lines (14 removed) | Also: /** Queue a full order resync (no cursor — SyncPla; $this->requireConnection($request, $connection);",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-25T00:37:52.450Z"
+    },
+    {
+      "id": "bug-550",
+      "timestamp": "2026-08-25T00:46:27.045Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 18→23 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:46:27.045Z"
+    },
+    {
+      "id": "bug-551",
+      "timestamp": "2026-08-25T00:47:01.694Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/NotificationBell.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:47:01.694Z"
+    },
+    {
+      "id": "bug-552",
+      "timestamp": "2026-08-25T00:48:30.173Z",
+      "error_message": "Missing error handling in Manage",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:48:30.173Z"
+    },
+    {
+      "id": "bug-553",
+      "timestamp": "2026-08-25T00:48:58.037Z",
+      "error_message": "Missing error handling in Confirmation",
+      "file": "resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:48:58.037Z"
+    },
+    {
+      "id": "bug-554",
+      "timestamp": "2026-08-25T00:49:25.693Z",
+      "error_message": "Missing error handling in ShowOnline",
+      "file": "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:49:25.693Z"
+    },
+    {
+      "id": "bug-555",
+      "timestamp": "2026-08-25T00:49:55.061Z",
+      "error_message": "Missing guard clause",
+      "file": "resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "root_cause": "No early return/throw for edge case: ! orderBatchId",
+      "fix": "Added guard clause: if (! orderBatchId)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:49:55.061Z"
+    },
+    {
+      "id": "bug-556",
+      "timestamp": "2026-08-25T00:50:25.027Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:50:25.027Z"
+    },
+    {
+      "id": "bug-557",
+      "timestamp": "2026-08-25T00:51:40.522Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/OrderSyncQueueTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 15→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:51:40.522Z"
+    },
+    {
+      "id": "bug-558",
+      "timestamp": "2026-08-25T00:52:18.125Z",
+      "error_message": "Wrong reference: Carbon should be CarbonInterface",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Used \"Carbon\" instead of \"CarbonInterface\"",
+      "fix": "Changed Carbon → CarbonInterface",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T00:52:18.125Z"
+    },
+    {
+      "id": "bug-559",
+      "timestamp": "2026-08-25T01:14:22.360Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/OrderSyncIncrementalTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 12→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T01:14:22.360Z"
+    },
+    {
+      "id": "bug-order-sync-inline-timeout-and-missing-webhook-notifications",
+      "timestamp": "2026-08-25T01:33:23.168Z",
+      "error_message": "Manual \"Sync orders now\" on the connection profile can hit PHP max_execution_time (~30s) because it ran the full platform order-pull loop synchronously inside the HTTP request. Separately: no WooCommerce order webhooks existed at all (only Shopify), no order sync batch/queue existed for the manual button (only a pre-existing full-resync path via SyncPlatformOrders), and no order notification/badge system existed (NotificationBell.jsx was a permanently-empty placeholder).",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php, app/Jobs/OrderSyncJob.php, app/Models/OrderSyncBatch.php, app/Models/OrderSyncResult.php, app/Models/OrderNotification.php, app/Services/Sync/OrderSyncService.php, app/Connectors/WooCommerceConnector.php, app/Http/Controllers/Api/WooCommerceWebhookController.php, app/Http/Controllers/Api/ShopifyWebhookController.php, app/Services/WooCommerce/*, app/Listeners/CreateNewOrderNotifications.php, app/Http/Controllers/Dashboard/OrderNotificationController.php, app/Providers/AppServiceProvider.php, config/sync.php, routes/dashboard.php, routes/api.php, resources/js/Hooks/useOrderNotifications.js, resources/js/Components/NotificationBell.jsx, resources/js/Components/ToastNotification.jsx, resources/js/Layouts/SaasLayout.jsx, resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx",
+      "root_cause": "ConnectionProfileController::syncOrders() called OrderSyncService::syncFromPlatform() directly in the request thread — a store with a large/slow order history could exceed PHP's max_execution_time before the HTTP response was ever sent. This project already had the exact right pattern to fix it (ProductSyncBatch/ProductSyncResult/ProductSyncJob, built for product sync) but it had never been extended to orders. Also found via investigation: OrderSyncService::saveOrder() (the idempotent upsert keyed on platform_connection_id+platform_order_id) and the DB-level unique index on that pair already existed and were already correctly reused by the existing Shopify webhook path — most of the \"idempotent upsert\" and \"duplicate prevention\" requirements were already solved; what was missing was queuing the MANUAL trigger, incremental-default-range for a first sync, a WooCommerce webhook equivalent, and the notification/badge layer end to end.",
+      "fix": "Added OrderSyncBatch/OrderSyncResult (mirrors ProductSyncBatch/Result) + OrderSyncJob (mirrors ProductSyncJob) — both ConnectionProfileController::syncOrders() (incremental) and queueOrderSync() (full resync) now create a batch+result row and dispatch the job, returning {batch_id, status:queued, message} immediately; added GET .../sync-orders/batches/{batch} for polling. A connection with no order-sync cursor yet defaults to config('sync.orders_initial_import_days') = 30 days (never unbounded) unless it is an explicit full resync (since=null). Extended OrderSyncService::syncFromPlatform() to track skipped/failed counts and isolate per-order failures in their own try/catch (one bad order no longer aborts the whole sync). Built the WooCommerce webhook stack (WooCommerceWebhookVerifier, WooCommerceOrderMapper, WooCommerceWebhookController, WooCommerceConnector::mapWebhookOrder()) mirroring Shopify's exactly, reusing the SAME OrderSyncService::saveOrder() so webhook and sync can never disagree about \"this order already exists.\" Added orders/cancelled (Shopify) and order.deleted (WooCommerce) topic handling — accepted/logged, deliberately never mutating a local order (confirmation/fulfillment workflow decisions are out of scope for a webhook receiver). Built OrderNotification (per user+order+type, unique-indexed) + CreateNewOrderNotifications listener (fires on the existing OrderCreated event — already only dispatched for genuinely NEW orders) + polling endpoint + wired the previously-dead NotificationBell.jsx/ToastNotification.jsx to live data, plus sidebar badges on Orders/Confirmation Desk and mark-seen hooks on the Orders index, Confirmation Desk, and order detail pages.",
+      "tags": [
+        "order-sync",
+        "webhook",
+        "woocommerce",
+        "shopify",
+        "notifications",
+        "queue",
+        "timeout",
+        "idempotency"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T01:33:23.170Z"
     }
   ]
 }

@@ -7,6 +7,7 @@ import SearchFilterBar from '@/Components/SearchFilterBar';
 import SyncProductsModal from '@/Components/SyncProductsModal';
 import ImportProductsModal from '@/Components/Products/ImportProductsModal';
 import PublishTargetModal from '@/Components/Products/PublishTargetModal';
+import ProductCleanupBar from '@/Components/Products/ProductCleanupBar';
 import StatusBadge from '@/Components/StatusBadge';
 
 export default function Index({ store, products = { data: [], links: [] }, filters = {}, connections = [] }) {
@@ -15,10 +16,69 @@ export default function Index({ store, products = { data: [], links: [] }, filte
     const permissions = usePage().props.auth?.permissions ?? [];
     const canManage = permissions.includes('*') || permissions.includes('products.manage');
 
-    const applyFilters = (q) => {
-        const params = q ? { search: q } : {};
+    const activeFilters = {
+        platform: filters.platform ?? '',
+        connection_id: filters.connection_id ?? '',
+        has_listing: filters.has_listing ? '1' : '',
+        no_history: filters.no_history ? '1' : '',
+        archived: filters.archived ? '1' : '',
+    };
+
+    const pushFilters = (next) => {
+        const params = {};
+        if (search) params.search = search;
+        Object.entries(next).forEach(([k, v]) => { if (v) params[k] = v; });
         router.get('/dashboard/products', params, { preserveState: true, preserveScroll: true, replace: true });
     };
+
+    const applyFilters = (q) => {
+        setSearch(q);
+        const params = {};
+        if (q) params.search = q;
+        Object.entries(activeFilters).forEach(([k, v]) => { if (v) params[k] = v; });
+        router.get('/dashboard/products', params, { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const onFilterChange = (key, value) => {
+        // "yes"/"" pseudo-boolean filters and the platform/connection filters
+        // are mutually exclusive on the server (connection_id wins) — clearing
+        // platform when a connection is chosen keeps the URL/UI consistent.
+        const next = { ...activeFilters, [key]: value };
+        if (key === 'connection_id' && value) next.platform = '';
+        pushFilters(next);
+    };
+
+    const filterOptions = [
+        {
+            key: 'platform',
+            label: 'Imported from',
+            options: [
+                { value: 'shopify', label: 'Shopify' },
+                { value: 'woocommerce', label: 'WooCommerce' },
+                { value: 'youcan', label: 'YouCan' },
+            ],
+        },
+        {
+            key: 'connection_id',
+            label: 'Connection',
+            options: connections.map((c) => ({ value: c.id, label: `${c.label ?? c.platform} (${c.platform})` })),
+        },
+        {
+            key: 'has_listing',
+            label: 'Channel listing',
+            options: [{ value: '1', label: 'Has channel listing' }],
+        },
+        {
+            key: 'no_history',
+            label: 'History',
+            options: [{ value: '1', label: 'Has no orders/history' }],
+        },
+        {
+            key: 'archived',
+            label: 'Status',
+            options: [{ value: '1', label: 'Archived only' }],
+        },
+    ];
 
     // دالة لتحديث بيانات المنتجات فقط ف الكواليس ملي كيسالي السانكرو بنجاح
     const refreshCatalog = () => {
@@ -108,8 +168,12 @@ export default function Index({ store, products = { data: [], links: [] }, filte
             label: 'Product',
             render: (p) => (
                 <div>
-                
-                    <div className="text-content font-medium">{p.name}</div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-content font-medium">{p.name}</span>
+                        {p.status === 'archived' && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase bg-slate-500/15 text-content-muted">Archived</span>
+                        )}
+                    </div>
                     <div className="text-xs text-content-muted font-mono">{p.sku}</div>
                 </div>
             ),
@@ -209,9 +273,9 @@ export default function Index({ store, products = { data: [], links: [] }, filte
             ),
         }}>
             {selectedIds.length > 0 && (
-                <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
+                <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex-wrap">
                     <span className="text-sm text-content">{selectedIds.length} product{selectedIds.length === 1 ? '' : 's'} selected</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <button type="button" onClick={() => setSelectedIds([])} className="text-xs text-content-muted hover:text-content font-medium">
                             Clear
                         </button>
@@ -222,6 +286,14 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                         >
                             <Upload className="w-3.5 h-3.5" /> Publish selected
                         </button>
+                        {canManage && (
+                            <ProductCleanupBar
+                                selectedIds={selectedIds}
+                                connections={connections}
+                                onClear={() => setSelectedIds([])}
+                                onDone={() => router.reload({ only: ['products'] })}
+                            />
+                        )}
                     </div>
                 </div>
             )}
@@ -230,10 +302,10 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                 <SearchFilterBar
                     placeholder="Search by name or SKU…"
                     value={search}
-                    onSearch={(q) => { setSearch(q); applyFilters(q); }}
-                    filters={[]}
-                    activeFilters={{}}
-                    onFilterChange={() => {}}
+                    onSearch={(q) => applyFilters(q)}
+                    filters={filterOptions}
+                    activeFilters={activeFilters}
+                    onFilterChange={onFilterChange}
                 />
             </div>
 

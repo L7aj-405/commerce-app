@@ -112,9 +112,13 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                         )
                     ) : (
                         <>
+                            <p className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-2.5">
+                                Publish sends this SaaS product <strong>to</strong> the channel(s) you select below — the SaaS product is always the source of truth. Publishing to an already-linked channel updates the existing remote product; publishing to a new channel creates one and links it here (only if you check "create new" below). <strong>Queue publish</strong> (recommended) runs this in the background and is the official publish action; "Publish now" waits for the platform response in this request and is kept mainly for quick single-connection checks.
+                            </p>
+
                             {mode === 'bulk' && (
                                 <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
-                                    Only products with existing mappings for the selected channel will be updated. Unlinked products will be skipped unless create-on-publish is explicitly supported.
+                                    Only products with existing mappings for the selected channel will be updated. Unlinked products will be skipped unless create-on-publish is explicitly supported. Bulk publish is synchronous only for now (no background queue yet) — for a single product, prefer "Queue publish".
                                 </p>
                             )}
 
@@ -195,27 +199,28 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                 <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
                                     Cancel
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={submit}
+                                    disabled={selected.length === 0 || submitting}
+                                    title="Waits for the platform response in this request — kept for quick single-connection checks and backward compatibility."
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Publish now
+                                </button>
                                 {mode === 'single' && (
                                     <button
                                         type="button"
                                         onClick={submitQueued}
                                         disabled={selected.length === 0 || submitting}
-                                        title="Publish in the background — useful for products with many variants."
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Official publish action — runs in the background, so it never times out on products with many variants."
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                         Queue publish
                                     </button>
                                 )}
-                                <button
-                                    type="button"
-                                    onClick={submit}
-                                    disabled={selected.length === 0 || submitting}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    Publish selected
-                                </button>
                             </div>
                         </>
                     )}

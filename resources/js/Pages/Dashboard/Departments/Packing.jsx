@@ -46,9 +46,9 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Pick & pack',
-            subtitle: 'Prepare confirmed orders and hand them to logistics',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Pick & Pack' }],
+            title: 'Pick & Pack Workbench',
+            subtitle: 'Worker screen for picking, packing, and moving orders through warehouse steps.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Pick & Pack Workbench' }],
         }}>
             <DepartmentNav departments={departments} current="packing" />
 
@@ -221,7 +221,10 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                             <div className="ml-auto flex items-center gap-2">
                                                 {waitingStock && (
                                                     <span className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                                                        Waiting for transfer
+                                                        {/* Never hardcode "Waiting for transfer" here — that label is only
+                                                            correct once a real transfer exists and is actually in transit.
+                                                            See App\Support\WaitingStockState. */}
+                                                        {o.allocation?.waiting_state_label ?? 'Waiting for stock'}
                                                     </span>
                                                 )}
                                                 {readyToPick && (

@@ -127,7 +127,10 @@ it('publishes to both platforms only when both connection ids are explicitly sel
 
     Http::fake([
         'pt-woo.example.com/*' => Http::response(['id' => 'woo-3'], 200),
-        'pt-shopify.myshopify.com/*' => Http::response(['id' => 'shop-3'], 200),
+        // Shopify SKU lives on the default variant, not the parent — the
+        // response must carry a variants array so the publisher can resolve
+        // and confirm the default variant, same as a real Shopify response.
+        'pt-shopify.myshopify.com/*' => Http::response(['product' => ['id' => 'shop-3', 'variants' => [['id' => 900003, 'sku' => 'PT-BOTH-3']]]], 200),
     ]);
 
     $response = $this->actingAs($owner)->postJson("/dashboard/products/{$product->id}/publish", [
@@ -312,9 +315,18 @@ it('preserves an existing ProductVariantChannelListing when publishing a variabl
     $product = ptProduct($store, 'PT-VAR-PARENT', 'variable');
     $listing = ptListing($product, $woo, 'woo-var-parent');
 
-    $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::create([
-        'product_id' => $product->id, 'name' => 'Red', 'sku' => 'PT-VAR-RED', 'price' => 35, 'attributes' => ['Color' => 'Red'],
-    ]));
+    // Canonical variant — publish now routes WooCommerce through the same
+    // ProductAttribute/ProductAttributeValue/ProductVariant mapper Shopify
+    // uses. A legacy `attributes`-JSON-only variant (no canonical pivot)
+    // would make readiness block the whole publish, which used to leave
+    // this test passing for the wrong reason — nothing was ever sent, the
+    // pre-seeded row just never got touched.
+    app(\App\Services\Catalog\ProductVariantWizardService::class)->sync($product, [
+        ['name' => 'Color', 'values' => ['Red']],
+    ], [
+        ['sku' => 'PT-VAR-RED', 'price' => 35, 'options' => ['Color' => 'Red']],
+    ]);
+    $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::query()->where('product_id', $product->id)->firstOrFail());
 
     $variantListing = ProductVariantChannelListing::withoutTenancy(fn () => ProductVariantChannelListing::create([
         'product_id' => $product->id,
@@ -326,13 +338,16 @@ it('preserves an existing ProductVariantChannelListing when publishing a variabl
     ]));
 
     Http::fake([
-        'pt-woo.example.com/products/woo-var-parent' => Http::response(['id' => 'woo-var-parent'], 200),
-        'pt-woo.example.com/products/woo-var-parent/variations/woo-var-red-1' => Http::response(['id' => 'woo-var-red-1'], 200),
+        'pt-woo.example.com/wp-json/wc/v3/products/woo-var-parent' => Http::response(['id' => 'woo-var-parent'], 200),
+        'pt-woo.example.com/wp-json/wc/v3/products/woo-var-parent/variations/woo-var-red-1' => Http::response(['id' => 'woo-var-red-1'], 200),
     ]);
 
-    $this->actingAs($owner)->postJson("/dashboard/products/{$product->id}/publish", [
+    $response = $this->actingAs($owner)->postJson("/dashboard/products/{$product->id}/publish", [
         'connection_ids' => [$woo->id],
     ])->assertOk();
+
+    expect($response->json('results.0.status'))->toBe('succeeded');
+    Http::assertSent(fn ($r) => $r->method() === 'PUT' && str_contains($r->url(), '/products/woo-var-parent/variations/woo-var-red-1'));
 
     $freshVariantListing = ProductVariantChannelListing::withoutTenancy(fn () => ProductVariantChannelListing::query()->find($variantListing->id));
     expect($freshVariantListing)->not->toBeNull()

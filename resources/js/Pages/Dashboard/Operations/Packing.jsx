@@ -21,9 +21,9 @@ export default function Packing({ orders = [], is_agency_context = false }) {
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Packing',
-            subtitle: 'Picked orders being boxed for handover to logistics',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Packing' }],
+            title: 'Packing Queue',
+            subtitle: 'Supervisor view of all orders currently in packing status.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Packing Queue' }],
         }}>
             <OperationsNav current="packing" />
 

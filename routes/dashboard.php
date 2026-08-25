@@ -3,14 +3,20 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Dashboard\BonDeLivraisonController;
+use App\Http\Controllers\Dashboard\ConnectionProfileController;
 use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\DeliveryConnectionController;
 use App\Http\Controllers\Dashboard\DeliveryController;
+use App\Http\Controllers\Dashboard\DeliveryNoteController;
+use App\Http\Controllers\Dashboard\DeliveryShipmentController;
 use App\Http\Controllers\Dashboard\DepartmentController;
 use App\Http\Controllers\Dashboard\FacturesController;
 use App\Http\Controllers\Dashboard\IntegrationsController;
 use App\Http\Controllers\Dashboard\InvoiceController;
 use App\Http\Controllers\Dashboard\OperationsController;
 use App\Http\Controllers\Dashboard\OrderController;
+use App\Http\Controllers\Dashboard\OrderNotificationController;
+use App\Http\Controllers\Dashboard\ProductCleanupController;
 use App\Http\Controllers\Dashboard\ProductController;
 use App\Http\Controllers\Dashboard\ProductSyncController;
 use App\Http\Controllers\Dashboard\ReturnController;
@@ -34,6 +40,15 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
         Route::name('dashboard.')->group(function () {
 
             Route::post('/stores/switch', [StoreSwitchController::class, 'switch'])->name('stores.switch');
+
+            // Lightweight polling for order badges/toasts — no dedicated
+            // permission gate; every result is already scoped to the acting
+            // user's own notifications and their own store-permission checks
+            // (see OrderNotificationController).
+            Route::prefix('notifications')->name('notifications.')->group(function () {
+                Route::get('/order-counts', [OrderNotificationController::class, 'counts'])->name('order-counts');
+                Route::post('/mark-seen',   [OrderNotificationController::class, 'markSeen'])->name('mark-seen');
+            });
 
             Route::middleware('perm:stores.manage')->prefix('stores')->name('stores.')->group(function () {
                 Route::get('/',                [StoreController::class, 'index'])->name('index');
@@ -87,6 +102,13 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/picking',        [OperationsController::class, 'picking'])->name('picking');
                 Route::get('/packing',        [OperationsController::class, 'packing'])->name('packing');
                 Route::get('/ready-delivery', [OperationsController::class, 'readyForDelivery'])->name('ready-delivery');
+
+                // Waiting Stock Reallocation actions — scoped via
+                // OperationsQueueService::findWaitingOrder(), same
+                // warehouse-operator + permission boundary as the queue itself.
+                Route::post('/waiting-stock/{type}/{id}/recheck',           [OperationsController::class, 'recheckWaitingStock'])->name('waiting-stock.recheck');
+                Route::post('/waiting-stock/{type}/{id}/request-transfer',  [OperationsController::class, 'requestWaitingStockTransfer'])->name('waiting-stock.request-transfer');
+                Route::post('/waiting-stock/{type}/{id}/restock-requested',[OperationsController::class, 'markWaitingStockRestockRequested'])->name('waiting-stock.restock-requested');
             });
 
             Route::middleware('perm:inventory.transfers.receive')->prefix('operations/transfers')->name('operations.transfers.')->group(function () {
@@ -126,7 +148,7 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/{product}/edit',    [ProductController::class, 'edit'])->name('edit');
 
                 Route::get('/sync/connections', [ProductSyncController::class, 'getConnections'])->name('sync.connections');
-                Route::get('/sync/progress',     [ProductSyncController::class, 'getSyncProgress'])->name('sync.progress');
+                Route::get('/sync-batches/{batch}', [ProductSyncController::class, 'getSyncBatchStatus'])->name('sync.batches.show');
 
                 Route::middleware('perm:products.manage')->group(function () {
                     Route::get('/create',       [ProductController::class, 'create'])->name('create');
@@ -143,6 +165,16 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     Route::get('/publish-batches/{batch}',   [ProductController::class, 'publishBatchStatus'])->name('publish-batches.show');
                     Route::post('/bulk-publish',       [ProductController::class, 'bulkPublish'])->name('bulk-publish');
                     Route::post('/sync/start',  [ProductSyncController::class, 'startSync'])->name('sync.start');
+
+                    // Safe bulk cleanup / resync-reset for imported products.
+                    Route::prefix('bulk')->name('bulk.')->group(function () {
+                        Route::post('/archive',        [ProductCleanupController::class, 'archive'])->name('archive');
+                        Route::post('/unlink-channel', [ProductCleanupController::class, 'unlinkChannel'])->name('unlink-channel');
+                        Route::post('/reset-sync',     [ProductCleanupController::class, 'resetSync'])->name('reset-sync');
+                        Route::post('/reset-sync-all', [ProductCleanupController::class, 'resetSyncAll'])->name('reset-sync-all');
+                        Route::post('/purge-preview',  [ProductCleanupController::class, 'purgePreview'])->name('purge-preview');
+                        Route::post('/purge',          [ProductCleanupController::class, 'purge'])->name('purge');
+                    });
                 });
 
                 // Inventory-safe stock adjustments — gated by the same
@@ -157,6 +189,8 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/movements',         [StockController::class, 'movements'])->name('movements');
                 Route::post('/{product}/adjust', [StockController::class, 'adjustStock'])
                     ->middleware('perm:stock.adjust')->name('adjust');
+                // Read-only — never writes anything, so it only needs stock.view.
+                Route::post('/{product}/preview-adjustment', [StockController::class, 'previewAdjustment'])->name('preview-adjustment');
 
                 // Stock Transfer & Outbound Movement (Bon de Sortie). Creating a
                 // transfer mutates stock, so it needs stock.adjust; listing and
@@ -245,6 +279,54 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 // the generic testConnection() above, which only reports a
                 // pass/fail gated on the token's self-reported scope string.
                 Route::post('/shopify/diagnostics', [IntegrationsController::class, 'shopifyDiagnostics'])->name('shopify.diagnostics');
+
+                // Connection Profile — auth/sync status, sync actions, reset
+                // actions (never touch credentials), and the separate,
+                // dangerous disconnect action (never confused with reset).
+                Route::prefix('connections/{connection}')->name('connections.')->group(function () {
+                    Route::get('/',                            [ConnectionProfileController::class, 'show'])->name('show');
+                    Route::post('/test',                       [ConnectionProfileController::class, 'test'])->name('test');
+                    Route::post('/sync-products',               [ConnectionProfileController::class, 'syncProducts'])->name('sync-products');
+                    Route::post('/sync-orders',                 [ConnectionProfileController::class, 'syncOrders'])->name('sync-orders');
+                    Route::post('/sync-products/queue',         [ConnectionProfileController::class, 'queueProductSync'])->name('sync-products.queue');
+                    Route::post('/sync-orders/queue',           [ConnectionProfileController::class, 'queueOrderSync'])->name('sync-orders.queue');
+                    Route::get('/sync-orders/batches/{batch}',  [ConnectionProfileController::class, 'getOrderSyncBatchStatus'])->name('sync-orders.batch-status');
+                    Route::post('/reset-product-mappings',      [ConnectionProfileController::class, 'resetProductMappings'])->name('reset-product-mappings');
+                    Route::post('/reset-product-cursor',        [ConnectionProfileController::class, 'resetProductCursor'])->name('reset-product-cursor');
+                    Route::post('/reset-order-cursor',          [ConnectionProfileController::class, 'resetOrderCursor'])->name('reset-order-cursor');
+                    Route::post('/archive-imported-products',   [ConnectionProfileController::class, 'archiveImportedProducts'])->name('archive-imported-products');
+                    Route::post('/disconnect',                  [ConnectionProfileController::class, 'disconnect'])->name('disconnect');
+                });
+            });
+
+            // External delivery providers (Ozon Express first). Separate from
+            // the internal /my-deliveries driver queue above and from the
+            // Dispatch board's own order_shipments bookkeeping — this is the
+            // provider-specific integration layer that feeds into it.
+            Route::middleware('perm:delivery.connections.manage')->prefix('delivery-connections')->name('delivery-connections.')->group(function () {
+                Route::get('/',                    [DeliveryConnectionController::class, 'index'])->name('index');
+                Route::post('/ozon',                [DeliveryConnectionController::class, 'storeOzon'])->name('ozon.store');
+                Route::post('/{connection}/test',        [DeliveryConnectionController::class, 'test'])->name('test');
+                Route::post('/{connection}/sync-cities',  [DeliveryConnectionController::class, 'syncCities'])->name('sync-cities');
+                Route::post('/{connection}/cities/map',   [DeliveryConnectionController::class, 'mapCity'])->name('cities.map');
+                Route::post('/{connection}/cities/map-all-suggested', [DeliveryConnectionController::class, 'mapAllSuggested'])->name('cities.map-all-suggested');
+                Route::post('/{connection}/cities/clear-mapping',     [DeliveryConnectionController::class, 'clearMapping'])->name('cities.clear-mapping');
+                Route::post('/{connection}/disconnect',   [DeliveryConnectionController::class, 'disconnect'])->name('disconnect');
+            });
+
+            Route::prefix('delivery-shipments')->name('delivery-shipments.')->group(function () {
+                Route::middleware('perm:delivery.shipments.create')
+                    ->post('/orders/{order}/ozon', [DeliveryShipmentController::class, 'sendToOzon'])->name('send-ozon');
+                Route::middleware('perm:delivery.shipments.create')
+                    ->post('/{shipment}/retry-verification', [DeliveryShipmentController::class, 'retryVerification'])->name('retry-verification');
+                Route::middleware('perm:delivery.shipments.track')
+                    ->post('/{shipment}/refresh-tracking', [DeliveryShipmentController::class, 'refreshTracking'])->name('refresh-tracking');
+            });
+
+            Route::middleware('perm:delivery.notes.manage')->prefix('delivery-notes')->name('delivery-notes.')->group(function () {
+                Route::post('/ozon',                         [DeliveryNoteController::class, 'create'])->name('create');
+                Route::post('/{deliveryNote}/add-shipments',  [DeliveryNoteController::class, 'addShipments'])->name('add-shipments');
+                Route::post('/{deliveryNote}/save',           [DeliveryNoteController::class, 'save'])->name('save');
             });
         });
     });

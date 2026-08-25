@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
+import axios from 'axios';
 import {
     Phone, Mail, Clock, CheckCircle2, XCircle, Loader2, Hand,
-    Inbox, UserCheck, Timer, ListChecks,
+    Inbox, UserCheck, Timer, ListChecks, AlertTriangle, Lock, LogOut,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DepartmentNav from '@/Components/Departments/DepartmentNav';
@@ -31,6 +32,12 @@ const CANCEL_REASONS = [
 export default function Confirmation({ store, orders = [], agents = [], stats = {}, departments = [], cities = [] }) {
     const currency = store?.currency ?? 'MAD';
     const userId   = usePage().props.auth?.user?.id ?? null;
+
+    // Opening the Confirmation Desk marks unseen new-order notifications
+    // seen for this user — the ticket's own definition of "seen" for this page.
+    useEffect(() => {
+        axios.post('/dashboard/notifications/mark-seen', { context: 'confirmation_desk' }).catch(() => {});
+    }, []);
 
     const q = useQueue(orders, { userId });
     const [cancelling, setCancelling] = useState(null);   // order awaiting a reason
@@ -65,9 +72,9 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Confirmation desk',
+            title: 'Confirmation Desk',
             subtitle: 'Reach the customer, then confirm or cancel',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Confirmation' }],
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Confirmation Desk' }],
         }}>
             <DepartmentNav departments={departments} current="confirmation" />
 
@@ -121,6 +128,12 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 </h3>
 
                                                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-content-muted">
+                                                    {o.source === 'online' && o.connection_label && (
+                                                        <span className="truncate max-w-[200px]">
+                                                            {o.connection_label}
+                                                            {o.external_order_number ? ` · #${o.external_order_number}` : ''}
+                                                        </span>
+                                                    )}
                                                     {o.customer_phone && (
                                                         <a href={`tel:${o.customer_phone}`} className="inline-flex items-center gap-1.5 hover:text-content transition">
                                                             <Phone className="w-3.5 h-3.5" /> {o.customer_phone}
@@ -140,8 +153,9 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     {fmtMoney(o.total, currency)}
                                                 </div>
                                                 {o.assigned_to && (
-                                                    <div className="mt-0.5 text-[11px] text-content-muted">
-                                                        {mine ? 'Yours' : `With ${o.assignee_name ?? 'another agent'}`}
+                                                    <div className={`mt-0.5 inline-flex items-center gap-1 text-[11px] ${mine ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted'}`}>
+                                                        <Lock className="w-3 h-3" />
+                                                        {mine ? 'Claimed by you' : `Claimed by ${o.assignee_name ?? 'another agent'}`}
                                                     </div>
                                                 )}
                                             </div>
@@ -171,7 +185,25 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                             />
                                         </div>
 
-                                        <div className="mt-2 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-2">
+                                        {/* Read-only reference: the address exactly as the platform sent it. */}
+                                        {o.original_address?.has_address ? (
+                                            <p className="mt-2 text-[11px] text-content-muted">
+                                                Original: {[
+                                                    o.original_address.address1,
+                                                    o.original_address.address2,
+                                                    o.original_address.city,
+                                                    o.original_address.province,
+                                                    o.original_address.country,
+                                                ].filter(Boolean).join(', ') || '—'}
+                                                {o.original_address.notes && ` · Note: ${o.original_address.notes}`}
+                                            </p>
+                                        ) : (
+                                            <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                                <AlertTriangle className="w-3 h-3" /> No customer address was provided by the platform.
+                                            </p>
+                                        )}
+
+                                        <div className="mt-1.5 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-2">
                                             <input
                                                 type="text"
                                                 value={addressByOrder[q.keyOf(o)] ?? o.delivery_address ?? ''}
@@ -180,7 +212,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                             />
                                             <select
-                                                value={cityByOrder[q.keyOf(o)] ?? o.shipping_city_id ?? ''}
+                                                value={cityByOrder[q.keyOf(o)] ?? o.suggested_city_id ?? ''}
                                                 onChange={(e) => setCityByOrder((v) => ({ ...v, [q.keyOf(o)]: e.target.value }))}
                                                 className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                             >
@@ -190,6 +222,18 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 ))}
                                             </select>
                                         </div>
+                                        {! o.city_recognized && o.raw_city_name && ! cityByOrder[q.keyOf(o)] && (
+                                            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                Platform reported city "{o.raw_city_name}" — not in the city list. Select the matching city before confirming.
+                                            </p>
+                                        )}
+
+                                        {! o.assigned_to && (
+                                            <p className="mt-2 text-[11px] text-content-muted">
+                                                Claim an order before confirming or cancelling it.
+                                            </p>
+                                        )}
 
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
                                             {! o.assigned_to && (
@@ -198,7 +242,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/claim`)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
                                                 >
-                                                    <Hand className="w-4 h-4" /> Claim
+                                                    <Hand className="w-4 h-4" /> Claim order
                                                 </button>
                                             )}
 
@@ -208,27 +252,27 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/release`)}
                                                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
                                                 >
-                                                    Release
+                                                    <LogOut className="w-4 h-4" /> Release claim
                                                 </button>
                                             )}
 
                                             <div className="ml-auto flex items-center gap-2">
                                                 <button
-                                                    disabled={busy || taken}
+                                                    disabled={busy || ! mine}
                                                     onClick={() => setCancelling(o)}
-                                                    title={taken ? 'Another agent is handling this order' : undefined}
+                                                    title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before cancelling it') : undefined}
                                                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
-                                                    <XCircle className="w-4 h-4" /> Cancel
+                                                    <XCircle className="w-4 h-4" /> Cancel order
                                                 </button>
                                                 <button
-                                                    disabled={busy || taken}
+                                                    disabled={busy || ! mine}
                                                     onClick={() => move(o, 'confirmed')}
-                                                    title={taken ? 'Another agent is handling this order' : undefined}
+                                                    title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before confirming it') : undefined}
                                                     className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
                                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                                    Confirm
+                                                    Confirm order
                                                 </button>
                                             </div>
                                         </div>

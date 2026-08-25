@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\OrderCreated;
+use App\Listeners\CreateNewOrderNotifications;
 use App\Models\Facture;
 use App\Models\User;
 use App\Policies\FacturePolicy;
@@ -90,6 +92,8 @@ class AppServiceProvider extends ServiceProvider
                 app(\App\Services\SupportAccess::class)->end($event->user, 'logout');
             }
         });
+
+        Event::listen(OrderCreated::class, CreateNewOrderNotifications::class);
 
         $this->bridgePermissionsToGate();
 

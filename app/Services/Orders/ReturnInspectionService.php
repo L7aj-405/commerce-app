@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
+use App\Models\InventoryAllocation;
 use App\Models\Order;
 use App\Models\OrderReturn;
 use App\Models\OrderReturnItem;
@@ -12,6 +13,8 @@ use App\Models\PosOrder;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Inventory\CatalogInventoryService;
+use App\Services\Inventory\InventoryEngine;
 use App\Support\OrderLineItems;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -23,11 +26,22 @@ use Illuminate\Validation\ValidationException;
  * Stock moves here and nowhere else in the return flow. Flagging an order as
  * returned deliberately moves nothing — the goods are unverified until an
  * inspector physically handles them.
+ *
+ * Organization-backed stores restock through the V2 InventoryEngine (adding
+ * on_hand directly — a return is new physical stock arriving, not a
+ * reservation) so the SAME automatic sellable-availability sync/queueing
+ * every other engine mutation gets applies here too: the damaged warehouse's
+ * `isSellable() === false` already makes the engine skip queuing an external
+ * push for damaged restocks, with no special-casing needed. Legacy (no
+ * organization) stores keep the original StockMovementWriter/StockLedger
+ * path, unchanged, until migrated by the organization backfill.
  */
 class ReturnInspectionService
 {
     public function __construct(
         private readonly StockMovementWriter $stock,
+        private readonly CatalogInventoryService $catalog,
+        private readonly InventoryEngine $inventory,
     ) {}
 
     /**
@@ -127,8 +141,12 @@ class ReturnInspectionService
                     continue;
                 }
 
-                // Already restocked — a resubmitted form must not move stock twice.
-                if ($item->hasStockMovement()) {
+                // Already dispositioned — a resubmitted form must not move
+                // stock twice. Checked via dispositioned_at, not
+                // hasStockMovement()/stock_ledger_id: an organization-backed
+                // restock goes through InventoryEngine (InventoryLedgerEntry),
+                // which never writes a legacy StockLedger row at all.
+                if ($item->isDispositioned()) {
                     continue;
                 }
 
@@ -148,22 +166,45 @@ class ReturnInspectionService
                     ]);
                 }
 
-                $warehouse = $this->destinationFor($store, $condition);
+                $order = $return->returnable;
+                $warehouse = $this->destinationFor($store, $condition, $order);
 
                 // Missing goods never arrived, so there is nothing to move. The
                 // OrderReturnItem row is itself the record of the write-off.
-                $ledger = $warehouse === null ? null : $this->stock->move(
-                    store:      $store,
-                    productId:  $item->product_id,
-                    variantId:  $item->variant_id,
-                    warehouse:  $warehouse,
-                    change:     $quantity,
-                    ledgerType: $condition === OrderReturnItem::CONDITION_RESELLABLE ? 'return' : 'damage',
-                    source:     $return,
-                    reference:  $return->reference,
-                    actor:      $actor,
-                    notes:      "Return {$return->reference} — {$condition}",
-                );
+                $ledger = null;
+
+                if ($warehouse !== null && $item->product_id !== null) {
+                    $order?->loadMissing('store.organization');
+
+                    if ($order?->store?->organization !== null) {
+                        $inventoryItem = $this->catalog->resolve($item->product_id, $item->variant_id);
+
+                        if ($inventoryItem !== null) {
+                            $this->inventory->adjustOnHand(
+                                $inventoryItem,
+                                $warehouse,
+                                $quantity,
+                                $condition === OrderReturnItem::CONDITION_RESELLABLE ? 'return' : 'damage',
+                                $return,
+                                $actor,
+                                "Return {$return->reference} — {$condition}",
+                            );
+                        }
+                    } else {
+                        $ledger = $this->stock->move(
+                            store:      $store,
+                            productId:  $item->product_id,
+                            variantId:  $item->variant_id,
+                            warehouse:  $warehouse,
+                            change:     $quantity,
+                            ledgerType: $condition === OrderReturnItem::CONDITION_RESELLABLE ? 'return' : 'damage',
+                            source:     $return,
+                            reference:  $return->reference,
+                            actor:      $actor,
+                            notes:      "Return {$return->reference} — {$condition}",
+                        );
+                    }
+                }
 
                 $item->update([
                     'condition'                => $condition,
@@ -231,13 +272,36 @@ class ReturnInspectionService
     // -------------------------------------------------------------------------
 
     /** Null means "no stock movement" — the units never came back. */
-    private function destinationFor(Store $store, string $condition): ?Warehouse
+    private function destinationFor(Store $store, string $condition, Order|PosOrder|null $order): ?Warehouse
     {
         return match ($condition) {
-            OrderReturnItem::CONDITION_RESELLABLE => $store->getPrimaryWarehouse(),
+            OrderReturnItem::CONDITION_RESELLABLE => $this->resellableDestination($store, $order),
             OrderReturnItem::CONDITION_DAMAGED    => $store->getDamagedWarehouse(),
             default                               => null,
         };
+    }
+
+    /**
+     * Resellable stock goes back to wherever it was originally allocated from
+     * — the warehouse that actually shipped it is the one whose count is
+     * wrong right now — falling back to the store's primary warehouse when
+     * the order never had an allocation (legacy order, or the allocation was
+     * never created for some other reason).
+     */
+    private function resellableDestination(Store $store, Order|PosOrder|null $order): ?Warehouse
+    {
+        if ($order !== null) {
+            $allocation = InventoryAllocation::withoutOrganizationTenancy(fn () => InventoryAllocation::query()
+                ->where('source_type', $order->getMorphClass())
+                ->where('source_id', $order->getKey())
+                ->first());
+
+            if ($allocation?->warehouse !== null) {
+                return $allocation->warehouse;
+            }
+        }
+
+        return $store->getPrimaryWarehouse();
     }
 
     /**

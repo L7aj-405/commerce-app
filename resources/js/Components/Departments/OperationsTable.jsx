@@ -38,6 +38,12 @@ export default function OperationsTable({ rows, currency, showClientColumn, rend
                                 <span className={`mt-1 inline-flex items-center gap-1 text-[11px] ${ageTone(o.created_at)}`}>
                                     <Clock className="w-3 h-3" /> {timeAgo(o.created_at)}
                                 </span>
+                                {o.source === 'online' && o.connection_label && (
+                                    <div className="mt-0.5 text-[11px] text-content-muted truncate max-w-[160px]">
+                                        {o.connection_label}
+                                        {o.external_order_number ? ` · #${o.external_order_number}` : ''}
+                                    </div>
+                                )}
                             </td>
                             <td className="px-3 py-2.5">
                                 <div className="font-medium text-content">{o.customer_name || 'Walk-in customer'}</div>

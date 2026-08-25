@@ -29,12 +29,12 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Returns & inspection',
+            title: 'Returns Desk',
             subtitle: 'Check returned goods and route them back to stock or write them off',
             breadcrumbs: [
                 { label: 'Dashboard', href: '/dashboard' },
                 { label: 'Orders', href: '/dashboard/orders/manage' },
-                { label: 'Returns' },
+                { label: 'Returns Desk' },
             ],
         }}>
             <DepartmentNav departments={departments} current="returns" />

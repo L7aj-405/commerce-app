@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Enums\FulfillmentStatus;
+use App\Models\InventoryAllocation;
 use App\Models\Order;
 use App\Models\PosOrder;
 
@@ -58,12 +59,37 @@ class OrderPresenter
             'created_at'     => $o->created_at?->toIso8601String(),
             'updated_at'     => $o->fulfillment_updated_at?->toIso8601String(),
             'allocation'      => self::allocation($o),
+            'inventory_status' => self::inventoryStatus($o),
+            'unmapped_lines'  => [], // POS lines always carry a real local product id
+            ...OrderSourceSummary::present($o),
         ];
     }
 
     public static function online(Order $o): array
     {
         $status = $o->fulfillment_status ?? FulfillmentStatus::Pending;
+        $address = \App\Support\OrderAddressSummary::extract($o);
+
+        // shipping_city_id already set (a prior confirm attempt, or a synced
+        // update) is always authoritative and never re-guessed. Otherwise,
+        // try an exact match on the platform's raw city text — only when
+        // that's confident do we preselect the dropdown; an unmatched raw
+        // city is surfaced as-is so the agent normalizes it explicitly,
+        // never silently guessed.
+        $suggestedCityId = $o->shipping_city_id;
+        $cityRecognized = $o->shipping_city_id !== null;
+        $rawCityName = null;
+
+        if ($suggestedCityId === null && $address['city'] !== null) {
+            $matched = \App\Support\OrderAddressSummary::matchCity($address['city']);
+
+            if ($matched !== null) {
+                $suggestedCityId = $matched->id;
+                $cityRecognized = true;
+            } else {
+                $rawCityName = $address['city'];
+            }
+        }
 
         $items = collect($o->items ?? [])->map(function ($it) {
             $unit = (float) ($it['unit_price'] ?? $it['price'] ?? 0);
@@ -94,9 +120,17 @@ class OrderPresenter
             'customer_phone' => $o->customer_phone,
             'customer_email' => $o->customer_email,
             'payment_method' => null,
-            'delivery_address' => $o->confirmed_shipping_address ?? data_get($o->platform_data, 'shipping.address_1'),
+            'delivery_address' => $o->confirmed_shipping_address ?? $address['address1'],
             'shipping_city_id' => $o->shipping_city_id,
             'shipping_city_name' => $o->shippingCity?->name,
+            // The customer's ORIGINAL address as the platform sent it —
+            // read-only reference data, never edited directly. The agent
+            // edits `delivery_address`/`shipping_city_id` (submitted as
+            // confirmed_address/confirmed_city_id) instead.
+            'original_address' => $address,
+            'suggested_city_id' => $suggestedCityId,
+            'city_recognized' => $cityRecognized,
+            'raw_city_name' => $rawCityName,
             'total'          => (float) $o->total,
             'subtotal'       => (float) $o->total,
             'tax'            => 0.0,
@@ -106,6 +140,13 @@ class OrderPresenter
             'created_at'     => $o->created_at?->toIso8601String(),
             'updated_at'     => $o->fulfillment_updated_at?->toIso8601String(),
             'allocation'      => self::allocation($o),
+            'inventory_status' => self::inventoryStatus($o),
+            'unmapped_lines'  => collect(\App\Support\OrderLineItems::for($o))
+                ->where('unmapped', true)
+                ->pluck('name')
+                ->values()
+                ->all(),
+            ...OrderSourceSummary::present($o),
         ];
     }
 
@@ -132,6 +173,8 @@ class OrderPresenter
             'created_at'     => $o->created_at?->toIso8601String(),
             'view_url'       => "/dashboard/orders/{$o->receipt_number}",
             'receipt_url'    => "/dashboard/orders/{$o->receipt_number}/receipt",
+            'platform_connection_id' => null,
+            ...OrderSourceSummary::present($o),
         ];
     }
 
@@ -153,6 +196,8 @@ class OrderPresenter
             'created_at'     => $o->created_at?->toIso8601String(),
             'view_url'       => "/dashboard/orders/online/{$o->id}",
             'receipt_url'    => "/dashboard/orders/online/{$o->id}/receipt",
+            'platform_connection_id' => $o->platform_connection_id,
+            ...OrderSourceSummary::present($o),
         ];
     }
 
@@ -166,6 +211,13 @@ class OrderPresenter
             return null;
         }
 
+        // Never "Waiting for transfer" just because stock is short — that
+        // label is only correct once a real InventoryTransfer exists and is
+        // actually in transit. WaitingStockState reads the order's own
+        // reservations (+ whatever transfer they point to, if any) rather
+        // than guessing from allocation.status alone.
+        $waiting = \App\Support\WaitingStockState::forReservations($allocation->reservations);
+
         return [
             'id' => $allocation->id,
             'status' => $allocation->status,
@@ -176,7 +228,51 @@ class OrderPresenter
             'city_id' => $allocation->city_id,
             'city_name' => $allocation->city?->name,
             'shortage_quantity' => (int) $allocation->reservations->sum('shortage_quantity'),
+            'notes' => $allocation->notes,
+            'waiting_state' => $waiting['state'],
+            'waiting_state_label' => $waiting['label'],
         ];
+    }
+
+    /**
+     * Phase O7 — one plain-English label for "what is inventory doing right
+     * now for this order", read straight off the allocation status (or the
+     * return, once one exists) rather than re-deriving it from
+     * fulfillment_status alone — the two can briefly disagree (e.g. an order
+     * sits at `confirmed` while still `waiting_transfer`).
+     *
+     * @return array{label: string, allocation_status: ?string}
+     */
+    private static function inventoryStatus(Order|PosOrder $order): array
+    {
+        $status = $order->fulfillment_status ?? FulfillmentStatus::Pending;
+
+        if (in_array($status, [FulfillmentStatus::Returned, FulfillmentStatus::UnderInspection], true)) {
+            return ['label' => 'Returned — awaiting inspection', 'allocation_status' => null];
+        }
+
+        if ($status === FulfillmentStatus::ReturnCompleted) {
+            return ['label' => 'Return closed — see disposition', 'allocation_status' => null];
+        }
+
+        $allocation = $order->inventoryAllocation;
+
+        if ($allocation === null) {
+            return [
+                'label' => $status === FulfillmentStatus::Pending ? 'Pending confirmation' : 'Not tracked (legacy order, no allocation)',
+                'allocation_status' => null,
+            ];
+        }
+
+        $label = match ($allocation->status) {
+            InventoryAllocation::STATUS_CONSUMED => 'Consumed — dispatched',
+            InventoryAllocation::STATUS_RELEASED => 'Released',
+            InventoryAllocation::STATUS_WAITING_TRANSFER, InventoryAllocation::STATUS_INSUFFICIENT => 'Waiting for stock',
+            InventoryAllocation::STATUS_RESERVED => 'Reserved',
+            default => 'Reserved',
+        };
+
+        return ['label' => $label, 'allocation_status' => $allocation->status];
     }
 
     /**

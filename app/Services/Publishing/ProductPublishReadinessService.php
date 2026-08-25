@@ -37,6 +37,16 @@ class ProductPublishReadinessService
             $errors[] = 'Product has no name.';
         }
 
+        if (! $product->isVariable()) {
+            // product.type is authoritative: a simple product is never
+            // blocked by option/variant checks, no matter what stale
+            // canonical data (from a prior variable test, or an external
+            // sync that reverted the product to simple) might still be
+            // sitting active in the DB — ProductOptionSnapshot enforces the
+            // same rule, this is belt-and-suspenders for clarity here.
+            return $this->result($errors, $warnings);
+        }
+
         $snapshot = ProductOptionSnapshot::build($product);
         $options = $snapshot['options'];
         $variants = $snapshot['variants'];
@@ -58,7 +68,10 @@ class ProductPublishReadinessService
         }
 
         if ($options !== [] && $variants === []) {
-            $warnings[] = 'Product has options defined but no variants yet — generate variants before publishing.';
+            // Shopify rejects an options-only product update/create with a
+            // 422 ("Product options must have corresponding variants") — so
+            // this must block the publish, not just warn about it.
+            $errors[] = 'Cannot publish to Shopify because the product has options defined but no variants yet — generate variants before publishing.';
         }
 
         if ($options !== [] && $variants !== []) {

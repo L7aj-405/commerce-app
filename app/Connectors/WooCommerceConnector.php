@@ -244,6 +244,18 @@ class WooCommerceConnector extends BaseConnector
     }
 
     /**
+     * Map a raw WooCommerce webhook order payload (same JSON shape as one
+     * item from GET /orders) to the normalized array OrderSyncService
+     * expects. Widened to public deliberately, mirroring
+     * ShopifyConnector::mapWebhookOrder() — parseOrder() itself stays
+     * protected; only this override is exposed, for the webhook mapper.
+     */
+    public function mapWebhookOrder(array $raw): array
+    {
+        return $this->normalizeOrder($this->parseOrder($raw));
+    }
+
+    /**
      * Parse WooCommerce order
      */
     protected function parseOrder(array $order): array
@@ -252,8 +264,20 @@ class WooCommerceConnector extends BaseConnector
         
         if (isset($order['line_items']) && is_array($order['line_items'])) {
             foreach ($order['line_items'] as $item) {
+                // WooCommerce's own convention: `variation_id` is 0 (never
+                // absent) for a line on a simple product, and the real
+                // variation id for a variable product. Emitting it as
+                // `variant_id` (only when genuinely > 0) is what lets
+                // OrderLineItems/OrderLineInventoryResolver match it to the
+                // matching ProductVariantChannelListing — omitting it here
+                // was the root cause of a variable product's order line
+                // never resolving past the parent product, no matter how
+                // its variant's own stock was adjusted.
+                $variationId = (int) ($item['variation_id'] ?? 0);
+
                 $items[] = [
                     'product_id' => (string) ($item['product_id'] ?? ''),
+                    'variant_id' => $variationId > 0 ? (string) $variationId : '',
                     'sku' => $item['sku'] ?? '',
                     'name' => $item['name'] ?? '',
                     'quantity' => (int) ($item['quantity'] ?? 0),
@@ -296,6 +320,12 @@ class WooCommerceConnector extends BaseConnector
                 'wc_order_id' => $order['id'] ?? null,
                 'wc_status' => $order['status'] ?? null,
             ],
+            // The full raw order — WITHOUT this, `billing`/`shipping` (the only
+            // place the customer's original address survives) was silently
+            // dropped before BaseConnector::normalizeOrder() ever ran, which is
+            // why the Confirmation Desk's address field was always empty for
+            // WooCommerce orders (see OrderAddressSummary).
+            'platform_data' => $order,
         ];
     }
 
