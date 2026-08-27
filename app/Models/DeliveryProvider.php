@@ -13,6 +13,7 @@ class DeliveryProvider extends Model
 
     public const INTERNAL = 'internal';
     public const OZON = 'ozon';
+    public const SENDIT = 'sendit';
 
     protected $fillable = ['code', 'name', 'is_active'];
 

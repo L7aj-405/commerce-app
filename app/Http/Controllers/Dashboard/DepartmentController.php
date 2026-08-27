@@ -13,6 +13,9 @@ use App\Models\PosOrder;
 use App\Models\Shipment;
 use App\Models\Store;
 use App\Models\User;
+use App\Models\DeliveryConnection;
+use App\Services\Delivery\OzonShipmentService;
+use App\Services\Delivery\SenditShipmentService;
 use App\Services\Orders\DispatchService;
 use App\Services\Orders\OrderAssignmentService;
 use App\Services\Pos\DocumentGenerationService;
@@ -94,7 +97,7 @@ class DepartmentController extends Controller
     }
 
     /** Dispatch board: packed orders awaiting a carrier, plus what is in flight. */
-    public function dispatch(Request $request): Response
+    public function dispatch(Request $request, OzonShipmentService $ozonShipments, SenditShipmentService $senditShipments): Response
     {
         [$store, $user] = $this->context($request);
 
@@ -114,26 +117,42 @@ class DepartmentController extends Controller
 
         $byOrder = $shipments->keyBy(fn (OrderShipment $s) => $s->shippable_type . ':' . $s->shippable_id);
 
-        // Ozon (or any future provider) shipments — additive only, the
-        // internal dispatch-leg record above stays the primary source for
-        // this board. Keyed TWO ways: by the order_shipments row they're
-        // bridged to (the normal, VERIFIED case), and by the order itself
-        // (shippable_type:shippable_id) — a shipment stuck at
-        // STATUS_PROVIDER_UNVERIFIED never gets an order_shipments row (see
-        // OzonShipmentService::send()), so it would otherwise be invisible
-        // on this board even though the parcel-create attempt is real and
-        // needs a dispatcher's attention.
-        $ozonShipments = Shipment::query()
+        // External-provider shipments (Ozon, Sendit, or any future
+        // provider) — additive only, the internal dispatch-leg record above
+        // stays the primary source for this board. Keyed TWO ways: by the
+        // order_shipments row they're bridged to (the normal, VERIFIED
+        // case), and by the order itself (shippable_type:shippable_id) — an
+        // Ozon shipment stuck at STATUS_PROVIDER_UNVERIFIED never gets an
+        // order_shipments row (see OzonShipmentService::send()), so it would
+        // otherwise be invisible on this board even though the parcel-create
+        // attempt is real and needs a dispatcher's attention. Sendit never
+        // produces this state (no verification step), so ozonByOrder simply
+        // never matches a Sendit shipment.
+        $providerShipments = Shipment::query()
             ->where('store_id', $store->id)
-            ->where('provider_code', 'ozon')
             ->latest()
             ->limit(300)
             ->get();
 
-        $ozonByOrderShipment = $ozonShipments->whereNotNull('order_shipment_id')->keyBy('order_shipment_id');
-        $ozonByOrder = $ozonShipments->keyBy(fn (Shipment $s) => $s->shippable_type . ':' . $s->shippable_id);
+        $ozonByOrderShipment = $providerShipments->whereNotNull('order_shipment_id')->keyBy('order_shipment_id');
+        $ozonByOrder = $providerShipments->where('provider_code', 'ozon')->keyBy(fn (Shipment $s) => $s->shippable_type . ':' . $s->shippable_id);
 
-        $orders = array_map(function (array $o) use ($byOrder, $ozonByOrderShipment, $ozonByOrder) {
+        $ozonConnection = DeliveryConnection::query()->where('store_id', $store->id)->where('provider_code', 'ozon')->first();
+        $senditConnection = DeliveryConnection::query()->where('store_id', $store->id)->where('provider_code', 'sendit')->first();
+
+        // Real Order models for the online orders still awaiting a carrier —
+        // needed for a per-order Ozon/Sendit readiness check (the Dispatch
+        // modal's Integrated Provider tab, and to gate the quick-send
+        // buttons). One batch query, not one per order.
+        $onlineIdsAwaiting = collect($orders)
+            ->filter(fn (array $o) => $o['type'] === 'online')
+            ->pluck('id');
+        $onlineOrdersById = Order::query()->where('store_id', $store->id)->whereIn('id', $onlineIdsAwaiting)->get()->keyBy('id');
+
+        $orders = array_map(function (array $o) use (
+            $byOrder, $ozonByOrderShipment, $ozonByOrder,
+            $ozonConnection, $senditConnection, $onlineOrdersById, $ozonShipments, $senditShipments,
+        ) {
             $model = $o['type'] === 'pos' ? PosOrder::class : Order::class;
             $s     = $byOrder->get($model . ':' . $o['id']);
             $ozon  = $s === null ? null : $ozonByOrderShipment->get($s->id);
@@ -162,6 +181,22 @@ class DepartmentController extends Controller
                 ? ['id' => $unverified->id, 'tracking_number' => $unverified->tracking_number]
                 : null;
 
+            // Only meaningful before a shipment/provider record exists, and
+            // only for online orders (both integrated services require an
+            // Order, never a PosOrder) — the Dispatch modal's Integrated
+            // Provider tab and the order card's quick-send buttons both read
+            // this to know whether Ozon/Sendit can actually accept this
+            // order right now, and exactly why not if they can't.
+            $o['dispatch_readiness'] = null;
+
+            if ($o['type'] === 'online' && $s === null) {
+                $orderModel = $onlineOrdersById->get($o['id']);
+                $o['dispatch_readiness'] = [
+                    'ozon' => $this->providerReadiness($ozonConnection, $orderModel, $ozonShipments),
+                    'sendit' => $this->providerReadiness($senditConnection, $orderModel, $senditShipments),
+                ];
+            }
+
             return $o;
         }, $orders);
 
@@ -173,11 +208,8 @@ class DepartmentController extends Controller
             // fellow dispatchers — a dispatcher hands a parcel to a delivery agent.
             'agents'    => $this->assignments->workload($store, 'orders.deliver', $user, 'delivery'),
             'manifests' => app(DispatchService::class)->manifests($store),
-            'ozon_connected' => \App\Models\DeliveryConnection::query()
-                ->where('store_id', $store->id)
-                ->where('provider_code', 'ozon')
-                ->where('status', \App\Models\DeliveryConnection::STATUS_CONNECTED)
-                ->exists(),
+            'ozon_connected' => $ozonConnection?->status === DeliveryConnection::STATUS_CONNECTED,
+            'sendit_connected' => $senditConnection?->status === DeliveryConnection::STATUS_CONNECTED,
             'stats'    => [
                 'awaiting'   => count(array_filter($orders, fn ($o) => $o['shipment'] === null)),
                 'in_flight'  => $shipments->where('status', OrderShipment::STATUS_DISPATCHED)->count(),
@@ -438,5 +470,35 @@ class DepartmentController extends Controller
             ->orderBy('carrier_name')
             ->pluck('carrier_name')
             ->all();
+    }
+
+    /**
+     * "Can this order be sent to this integrated provider right now, and if
+     * not, exactly why" — read-only, drives both the Dispatch modal's
+     * Integrated Provider tab and the order card's quick-send buttons.
+     * Never throws; a missing connection or order is just another reason.
+     *
+     * @param  OzonShipmentService|SenditShipmentService  $service
+     * @return array{available: bool, connected: bool, status: ?string, ready: bool, reasons: array<int, string>}
+     */
+    private function providerReadiness(?DeliveryConnection $connection, ?Order $order, $service): array
+    {
+        if ($connection === null) {
+            return ['available' => false, 'connected' => false, 'status' => null, 'ready' => false, 'reasons' => ['Not connected yet.']];
+        }
+
+        if ($order === null) {
+            return ['available' => true, 'connected' => $connection->status === DeliveryConnection::STATUS_CONNECTED, 'status' => $connection->status, 'ready' => false, 'reasons' => ['Order not found.']];
+        }
+
+        $check = $service->checkReadiness($order, $connection);
+
+        return [
+            'available' => true,
+            'connected' => $connection->status === DeliveryConnection::STATUS_CONNECTED,
+            'status' => $connection->status,
+            'ready' => $check['ready'],
+            'reasons' => $check['reasons'],
+        ];
     }
 }

@@ -4,6 +4,8 @@ import { useCallback, useSyncExternalStore } from 'react';
  * Global theme state. Preference is 'light' | 'dark' | 'system' and persists to
  * localStorage under `theme`. The resolved mode toggles `.dark` on <html>, which
  * is what Tailwind's `darkMode: 'class'` (and the app.css tokens) key off of.
+ * New sessions default to the light premium shell; explicit saved preferences
+ * still win.
  *
  * The same read/apply logic runs as an inline <head> script in app.blade.php to
  * avoid a flash of the wrong theme before this bundle loads.
@@ -14,9 +16,9 @@ const media = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-
 
 function storedPreference() {
     try {
-        return window.localStorage.getItem(KEY) || 'system';
+        return window.localStorage.getItem(KEY) || 'light';
     } catch {
-        return 'system';
+        return 'light';
     }
 }
 
@@ -55,7 +57,7 @@ function subscribe(cb) {
 }
 
 export default function useTheme() {
-    const theme = useSyncExternalStore(subscribe, storedPreference, () => 'system');
+    const theme = useSyncExternalStore(subscribe, storedPreference, () => 'light');
     const isDark = resolveDark(theme);
 
     const toggle = useCallback(() => setTheme(resolveDark() ? 'light' : 'dark'), []);

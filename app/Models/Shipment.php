@@ -145,4 +145,9 @@ class Shipment extends Model
     {
         return $this->provider_code === DeliveryProvider::OZON;
     }
+
+    public function isSendit(): bool
+    {
+        return $this->provider_code === DeliveryProvider::SENDIT;
+    }
 }

@@ -10,6 +10,7 @@ export default function SearchFilterBar({
     filters = [],
     activeFilters = {},
     onFilterChange,
+    dateRange,
 }) {
     const [query, setQuery] = useState(value);
 
@@ -25,7 +26,7 @@ export default function SearchFilterBar({
     const activeChips = Object.entries(activeFilters).filter(([, v]) => v !== '' && v != null);
 
     return (
-        <div className="bg-surface-2 border border-line rounded-xl p-3 shadow-sm dark:shadow-none">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-3 shadow-sm dark:shadow-none">
             <form onSubmit={submit} className="flex flex-wrap items-center gap-2">
                 <div className="relative flex-1 min-w-[240px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
@@ -34,7 +35,7 @@ export default function SearchFilterBar({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={placeholder}
-                        className="w-full pl-9 pr-14 py-2 text-sm rounded-lg bg-surface border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-14 py-2 text-sm rounded-[var(--radius-button)] bg-surface border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                     <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-medium text-content-muted bg-surface-2 border border-line rounded px-1.5 py-0.5">
                         {isMac ? '⌘K' : 'Ctrl K'}
@@ -47,7 +48,7 @@ export default function SearchFilterBar({
                         value={activeFilters[f.key] ?? ''}
                         onChange={(e) => onFilterChange?.(f.key, e.target.value)}
                         aria-label={f.label}
-                        className="px-3 py-2 text-sm rounded-lg bg-surface border border-line text-content-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        className="px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface border border-line text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                         <option value="">{f.label}</option>
                         {f.options.map((o) => (
@@ -55,6 +56,29 @@ export default function SearchFilterBar({
                         ))}
                     </select>
                 ))}
+
+                {/* Optional client-side date range — additive, only rendered
+                    when a caller passes it (backward compatible with every
+                    other SearchFilterBar usage, which doesn't). */}
+                {dateRange && (
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="date"
+                            aria-label="From date"
+                            value={dateRange.from ?? ''}
+                            onChange={(e) => dateRange.onChange?.('from', e.target.value)}
+                            className="px-2.5 py-2 text-sm rounded-[var(--radius-button)] bg-surface border border-line text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        <span className="text-content-muted text-xs">to</span>
+                        <input
+                            type="date"
+                            aria-label="To date"
+                            value={dateRange.to ?? ''}
+                            onChange={(e) => dateRange.onChange?.('to', e.target.value)}
+                            className="px-2.5 py-2 text-sm rounded-[var(--radius-button)] bg-surface border border-line text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                )}
             </form>
 
             {activeChips.length > 0 && (
@@ -67,9 +91,9 @@ export default function SearchFilterBar({
                                 key={key}
                                 type="button"
                                 onClick={() => clearChip(key)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/25 transition"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-primary-soft text-primary hover:brightness-95 transition"
                             >
-                                <span className="text-indigo-600/70 dark:text-indigo-400/70">{filter?.label}:</span>
+                                <span className="opacity-70">{filter?.label}:</span>
                                 {label}
                                 <X className="w-3 h-3" />
                             </button>

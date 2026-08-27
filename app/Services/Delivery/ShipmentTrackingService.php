@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Delivery;
 
-use App\Connectors\Delivery\OzonExpressConnector;
+use App\Factories\DeliveryConnectorFactory;
 use App\Models\DeliveryConnection;
 use App\Models\OrderShipment;
 use App\Models\Shipment;
@@ -15,10 +15,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Refreshes Ozon tracking state and, when a shipment reaches a terminal
- * state, closes out the linked order_shipments row via the existing
- * DispatchService (unmodified) — which is what actually advances the
- * order's fulfillment_status through OrderWorkflowService.
+ * Refreshes a shipment's tracking state (any provider, via
+ * DeliveryConnectorFactory) and, when it reaches a terminal state, closes
+ * out the linked order_shipments row via the existing DispatchService
+ * (unmodified) — which is what actually advances the order's
+ * fulfillment_status through OrderWorkflowService. Also the single shared
+ * primitive a provider's webhook receiver applies a pushed status through
+ * (see apply()) — polling and webhooks must never diverge on how a status
+ * update is recorded/closed out.
  */
 class ShipmentTrackingService
 {
@@ -32,7 +36,7 @@ class ShipmentTrackingService
             return $shipment;
         }
 
-        $connector = new OzonExpressConnector($shipment->connection);
+        $connector = DeliveryConnectorFactory::make($shipment->connection);
         $result = $connector->trackShipment($shipment);
 
         if (! $result['ok']) {
@@ -58,7 +62,7 @@ class ShipmentTrackingService
                 continue;
             }
 
-            $connector = new OzonExpressConnector($connection);
+            $connector = DeliveryConnectorFactory::make($connection);
             $results = $connector->trackShipmentsBulk($group);
 
             foreach ($group as $shipment) {
@@ -86,7 +90,16 @@ class ShipmentTrackingService
         return $connection->store?->owner;
     }
 
-    private function apply(Shipment $shipment, string $providerStatus, string $normalizedStatus, mixed $raw, User $actor): Shipment
+    /**
+     * Applies one status update to a shipment — event + shipment row +
+     * order_shipments close-out, all in one transaction. Shared by both the
+     * polling path above (refresh/refreshBulk) and a provider's webhook
+     * receiver (see SenditWebhookService), so a pushed and a polled update
+     * are recorded identically. A no-op (dedup/idempotency) whenever both
+     * provider_status and normalized status are already exactly this —
+     * a redelivered webhook for the same event is safe to call again.
+     */
+    public function apply(Shipment $shipment, string $providerStatus, string $normalizedStatus, mixed $raw, User $actor): Shipment
     {
         if ($shipment->provider_status === $providerStatus && $shipment->status === $normalizedStatus) {
             return $shipment;
@@ -139,7 +152,8 @@ class ShipmentTrackingService
         }
 
         if (in_array($normalizedStatus, [Shipment::STATUS_RETURNED, Shipment::STATUS_REFUSED], true)) {
-            $this->dispatch->markFailed($orderShipment, "Ozon Express: {$normalizedStatus}.", $actor);
+            $providerName = $shipment->provider?->name ?? ucfirst($shipment->provider_code);
+            $this->dispatch->markFailed($orderShipment, "{$providerName}: {$normalizedStatus}.", $actor);
         }
     }
 }

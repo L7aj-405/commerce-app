@@ -55,6 +55,11 @@ class DeliveryCityMappingResolver
     {
         $providerCode = $connection->provider_code;
         $storeId = $order->store_id;
+        // "Ozon"/"Sendit" — matches each provider's own casing convention,
+        // used only in the unresolved-error message below (never in
+        // matching logic). Same ucfirst($providerCode) approach already
+        // used by DeliveryCityMappingSuggestionService for the same reason.
+        $providerLabel = ucfirst($providerCode);
 
         $rawCity = $this->rawCityText($order);
         $normalized = $rawCity !== null ? CityNameNormalizer::normalize($rawCity) : null;
@@ -135,7 +140,7 @@ class DeliveryCityMappingResolver
             'normalized_city_text' => $normalized,
             'suggested_internal_city_id' => $suggested?->id,
             'suggested_internal_city_name' => $suggested?->name,
-            'error' => $this->buildError($rawCity, $internalCity, $suggested),
+            'error' => $this->buildError($rawCity, $internalCity, $suggested, $providerLabel),
         ];
     }
 
@@ -202,19 +207,19 @@ class DeliveryCityMappingResolver
         ];
     }
 
-    private function buildError(?string $rawCity, ?City $internalCity, ?City $suggested): string
+    private function buildError(?string $rawCity, ?City $internalCity, ?City $suggested, string $providerLabel): string
     {
         if ($rawCity === null) {
-            return 'This order has no city information on file — set a shipping city before sending it to Ozon.';
+            return "This order has no city information on file — set a shipping city before sending it to {$providerLabel}.";
         }
 
         if ($internalCity !== null) {
-            return "City '{$rawCity}' matched internal city '{$internalCity->name}', but no Ozon mapping was found for it. Map it on the Delivery providers page.";
+            return "City '{$rawCity}' matched internal city '{$internalCity->name}', but no {$providerLabel} mapping was found for it. Map it on the Delivery providers page.";
         }
 
         return $suggested !== null
-            ? "City '{$rawCity}' is not mapped to an Ozon city. Suggested internal match: {$suggested->name}."
-            : "City '{$rawCity}' is not mapped to an Ozon city. Please map it first.";
+            ? "City '{$rawCity}' is not mapped to {$providerLabel}. Suggested internal match: {$suggested->name}."
+            : "City '{$rawCity}' is not mapped to {$providerLabel}. Please map it first.";
     }
 
     /** A hint only — never used to auto-resolve, only surfaced in the error message/UI. */

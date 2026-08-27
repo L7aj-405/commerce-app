@@ -9260,6 +9260,853 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-25T01:33:23.170Z"
+    },
+    {
+      "id": "bug-561",
+      "timestamp": "2026-08-25T19:09:58.829Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:09:58.829Z"
+    },
+    {
+      "id": "bug-562",
+      "timestamp": "2026-08-25T19:10:11.067Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Delivery providers', href: '/dashboard/delivery-connections', icon: Truck, perm: 'delivery.connections.manage' → 'Delivery providers', href: '/dashboard/integrations?tab=delivery', icon: Truck, perm: 'delivery.connections.manage'",
+      "fix": "Changed label: 'Delivery providers', href: '/dashboard/delivery-connections', icon: Truck, perm: 'delivery.connections.manage' → 'Delivery providers', href: '/dashboard/integrations?tab=delivery', icon: Truck, perm: 'delivery.connections.manage'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:10:11.067Z"
+    },
+    {
+      "id": "bug-563",
+      "timestamp": "2026-08-25T19:10:31.691Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:10:31.691Z"
+    },
+    {
+      "id": "bug-564",
+      "timestamp": "2026-08-25T19:11:17.700Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Pages/Dashboard/Delivery/Connections.jsx",
+      "root_cause": "label: 'Delivery providers' → 'Ozon Express'",
+      "fix": "Changed label: 'Delivery providers' → 'Ozon Express'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:11:17.700Z"
+    },
+    {
+      "id": "bug-565",
+      "timestamp": "2026-08-25T19:33:13.536Z",
+      "error_message": "CSS fix: label",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "label: 'Delivery providers', href: '/dashboard/integrations?tab=delivery', icon: Truck, perm: 'delivery.connections.manage' → 'Integrations', href: '/dashboard/integrations', icon: Plug,",
+      "fix": "Changed label: 'Delivery providers', href: '/dashboard/integrations?tab=delivery', icon: Truck, perm: 'delivery.connections.manage' → 'Integrations', href: '/dashboard/integrations', icon: Plug,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:33:13.536Z"
+    },
+    {
+      "id": "bug-566",
+      "timestamp": "2026-08-25T19:33:23.147Z",
+      "error_message": "Missing guard clause",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "No early return/throw for edge case: ! perm",
+      "fix": "Added guard clause: if (! perm)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:33:23.147Z"
+    },
+    {
+      "id": "bug-567",
+      "timestamp": "2026-08-25T19:33:51.377Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T19:33:51.377Z"
+    },
+    {
+      "id": "bug-568",
+      "timestamp": "2026-08-25T20:04:02.532Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Delivery/ShipmentTrackingService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:04:02.532Z"
+    },
+    {
+      "id": "bug-569",
+      "timestamp": "2026-08-25T20:04:45.325Z",
+      "error_message": "Wrong condition in logic",
+      "file": "app/Services/Delivery/SenditShipmentService.php",
+      "root_cause": "Condition was: if (blank($order->reference ?? $order->order_number ??)",
+      "fix": "Changed to: if (blank($order->order_number)",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:04:45.325Z"
+    },
+    {
+      "id": "bug-570",
+      "timestamp": "2026-08-25T20:06:30.933Z",
+      "error_message": "Missing error handling in sendToSendit",
+      "file": "app/Http/Controllers/Dashboard/DeliveryShipmentController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:06:30.933Z"
+    },
+    {
+      "id": "bug-571",
+      "timestamp": "2026-08-25T20:07:47.830Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/IntegrationsController.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 23→45 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:07:47.830Z"
+    },
+    {
+      "id": "bug-572",
+      "timestamp": "2026-08-25T20:08:13.583Z",
+      "error_message": "CSS fix: ozon_connected",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "ozon_connected: ozonConnected = false → ozonConnected = false, sendit_connected: senditConnected = false",
+      "fix": "Changed ozon_connected: ozonConnected = false → ozonConnected = false, sendit_connected: senditConnected = false",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-25T20:08:22.477Z"
+    },
+    {
+      "id": "bug-573",
+      "timestamp": "2026-08-25T20:13:47.603Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/SenditCityMappingTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 10→14 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:13:47.603Z"
+    },
+    {
+      "id": "bug-574",
+      "timestamp": "2026-08-25T20:14:27.056Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/DeliveryCityMappingSuggestionService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 17→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:14:27.056Z"
+    },
+    {
+      "id": "bug-575",
+      "timestamp": "2026-08-25T20:17:08.047Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx",
+      "root_cause": "Had `${window.location.origin}/webhooks/sendit/${conne",
+      "fix": "Changed to `${window.location.origin}/api/webhooks/sendit/${c",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:17:08.047Z"
+    },
+    {
+      "id": "bug-576",
+      "timestamp": "2026-08-25T20:50:41.241Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/Delivery/SenditConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:50:41.241Z"
+    },
+    {
+      "id": "bug-577",
+      "timestamp": "2026-08-25T20:51:03.750Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/SenditDistrictMappingService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 44→95 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:51:03.750Z"
+    },
+    {
+      "id": "bug-578",
+      "timestamp": "2026-08-25T20:51:25.498Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/SenditConnectionController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:51:25.498Z"
+    },
+    {
+      "id": "bug-579",
+      "timestamp": "2026-08-25T20:51:47.410Z",
+      "error_message": "CSS fix: mapped_cities",
+      "file": "resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx",
+      "root_cause": "mapped_cities: mappedCities, sendit_districts: senditDistricts, pickup_districts: pickupDistricts, suggestions → mappedCities, sendit_districts: senditDistricts, pickup_districts: pickupDistricts,",
+      "fix": "Changed mapped_cities: mappedCities, sendit_districts: senditDistricts, pickup_districts: pickupDistricts, suggestions → mappedCities, sendit_districts: senditDistricts, pickup_districts: pickupDistricts,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-25T20:51:55.826Z"
+    },
+    {
+      "id": "bug-580",
+      "timestamp": "2026-08-25T20:52:24.558Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:52:24.558Z"
+    },
+    {
+      "id": "bug-581",
+      "timestamp": "2026-08-25T20:57:50.937Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Delivery/SenditCityMappingTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T20:57:50.937Z"
+    },
+    {
+      "id": "bug-582",
+      "timestamp": "2026-08-25T21:25:25.109Z",
+      "error_message": "Missing error handling in checkReadiness",
+      "file": "app/Services/Delivery/OzonShipmentService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:25:25.109Z"
+    },
+    {
+      "id": "bug-583",
+      "timestamp": "2026-08-25T21:25:35.029Z",
+      "error_message": "Missing error handling in checkReadiness",
+      "file": "app/Services/Delivery/SenditShipmentService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:25:35.029Z"
+    },
+    {
+      "id": "bug-584",
+      "timestamp": "2026-08-25T21:26:08.957Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/DepartmentController.php",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 54→77 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:26:08.957Z"
+    },
+    {
+      "id": "bug-585",
+      "timestamp": "2026-08-25T21:26:47.146Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Http/Controllers/Dashboard/DeliveryShipmentController.php",
+      "root_cause": "Had \"Sendit delivery created. Tracking: {$shipment->tr",
+      "fix": "Changed to \"Sendit shipment created. Code: {$shipment->tracki",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:26:47.146Z"
+    },
+    {
+      "id": "bug-586",
+      "timestamp": "2026-08-25T21:27:19.975Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: /** Ozon Express / Sendit / Manual courier / Internal agent ; function dispatchMethodBadge(shipment) { | Also: /* Dispatch modal — provider-aware: Integrated provider / Ma; /* external courier / Internal agent. Both the Integrated Pr",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-25T21:28:44.008Z"
+    },
+    {
+      "id": "bug-587",
+      "timestamp": "2026-08-25T21:27:26.710Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Departments/Dispatch.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:27:26.710Z"
+    },
+    {
+      "id": "bug-588",
+      "timestamp": "2026-08-25T21:33:20.655Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Delivery/DispatchModalProviderModeTest.php",
+      "root_cause": "Had 'not mapped to Ozon'",
+      "fix": "Changed to 'no Ozon mapping was found'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-25T21:33:25.146Z"
+    },
+    {
+      "id": "bug-589",
+      "timestamp": "2026-08-25T21:35:25.397Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Delivery/DeliveryBoardDispatchModalTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→11 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-25T21:35:25.397Z"
+    },
+    {
+      "id": "bug-590",
+      "timestamp": "2026-08-26T13:24:52.1007081+01:00",
+      "error_message": "openwolf: The term 'openwolf' is not recognized",
+      "file": ".wolf/OPENWOLF.md",
+      "root_cause": "The project-required designqc CLI is not installed or not available on PATH in the Codex PowerShell runtime.",
+      "fix": "Recorded the unavailable tool and continued the UI audit from the supplied reference images plus code inspection; no destructive workaround was attempted.",
+      "tags": [
+        "openwolf",
+        "designqc",
+        "tooling",
+        "powershell"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T13:24:52.1007081+01:00"
+    },
+    {
+      "id": "bug-591",
+      "timestamp": "2026-08-26T13:24:52.1007081+01:00",
+      "error_message": "rg: regex parse error: unclosed group",
+      "file": ".wolf/buglog.json",
+      "root_cause": "A quoted alternation containing role=\"dialog\" was escaped incorrectly through PowerShell before reaching ripgrep.",
+      "fix": "Re-ran the read-only search with separate -e patterns that do not depend on nested quote escaping.",
+      "tags": [
+        "ripgrep",
+        "powershell",
+        "escaping",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T13:24:52.1007081+01:00"
+    },
+    {
+      "id": "bug-592",
+      "timestamp": "2026-08-26T13:24:52.1007081+01:00",
+      "error_message": "The dashboard topbar Search control was visually interactive but had no click or keyboard behavior.",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "The search UI was a plain button with no handler, state, or destination index.",
+      "fix": "Implemented a real Ctrl/Cmd+K command palette backed by existing permission-filtered navigation routes, with Escape/backdrop closing and no synthetic data.",
+      "tags": [
+        "ui",
+        "search",
+        "navigation",
+        "inertia",
+        "accessibility"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T13:24:52.1007081+01:00"
+    },
+    {
+      "id": "bug-593",
+      "timestamp": "2026-08-26T13:24:52.1007081+01:00",
+      "error_message": "Tailwind v4 custom utility hover selector was initially expressed as @utility btn-primary:hover.",
+      "file": "resources/css/app.css",
+      "root_cause": "Tailwind's @utility directive defines utility names; pseudo-state selectors must be ordinary CSS selectors rather than utility names containing a colon.",
+      "fix": "Changed the hover rules to standard .btn-primary:hover and .card-interactive:hover selectors before verification.",
+      "tags": [
+        "tailwind-v4",
+        "css",
+        "utility",
+        "hover"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T13:24:52.1007081+01:00"
+    },
+    {
+      "id": "bug-594",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "apply_patch rejected a patch that deleted and re-added the same path in one operation.",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "The patch encoded a full-file replacement as simultaneous delete/add directives for one file, which the patch parser treats as an invalid duplicate path operation.",
+      "fix": "Applied the replacement as two ordered patch operations and used normal update hunks for subsequent edits.",
+      "tags": [
+        "apply-patch",
+        "tooling",
+        "frontend"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-595",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "rg reported an invalid file-name syntax for resources/js/Components/PremiumDashboard/*.jsx on Windows.",
+      "file": "resources/js/Components/PremiumDashboard/",
+      "root_cause": "The wildcard was passed as a path argument in a Windows invocation where ripgrep did not expand the glob.",
+      "fix": "Enumerated the directory directly and used ripgrep directory paths or -g filters rather than a shell-expanded path wildcard.",
+      "tags": [
+        "ripgrep",
+        "windows",
+        "glob",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-596",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "Browser navigation to http://saas-commerce.test/dashboard failed with ERR_NAME_NOT_RESOLVED.",
+      "file": "resources/js/Pages/Dashboard/Index.jsx",
+      "root_cause": "The project hostname was not resolvable in the in-app browser environment and no local development server was available on the checked common ports.",
+      "fix": "Recorded the visual-QA limitation and retained manual npm run dev/build instructions; did not start a server or build because the user explicitly requested manual verification.",
+      "tags": [
+        "browser",
+        "visual-qa",
+        "local-server",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-590"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-597",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "Get-Process could not bind the Id argument because the common-port listener probe returned null.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "A diagnostic command passed an empty listener-process result directly to Get-Process without first checking whether any matching TCP listeners existed.",
+      "fix": "Treated the empty result as confirmation that no checked local server was listening; future probes should guard the process lookup behind a non-empty result.",
+      "tags": [
+        "powershell",
+        "diagnostics",
+        "local-server",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-596"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-598",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "The in-app browser could not close the failed error-page tab under its navigation policy.",
+      "file": ".wolf/buglog.json",
+      "root_cause": "The failed navigation produced an internal error-page URL that the browser control policy would not target for the close operation.",
+      "fix": "Left the temporary tool-owned tab for automatic cleanup; no project or user browser state was changed.",
+      "tags": [
+        "browser",
+        "tab",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-596"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-599",
+      "timestamp": "2026-08-26T15:13:58.3022252+01:00",
+      "error_message": "A saved/system dark theme could render the light Quixotic reference shell with dark shared CSS variables.",
+      "file": "resources/css/app.css",
+      "root_cause": "The application-level theme variables were inherited by the new shell, while the replacement reference explicitly requires a stable light warm-gray canvas.",
+      "fix": "Added a quixotic-shell-scoped light token override and made light the default for new sessions while continuing to honor explicit stored theme choices outside the scoped shell.",
+      "tags": [
+        "theme",
+        "css",
+        "design-reference",
+        "scope"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-26T15:13:58.3022252+01:00"
+    },
+    {
+      "id": "bug-600",
+      "timestamp": "2026-08-27T20:51:56.628Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/css/app.css",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 11→11 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T20:51:56.628Z"
+    },
+    {
+      "id": "bug-601",
+      "timestamp": "2026-08-27T21:29:51.477Z",
+      "error_message": "CSS fix: --color-primary, --color-primary-strong",
+      "file": "resources/css/app.css",
+      "root_cause": "--color-primary: var(--accent) → var(--primary); --color-primary-strong: var(--accent-strong) → var(--primary-strong)",
+      "fix": "Changed --color-primary: var(--accent) → var(--primary); --color-primary-strong: var(--accent-strong) → var(--primary-strong)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-27T21:30:22.615Z"
+    },
+    {
+      "id": "bug-602",
+      "timestamp": "2026-08-27T21:33:16.179Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/app.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:33:16.179Z"
+    },
+    {
+      "id": "bug-603",
+      "timestamp": "2026-08-27T21:33:28.454Z",
+      "error_message": "CSS fix: primary, danger",
+      "file": "resources/js/Components/Button.jsx",
+      "root_cause": "primary: 'bg-indigo-600 text-white hover:bg-indigo-500', → 'bg-primary text-primary-contrast hover:bg-primary-strong',; danger: 'bg-red-600 text-white hover:bg-red-500', → 'bg-danger text-white hover:brightness-90',",
+      "fix": "Changed primary: 'bg-indigo-600 text-white hover:bg-indigo-500', → 'bg-primary text-primary-contrast hover:bg-primary-strong',; danger: 'bg-red-600 text-white hover:bg-red-500', → 'bg-danger text-white hover:brightness-90',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:33:28.454Z"
+    },
+    {
+      "id": "bug-604",
+      "timestamp": "2026-08-27T21:33:34.919Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/Card.jsx",
+      "root_cause": "Had `bg-surface-2 border border-line rounded-xl p-5 ${",
+      "fix": "Changed to `bg-surface-2 border border-line rounded-[var(--ra",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:33:34.919Z"
+    },
+    {
+      "id": "bug-605",
+      "timestamp": "2026-08-27T21:33:40.863Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/DataTable.jsx",
+      "root_cause": "Had \"bg-surface-2 border border-line rounded-xl overfl",
+      "fix": "Changed to \"bg-surface-2 border border-line rounded-[var(--ra",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:33:40.863Z"
+    },
+    {
+      "id": "bug-606",
+      "timestamp": "2026-08-27T21:34:51.947Z",
+      "error_message": "CSS fix: dark, placeholder, focus",
+      "file": "resources/js/Components/SearchFilterBar.jsx",
+      "root_cause": "dark: text-indigo-400/70\">{filter?.label → shadow-none\">; placeholder: text-content-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500\" → text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary\"; focus: outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500\" → outline-none focus:border-primary focus:ring-1 focus:ring-primary\"",
+      "fix": "Changed dark: text-indigo-400/70\">{filter?.label → shadow-none\">; placeholder: text-content-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500\" → text-content-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary\"; focus: outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500\" → outline-none focus:border-primary focus:ring-1 focus:ring-primary\"",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:34:51.947Z"
+    },
+    {
+      "id": "bug-607",
+      "timestamp": "2026-08-27T21:35:03.710Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Components/StatusBadge.jsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 16→21 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:35:03.710Z"
+    },
+    {
+      "id": "bug-608",
+      "timestamp": "2026-08-27T21:35:11.097Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/ThemeToggle.jsx",
+      "root_cause": "Had `inline-flex items-center justify-center w-9 h-9 r",
+      "fix": "Changed to `inline-flex items-center justify-center w-9 h-9 r",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:35:11.097Z"
+    },
+    {
+      "id": "bug-609",
+      "timestamp": "2026-08-27T21:36:41.916Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T21:36:41.916Z"
+    },
+    {
+      "id": "bug-610",
+      "timestamp": "2026-08-27T22:01:01.537Z",
+      "error_message": "CSS fix: success, error, warning",
+      "file": "resources/js/Components/ToastNotification.jsx",
+      "root_cause": "success: { ring: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200', icon: CheckCircle2,  iconClass: 'text-emerald-600 dark:text-emerald-400' → { ring: 'border-success/30 bg-success-soft text-content', icon: CheckCircle2,  iconClass: 'text-success'; error: { ring: 'border-red-500/30 bg-red-500/10 text-red-200',             icon: XCircle,       iconClass: 'text-red-600 dark:text-red-400' → { ring: 'border-danger/30 bg-danger-soft text-content',   icon: XCircle,       iconClass: 'text-danger'; warning: { ring: 'border-amber-500/30 bg-amber-500/10 text-amber-200',       icon: AlertTriangle, iconClass: 'text-amber-600 dark:text-amber-400' → { ring: 'border-warning/30 bg-warning-soft text-content', icon: AlertTriangle, iconClass: 'text-warning'",
+      "fix": "Changed success: { ring: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200', icon: CheckCircle2,  iconClass: 'text-emerald-600 dark:text-emerald-400' → { ring: 'border-success/30 bg-success-soft text-content', icon: CheckCircle2,  iconClass: 'text-success'; error: { ring: 'border-red-500/30 bg-red-500/10 text-red-200',             icon: XCircle,       iconClass: 'text-red-600 dark:text-red-400' → { ring: 'border-danger/30 bg-danger-soft text-content',   icon: XCircle,       iconClass: 'text-danger'; warning: { ring: 'border-amber-500/30 bg-amber-500/10 text-amber-200',       icon: AlertTriangle, iconClass: 'text-amber-600 dark:text-amber-400' → { ring: 'border-warning/30 bg-warning-soft text-content', icon: AlertTriangle, iconClass: 'text-warning'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T22:01:01.537Z"
+    },
+    {
+      "id": "bug-611",
+      "timestamp": "2026-08-27T22:02:09.624Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/ToastNotification.jsx",
+      "root_cause": "Had `pointer-events-auto flex items-start gap-3 px-4 p",
+      "fix": "Changed to `pointer-events-auto flex items-start gap-3 px-4 p",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T22:02:09.625Z"
+    },
+    {
+      "id": "bug-612",
+      "timestamp": "2026-08-27T22:04:56.671Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/NotificationBell.jsx",
+      "root_cause": "Had `mt-1 w-2 h-2 rounded-full flex-shrink-0 ${tone ==",
+      "fix": "Changed to \"mt-1 w-2 h-2 rounded-full flex-shrink-0 bg-primar",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-27T22:04:56.671Z"
     }
   ]
 }

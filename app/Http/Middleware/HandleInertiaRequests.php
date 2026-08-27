@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Support\BrandAppearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -19,6 +20,12 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
+            // Store-level brand tokens (primary/accent color, font, radius —
+            // see App\Support\BrandAppearance) applied on every page by
+            // Components/BrandTokens.jsx. Always an array (never null) so it
+            // can be read unconditionally even when there's no active store
+            // (onboarding, POS-only users).
+            'brand' => fn () => BrandAppearance::resolve($request->user()?->getActiveStore()),
             'auth' => [
                 'user' => $request->user(),
                 'stores' => fn () => $request->user()

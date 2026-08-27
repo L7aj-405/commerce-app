@@ -1,13 +1,18 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import {
-    DollarSign, TrendingUp, Package, Truck, Monitor, Globe,
-    ShoppingCart, Layers, Users, AlertTriangle, CheckCircle2,
-    Receipt, ArrowRight, Store as StoreIcon, FileText,
+    ArrowRight, CalendarDays, CheckCircle2, CircleDollarSign,
+    Clock3, Layers, Monitor, Package, ReceiptText, Store as StoreIcon, Truck,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
-import StatsCard from '@/Components/StatsCard';
-import StatusBadge from '@/Components/StatusBadge';
-import EmptyState from '@/Components/EmptyState';
+import SoftCard from '@/Components/PremiumDashboard/SoftCard';
+import PremiumMetricCard from '@/Components/PremiumDashboard/PremiumMetricCard';
+import MiniChartCard from '@/Components/PremiumDashboard/MiniChartCard';
+import RecentOrdersCard from '@/Components/PremiumDashboard/RecentOrdersCard';
+import StatusPill from '@/Components/PremiumDashboard/StatusPill';
+import QuickActionButton from '@/Components/PremiumDashboard/QuickActionButton';
+import DashboardSkeleton from '@/Components/PremiumDashboard/DashboardSkeleton';
+import EmptyMetricState from '@/Components/PremiumDashboard/EmptyMetricState';
 
 export default function Index({
     store,
@@ -15,442 +20,244 @@ export default function Index({
     active_session,
     recent_orders = [],
     low_stock_products = [],
-    recent_factures = [],
     pending_bons = [],
 }) {
     const { auth } = usePage().props;
+    const [range, setRange] = useState('today');
     const currency = store?.currency ?? 'MAD';
-    const greeting = greetingFor(new Date());
     const permissions = auth?.permissions ?? [];
     const can = (permission) => permissions.includes('*') || permissions.includes(permission);
     const canPos = Boolean(auth?.access?.canPos);
 
     if (! store) {
         return (
-            <SaasLayout pageHeader={{ title: 'Dashboard' }}>
-                <EmptyState
-                    icon={StoreIcon}
-                    title="No active store"
-                    description="Finish onboarding to create your first store, or ask an admin to add you to one."
-                    action={
-                        <Link href="/onboarding" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
-                            Set up a store
-                        </Link>
-                    }
-                />
+            <SaasLayout>
+                <SoftCard className="mx-auto max-w-2xl py-10">
+                    <EmptyMetricState icon={StoreIcon} title="No active store" description="Finish onboarding to create your first store, or ask an administrator to add you to one." />
+                    <div className="flex justify-center pb-8">
+                        <QuickActionButton href="/onboarding">Set up a store</QuickActionButton>
+                    </div>
+                </SoftCard>
             </SaasLayout>
         );
     }
 
+    if (! stats) {
+        return <SaasLayout><DashboardSkeleton /></SaasLayout>;
+    }
+
+    const selectedRevenue = range === 'today' ? stats.today_sales : stats.month_revenue;
+    const selectedLabel = range === 'today' ? "Today's revenue" : 'Month-to-date revenue';
+    const selectedHelper = range === 'today'
+        ? `${stats.today_orders} order${Number(stats.today_orders) === 1 ? '' : 's'} today`
+        : 'Revenue recorded during the current month';
+
     return (
-        <SaasLayout
-            pageHeader={{
-                title: 'Dashboard',
-                subtitle: `${greeting}, ${auth?.user?.name ?? 'there'} · ${store.name}`,
-                breadcrumbs: [{ label: 'Dashboard' }],
-                actions: canPos ? (
-                    <Link
-                        href="/pos"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
-                    >
-                        <Monitor className="w-4 h-4" /> Open POS
-                    </Link>
-                ) : null,
-            }}
-        >
-            {/* Row 1: stat cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <StatsCard
-                    label="Today's sales"
-                    value={fmtMoney(stats.today_sales, currency)}
-                    sublabel={`${stats.today_orders} order${stats.today_orders === 1 ? '' : 's'} today`}
-                    icon={DollarSign}
-                    color="green"
+        <SaasLayout>
+            <div className="page-enter space-y-6">
+                <Hero
+                    userName={auth?.user?.name}
+                    storeName={store.name}
+                    range={range}
+                    onRangeChange={setRange}
+                    canPos={canPos}
+                    canViewOrders={can('orders.view')}
                 />
-                <StatsCard
-                    label="Monthly revenue"
-                    value={fmtMoney(stats.month_revenue, currency)}
-                    sublabel="This month"
-                    icon={TrendingUp}
-                    color="blue"
-                />
-                <Link href="/dashboard/stock" className="block">
-                    <StatsCard
-                        label="Products"
-                        value={fmtNumber(stats.total_products)}
-                        sublabel={
-                            stats.low_stock_count > 0
-                                ? <span className="text-red-600 dark:text-red-400">{stats.low_stock_count} low stock</span>
-                                : 'All stocked'
-                        }
-                        icon={Package}
-                        color="indigo"
+
+                <div className="grid gap-5 xl:grid-cols-[290px_minmax(420px,1fr)_310px]">
+                    <PremiumMetricCard
+                        label={selectedLabel}
+                        value={selectedRevenue}
+                        helper={selectedHelper}
+                        secondaryLabel="Monthly revenue"
+                        secondaryValue={formatMoney(stats.month_revenue, currency)}
+                        currency={currency}
+                        icon={CircleDollarSign}
                     />
-                </Link>
-                <Link href="/dashboard/bon-de-livraison" className="block">
-                    <StatsCard
-                        label="Pending deliveries"
-                        value={fmtNumber(stats.pending_deliveries)}
-                        sublabel={stats.pending_deliveries > 0 ? 'Need attention' : 'All caught up'}
-                        icon={Truck}
-                        color="yellow"
+
+                    <MiniChartCard
+                        title="Sales performance"
+                        subtitle={range === 'today' ? 'Orders and revenue by time of day' : 'Daily revenue during this month'}
+                        value={formatMoney(selectedRevenue, currency)}
+                        data={[]}
+                        className="min-h-[348px]"
                     />
-                </Link>
-            </section>
 
-            {/* Row 2: POS session banner */}
-            <SessionBanner session={active_session} currency={currency} />
-
-            {/* Row 3: two columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
-                {/* LEFT 60% */}
-                <div className="lg:col-span-3 space-y-6">
-                    <Card>
-                        <CardHeader title="Recent orders" href="/dashboard/orders" />
-                        {recent_orders.length === 0 ? (
-                            <EmptyState
-                                icon={ShoppingCart}
-                                title="No orders yet"
-                                description="Open the POS to start selling."
-                                action={
-                                    <Link href="/pos" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500">
-                                        <Monitor className="w-3.5 h-3.5" /> Open POS
-                                    </Link>
-                                }
-                            />
-                        ) : (
-                            <CompactTable>
-                                <thead>
-                                    <tr>
-                                        <Th>Reference</Th>
-                                        <Th>Origin</Th>
-                                        <Th>Customer</Th>
-                                        <Th className="text-right">Amount</Th>
-                                        <Th>Method</Th>
-                                        <Th className="text-right">When</Th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recent_orders.map((o) => (
-                                        <tr
-                                            key={`${o.origin}:${o.id}`}
-                                            onClick={() => router.visit(o.view_url)}
-                                            className="border-t border-line hover:bg-surface-3 cursor-pointer"
-                                        >
-                                            <Td className="font-mono text-xs text-content-muted">{o.reference}</Td>
-                                            <Td><OriginBadge origin={o.origin} label={o.origin_label} /></Td>
-                                            <Td>{o.customer_name || <span className="text-content-muted">Walk-in</span>}</Td>
-                                            <Td className="text-right font-semibold text-content tabular-nums">
-                                                {fmtMoney(o.total, currency)}
-                                            </Td>
-                                            <Td>{o.payment_method ? <MethodPill method={o.payment_method} /> : <span className="text-content-muted text-xs">—</span>}</Td>
-                                            <Td className="text-right text-xs text-content-muted whitespace-nowrap">
-                                                {timeAgo(o.created_at)}
-                                            </Td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </CompactTable>
-                        )}
-                    </Card>
-
-                    <Card>
-                        <CardHeader title="Recent invoices" href="/dashboard/factures" />
-                        {recent_factures.length === 0 ? (
-                            <EmptyState icon={FileText} title="No invoices yet" description="Invoices created from POS sales will show up here." />
-                        ) : (
-                            <CompactTable>
-                                <thead>
-                                    <tr>
-                                        <Th>Invoice #</Th>
-                                        <Th>Customer</Th>
-                                        <Th className="text-right">Amount</Th>
-                                        <Th>Payment</Th>
-                                        <Th className="text-right">Date</Th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recent_factures.map((f) => (
-                                        <tr key={f.id} className="border-t border-line hover:bg-surface-3">
-                                            <Td className="font-mono text-xs text-content-muted">{f.invoice_number}</Td>
-                                            <Td>{f.customer_name || <span className="text-content-muted">—</span>}</Td>
-                                            <Td className="text-right font-semibold text-content tabular-nums">
-                                                {fmtMoney(f.total_amount, currency)}
-                                            </Td>
-                                            <Td><StatusBadge type="payment" status={f.payment_status} /></Td>
-                                            <Td className="text-right text-xs text-content-muted whitespace-nowrap">{f.invoice_date}</Td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </CompactTable>
-                        )}
-                    </Card>
+                    <RevenueSummary
+                        currency={currency}
+                        monthRevenue={stats.month_revenue}
+                        unpaidInvoices={stats.unpaid_invoices}
+                        canPos={canPos}
+                        canViewOrders={can('orders.view')}
+                    />
                 </div>
 
-                {/* RIGHT 40% */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card>
-                        <div className="px-4 py-3 border-b border-line flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className={`w-4 h-4 ${stats.low_stock_count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
-                                <h2 className="text-sm font-semibold text-content">Low stock alert</h2>
-                            </div>
-                            <Link href="/dashboard/stock" className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300">Manage stock →</Link>
-                        </div>
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
+                    <RecentOrdersCard orders={recent_orders} currency={currency} />
 
-                        {stats.low_stock_count === 0 ? (
-                            <div className="px-4 py-6 flex items-center gap-3 text-sm text-emerald-700 dark:text-emerald-300">
-                                <CheckCircle2 className="w-5 h-5" />
-                                All products well stocked.
-                            </div>
-                        ) : (
-                            <ul className="divide-y divide-line">
-                                {low_stock_products.map((p) => (
-                                    <li key={p.id} className="flex items-center gap-3 px-4 py-3">
-                                        {p.image_url ? (
-                                            <img src={p.image_url} alt={p.name} loading="lazy" className="w-8 h-8 rounded-md object-cover ring-1 ring-line" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-md bg-surface-3 flex items-center justify-center">
-                                                <Package className="w-4 h-4 text-content-muted" />
-                                            </div>
-                                        )}
-                                        <div className="min-w-0 flex-1">
-                                            <div className="text-sm text-content truncate">{p.name}</div>
-                                            <div className="text-xs text-content-muted font-mono truncate">{p.sku}</div>
-                                        </div>
-                                        <span className={`text-sm font-bold tabular-nums ${
-                                            p.stock <= 5 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
-                                        }`}>
-                                            {p.stock}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-
-                    <Card>
-                        <CardHeader title="Pending deliveries" href="/dashboard/bon-de-livraison" />
-                        {pending_bons.length === 0 ? (
-                            <div className="px-4 py-6 text-sm text-content-muted">No pending deliveries.</div>
-                        ) : (
-                            <ul className="divide-y divide-line">
-                                {pending_bons.map((b) => (
-                                    <li key={b.id} className="px-4 py-3">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="font-mono text-xs text-content-muted">{b.bon_number}</span>
-                                            <StatusBadge type="delivery" status={b.status} />
-                                        </div>
-                                        <div className="mt-1 flex items-center justify-between gap-2 text-xs">
-                                            <span className="text-content-muted truncate">{b.customer_name || '—'}</span>
-                                            <span className="text-content-muted whitespace-nowrap">{b.expected_delivery_date ?? 'no ETA'}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-
-                    <Card>
-                        <div className="px-4 py-3 border-b border-line">
-                            <h2 className="text-sm font-semibold text-content">Quick actions</h2>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 p-3">
-                            {canPos && (
-                                <QuickAction href="/pos" icon={Monitor} label="New POS sale" tone="emerald" />
-                            )}
-                            {can('orders.view') && (
-                                <QuickAction href="/dashboard/orders" icon={ShoppingCart} label="View orders" tone="blue" />
-                            )}
-                            {can('stock.view') && (
-                                <QuickAction href="/dashboard/stock" icon={Layers} label="Manage stock" tone="indigo" />
-                            )}
-                            {can('team.manage') && (
-                                <QuickAction href="/dashboard/team" icon={Users} label="Team" tone="slate" />
-                            )}
-                        </div>
-                    </Card>
+                    <div className="space-y-5">
+                        <InventoryHealth
+                            totalProducts={stats.total_products}
+                            lowStockCount={stats.low_stock_count}
+                            products={low_stock_products}
+                        />
+                        <DeliveryQueue pendingCount={stats.pending_deliveries} pendingBons={pending_bons} />
+                        <PosSession session={active_session} currency={currency} canPos={canPos} />
+                    </div>
                 </div>
             </div>
-
-            {/* Unpaid invoices bottom banner */}
-            {stats.unpaid_invoices > 0 && (
-                <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                    <div className="flex items-start gap-3">
-                        <Receipt className="w-5 h-5 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5" />
-                        <div className="text-sm">
-                            <div className="text-amber-800 dark:text-amber-200 font-medium">
-                                {fmtMoney(stats.unpaid_invoices, currency)} in unpaid invoices
-                            </div>
-                            <div className="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">Customers haven't settled these invoices yet.</div>
-                        </div>
-                    </div>
-                    <Link
-                        href="/dashboard/factures?payment_status=unpaid"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/20 text-amber-800 dark:text-amber-200 hover:bg-amber-500/30 transition"
-                    >
-                        View invoices <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                </div>
-            )}
         </SaasLayout>
     );
 }
 
-/* ---------- Banner ---------- */
+function Hero({ userName, storeName, range, onRangeChange, canPos, canViewOrders }) {
+    const firstName = String(userName ?? 'there').trim().split(/\s+/)[0];
 
-function SessionBanner({ session, currency }) {
-    if (! session) {
-        return (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl bg-surface-2 border border-line">
-                <div className="flex items-start gap-3">
-                    <Monitor className="w-5 h-5 text-content-muted flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                        <div className="text-content font-medium">No active POS session</div>
-                        <div className="text-xs text-content-muted mt-0.5">Open a session to start ringing up sales.</div>
-                    </div>
+    return (
+        <section className="flex flex-col gap-5 px-1 py-2 sm:flex-row sm:items-end sm:justify-between sm:px-2">
+            <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#92978f]">{storeName}</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-[-0.045em] text-[#202420] sm:text-[2.65rem]">
+                    Welcome back, <span className="font-normal text-[#626862]">{firstName}</span>
+                </h1>
+                <p className="mt-2 text-sm text-[#888e87]">Your live commerce and fulfillment overview.</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+                <label className="relative inline-flex items-center gap-2 rounded-full border border-white/90 bg-white px-4 py-2.5 shadow-[0_12px_35px_-26px_rgba(42,56,46,.42)]">
+                    <CalendarDays className="h-4 w-4 text-[#697069]" strokeWidth={1.8} />
+                    <span className="sr-only">Dashboard date range</span>
+                    <select value={range} onChange={(event) => onRangeChange(event.target.value)} className="appearance-none bg-transparent pr-5 text-xs font-semibold text-[#363b36] focus:outline-none">
+                        <option value="today">Today · {formatDay(new Date())}</option>
+                        <option value="month">This month · {formatMonth(new Date())}</option>
+                    </select>
+                    <span className="pointer-events-none absolute right-3 text-[10px] text-[#8d938c]">⌄</span>
+                </label>
+
+                {canPos ? (
+                    <QuickActionButton href="/pos" icon={Monitor}>New POS sale</QuickActionButton>
+                ) : canViewOrders ? (
+                    <QuickActionButton href="/dashboard/orders/manage">View orders</QuickActionButton>
+                ) : null}
+            </div>
+        </section>
+    );
+}
+
+function RevenueSummary({ currency, monthRevenue, unpaidInvoices, canPos, canViewOrders }) {
+    return (
+        <SoftCard className="flex min-h-[348px] flex-col overflow-hidden p-6">
+            <header className="flex items-start justify-between gap-3">
+                <div>
+                    <h2 className="text-sm font-semibold text-[#252925]">Revenue summary</h2>
+                    <p className="mt-0.5 text-xs text-[#92978f]">Current month</p>
                 </div>
-                <Link
-                    href="/pos"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
-                >
-                    Open POS Terminal
-                </Link>
-            </div>
-        );
-    }
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f4f0] text-[#737a72]"><ReceiptText className="h-4 w-4" /></span>
+            </header>
 
-    return (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-            <div className="flex items-start gap-3">
-                <span className="relative flex h-3 w-3 mt-1.5 flex-shrink-0">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                </span>
-                <div className="text-sm">
-                    <div className="text-emerald-800 dark:text-emerald-200 font-medium">POS session active</div>
-                    <div className="text-xs text-emerald-700 dark:text-emerald-300/80 mt-0.5">
-                        Opened {session.opened_at} · Sales {fmtMoney(session.total_sales, currency)}
-                    </div>
+            <p className="mt-8 text-xs font-medium text-[#92978f]">Total revenue</p>
+            <p className="mt-1 text-[2rem] font-semibold tracking-[-0.045em] text-[#202420] tabular-nums">{formatMoney(monthRevenue, currency)}</p>
+
+            <div className="mt-5 rounded-[22px] bg-[#f5f7f3] p-4">
+                <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-[#858b84]">Unpaid invoices</span>
+                    <span className="text-sm font-semibold text-[#2c312c] tabular-nums">{formatMoney(unpaidInvoices, currency)}</span>
+                </div>
+                <div className="mt-4 flex h-16 items-center justify-center rounded-2xl border border-dashed border-[#dfe4dc] text-center text-[11px] text-[#969c95]">
+                    No revenue trend series is exposed yet
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                <Link
-                    href="/pos"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
-                >
-                    Go to POS <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+
+            <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
+                {canViewOrders && <QuickActionButton href="/dashboard/orders/manage" variant="secondary" className="px-3 py-2 text-xs">Orders</QuickActionButton>}
+                {canPos && <QuickActionButton href="/pos" className="px-3 py-2 text-xs">Open POS</QuickActionButton>}
             </div>
-        </div>
+        </SoftCard>
     );
 }
 
-/* ---------- Small building blocks ---------- */
-
-function Card({ children }) {
-    return <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">{children}</div>;
-}
-
-function CardHeader({ title, href }) {
+function InventoryHealth({ totalProducts, lowStockCount, products }) {
     return (
-        <div className="px-4 py-3 border-b border-line flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-content">{title}</h2>
-            {href && <Link href={href} className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300">View all →</Link>}
-        </div>
+        <SoftCard className="p-5">
+            <header className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#edf6f0] text-[#118858]"><Layers className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-[#252925]">Inventory health</h2><p className="mt-0.5 text-xs text-[#92978f]">{Number(totalProducts).toLocaleString()} products</p></div>
+                </div>
+                <Link href="/dashboard/stock" className="text-[#118858]" aria-label="Open stock"><ArrowRight className="h-4 w-4" /></Link>
+            </header>
+
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#f6f7f4] px-4 py-3">
+                <span className="text-xs text-[#858b84]">Low stock</span>
+                <span className={`text-lg font-semibold tabular-nums ${Number(lowStockCount) > 0 ? 'text-amber-600' : 'text-[#118858]'}`}>{Number(lowStockCount).toLocaleString()}</span>
+            </div>
+
+            {products.length > 0 && (
+                <div className="mt-3 space-y-2">
+                    {products.slice(0, 2).map((product) => (
+                        <div key={product.id} className="flex items-center gap-2.5 text-xs">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f1f3ef] text-[#737a72]"><Package className="h-3.5 w-3.5" /></span>
+                            <span className="min-w-0 flex-1 truncate text-[#676e67]">{product.name}</span>
+                            <span className="font-semibold tabular-nums text-amber-600">{product.stock}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </SoftCard>
     );
 }
 
-function CompactTable({ children }) {
+function DeliveryQueue({ pendingCount, pendingBons }) {
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm">{children}</table>
-        </div>
+        <SoftCard className="p-5">
+            <header className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eff5f4] text-[#32756b]"><Truck className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-[#252925]">Delivery queue</h2><p className="mt-0.5 text-xs text-[#92978f]">{Number(pendingCount).toLocaleString()} pending</p></div>
+                </div>
+                <Link href="/dashboard/bon-de-livraison" className="text-[#118858]" aria-label="Open deliveries"><ArrowRight className="h-4 w-4" /></Link>
+            </header>
+
+            {pendingBons.length === 0 ? (
+                <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#edf6f0] px-4 py-3 text-xs font-medium text-[#118858]"><CheckCircle2 className="h-4 w-4" /> No pending delivery notes</div>
+            ) : (
+                <div className="mt-4 space-y-2.5">
+                    {pendingBons.slice(0, 2).map((bon) => (
+                        <div key={bon.id} className="flex items-center justify-between gap-3">
+                            <div className="min-w-0"><p className="truncate font-mono text-[11px] text-[#686f68]">{bon.bon_number}</p><p className="mt-0.5 truncate text-[10px] text-[#9aa098]">{bon.customer_name || 'No customer name'}</p></div>
+                            <StatusPill status={bon.status} />
+                        </div>
+                    ))}
+                </div>
+            )}
+        </SoftCard>
     );
 }
 
-function Th({ children, className = '' }) {
-    return <th className={`px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-content-muted bg-surface-3 ${className}`}>{children}</th>;
-}
-
-function Td({ children, className = '' }) {
-    return <td className={`px-4 py-2.5 text-content-muted ${className}`}>{children}</td>;
-}
-
-function QuickAction({ href, icon: Icon, label, tone }) {
-    const tones = {
-        emerald: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
-        blue:    'bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/20',
-        indigo:  'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/20',
-        slate:   'bg-slate-500/10 hover:bg-slate-500/20 text-content-muted border-slate-500/20',
-    };
+function PosSession({ session, currency, canPos }) {
     return (
-        <Link
-            href={href}
-            className={`flex items-center gap-2 px-3 py-2.5 text-xs font-medium rounded-lg border transition ${tones[tone] ?? tones.indigo}`}
-        >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            <span className="truncate">{label}</span>
-        </Link>
+        <SoftCard className="p-5">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${session ? 'bg-[#e8f5ed] text-[#118858]' : 'bg-[#f1f3ef] text-[#7c837b]'}`}><Clock3 className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-[#252925]">POS session</h2><p className="mt-0.5 text-xs text-[#92978f]">{session ? `Opened ${session.opened_at}` : 'No active session'}</p></div>
+                </div>
+                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${session ? 'bg-emerald-500' : 'bg-[#c8ccc6]'}`} />
+            </div>
+            {session && <p className="mt-4 text-lg font-semibold text-[#252925] tabular-nums">{formatMoney(session.total_sales, currency)}</p>}
+            {canPos && <Link href="/pos" className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#118858]">{session ? 'Continue selling' : 'Open terminal'} <ArrowRight className="h-3.5 w-3.5" /></Link>}
+        </SoftCard>
     );
 }
 
-function OriginBadge({ origin, label }) {
-    const tone = origin === 'online'
-        ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-        : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300';
-    return (
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider ${tone}`}>
-            {origin === 'online' ? <Globe className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
-            {label ?? origin}
-        </span>
-    );
+function formatMoney(value, currency) {
+    return `${currency} ${(Number(value) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function MethodPill({ method }) {
-    const t = {
-        cash:   'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-        card:   'bg-blue-500/15 text-blue-700 dark:text-blue-300',
-        check:  'bg-slate-500/20 text-content-muted',
-        mobile: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
-        mixed:  'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
-    }[method] ?? 'bg-slate-700/40 text-content-muted';
-    return (
-        <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wider ${t}`}>
-            {method ?? '—'}
-        </span>
-    );
+function formatDay(date) {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-/* ---------- Formatting helpers ---------- */
-
-function fmtMoney(value, currency) {
-    const n = Number(value) || 0;
-    const formatted = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return `${currency} ${formatted}`;
-}
-
-function fmtNumber(value) {
-    return (Number(value) || 0).toLocaleString('en-US');
-}
-
-function greetingFor(date) {
-    const h = date.getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 18) return 'Good afternoon';
-    return 'Good evening';
-}
-
-function timeAgo(iso) {
-    if (! iso) return '—';
-    const d = new Date(iso);
-    const diff = (Date.now() - d.getTime()) / 1000;
-
-    if (diff < 60)    return 'just now';
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    if (diff < 172800) return 'yesterday';
-    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-
-    try { return d.toLocaleDateString(); } catch { return iso; }
+function formatMonth(date) {
+    return date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 }

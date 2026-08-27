@@ -83,6 +83,26 @@ class OzonShipmentService
     }
 
     /**
+     * Non-throwing wrapper around validateReadiness() — for read-only "can
+     * this be sent" UI checks (the Dispatch board's per-order readiness
+     * display, the Dispatch modal's Integrated Provider tab). send() itself
+     * still calls validateReadiness() directly; this never substitutes for
+     * that real check at send time, only mirrors it for display.
+     *
+     * @return array{ready: bool, reasons: array<int, string>}
+     */
+    public function checkReadiness(Order $order, DeliveryConnection $connection): array
+    {
+        try {
+            $this->validateReadiness($order, $connection);
+
+            return ['ready' => true, 'reasons' => []];
+        } catch (ValidationException $e) {
+            return ['ready' => false, 'reasons' => collect($e->errors())->flatten()->values()->all()];
+        }
+    }
+
+    /**
      * The connection's `default_parcel_stock` setting, exactly as saved —
      * "0" must stay "0". `??`/`?:`/`empty()` all treat "0" as falsy/absent
      * and would silently substitute a different value; `array_key_exists`

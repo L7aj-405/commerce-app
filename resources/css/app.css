@@ -14,26 +14,150 @@
     --color-content:        var(--content);
     --color-content-muted:  var(--content-muted);
     --color-line:           var(--line);
+
+    /* Premium shell tokens — aliases over the pairs above plus a few new
+       ones, so both naming schemes stay theme-aware together. */
+    --color-bg:             var(--bg);
+    --color-canvas:         var(--canvas);
+    --color-surface-soft:   var(--surface-soft);
+    --color-card:           var(--card);
+    --color-card-muted:     var(--card-muted);
+    --color-text:           var(--content);
+    --color-text-muted:     var(--content-muted);
+    --color-border:         var(--line);
+
+    /* Brand tokens — --primary is independently settable (Settings ->
+       Appearance -> Brand color), decoupled from --accent (a separate,
+       independently-settable "Accent color" field). Both default to the
+       same hue as today's fixed green/violet, so nothing visually changes
+       until a store customizes one. */
+    --color-primary:          var(--primary);
+    --color-primary-strong:   var(--primary-strong);
+    --color-primary-soft:     var(--primary-soft);
+    --color-primary-contrast: var(--primary-contrast);
+    --color-accent:           var(--accent);
+    --color-accent-strong:    var(--accent-strong);
+
+    --color-success:        var(--success);
+    --color-success-soft:   var(--success-soft);
+    --color-warning:        var(--warning);
+    --color-warning-soft:   var(--warning-soft);
+    --color-danger:         var(--danger);
+    --color-danger-soft:    var(--danger-soft);
+    --color-glass:          var(--glass);
+    --color-input:          var(--card);
+    --color-table-row:      var(--table-row);
+    --color-table-hover:    var(--table-hover);
 }
 
 @layer base {
     :root {
-        /* Light */
-        --surface:        #f8fafc;
+        /* Light — warm Quixotic-style canvas with soft white work surfaces. */
+        --surface:        #f4f4f1;
         --surface-2:      #ffffff;
-        --surface-3:      #f1f5f9;
-        --content:        #0f172a;
-        --content-muted:  #64748b;
-        --line:           #e2e8f0;
+        --surface-3:      #eff1ed;
+        --content:        #242824;
+        --content-muted:  #7f867e;
+        --line:           #e7e9e4;
+        --card-shadow:    0 22px 60px -44px rgb(42 56 46 / .42);
+        --card-shadow-hover: 0 28px 70px -42px rgb(17 136 88 / .28);
+
+        /* Premium AppShell tokens (light). `--surface`/`--surface-2`/`--surface-3`
+           above stay the primary source of truth for the rest of the app —
+           these are additive names for the shell/rail/topbar/drawer. */
+        --bg:             #e5e6e2;
+        --canvas:         var(--surface);
+        --surface-soft:   var(--surface-3);
+        --card:           var(--surface-2);
+        --card-muted:     var(--surface-3);
+        --success:        #118858;
+        --success-soft:   #e9f6ee;
+        --warning:        #b45309;
+        --warning-soft:   #fef3c7;
+        --danger:         #dc2626;
+        --danger-soft:    #fee2e2;
+        --shadow:         0 22px 55px -40px rgb(42 56 46 / .48);
+        --glass:          rgb(255 255 255 / .92);
+        --table-row:      transparent;
+        --table-hover:    var(--surface-3);
+
+        /* Brand color — Settings -> Appearance -> Brand & Store Appearance.
+           `--primary`/`--accent` are the only two hexes a store can actually
+           set (BrandTokens.jsx sets these two custom properties inline);
+           everything else here is derived so a custom hex never needs a
+           second stored "hover shade" value. Defaults match today's fixed
+           green exactly, so an unconfigured store looks unchanged. */
+        --primary:           #118858;
+        --primary-strong:    color-mix(in srgb, var(--primary) 84%, black);
+        --primary-soft:      color-mix(in srgb, var(--primary) 14%, var(--card));
+        --primary-contrast:  #ffffff;
+        --accent:            #118858;
+        --accent-strong:     color-mix(in srgb, var(--accent) 84%, black);
+
+        /* Literal aliases for the token names named in the appearance brief —
+           additive only, never a replacement for --surface/--content/--line
+           (hundreds of call sites depend on those). Defined once: these are
+           live var() references, so they already track :root.dark below
+           without needing to be redeclared there. */
+        --app-bg:      var(--bg);
+        --app-canvas:  var(--canvas);
+        --text:        var(--content);
+        --text-muted:  var(--content-muted);
+        --border:      var(--line);
+        --font-sans:   Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+        /* Border radius — Settings -> Appearance -> Radius style. Defaults
+           match today's .card (rounded-2xl/1rem) and .btn (rounded-lg/0.625rem)
+           exactly. Scoped to form/data components (Button/Card/Input/
+           DataTable/StatusBadge/table chrome) — the premium shell's floating
+           dock/topbar/drawer keep their fixed designed radii on purpose. */
+        --radius-card:   1rem;
+        --radius-button: 0.625rem;
+
+        /* Density — personal preference (useDensity.js), applied via
+           [data-density] on <html>. Affects table row height, card padding,
+           and filter-bar spacing (see the utility classes below). */
+        --density-scale: 1;
     }
+    :root[data-radius="soft"] { --radius-card: 0.75rem; --radius-button: 0.5rem; }
+    :root[data-radius="pill"] { --radius-card: 1.5rem;  --radius-button: 9999px; }
+    :root[data-density="compact"] { --density-scale: 0.78; }
     :root.dark {
-        /* Dark — matches the current hardcoded palette exactly */
-        --surface:        #0f1117;
-        --surface-2:      #1a1d27;
-        --surface-3:      #22252f;
-        --content:        #e2e8f0;
-        --content-muted:  #94a3b8;
-        --line:           #2a2d3a;
+        /* Dark — near-black violet canvas inspired by the supplied references. */
+        --surface:        #090a11;
+        --surface-2:      #14151d;
+        --surface-3:      #1c1d27;
+        --content:        #f3f4f8;
+        --content-muted:  #9699aa;
+        --line:           #292a36;
+        --card-shadow:    0 24px 70px -42px rgb(0 0 0 / .92);
+        --card-shadow-hover: 0 26px 78px -38px rgb(87 70 220 / .34);
+
+        /* Premium AppShell tokens (dark) — same shell, inverted palette. */
+        --bg:             #05050a;
+        --canvas:         var(--surface);
+        --surface-soft:   var(--surface-3);
+        --card:           var(--surface-2);
+        --card-muted:     var(--surface-3);
+        --success:        #7667ff;
+        --success-soft:   rgb(118 103 255 / .16);
+        --warning:        #f0b429;
+        --warning-soft:   rgb(240 180 41 / .14);
+        --danger:         #f87171;
+        --danger-soft:    rgb(248 113 113 / .14);
+        --shadow:         0 24px 70px -42px rgb(0 0 0 / .92);
+        --glass:          rgb(20 21 29 / .85);
+        --table-row:      transparent;
+        --table-hover:    var(--surface-3);
+
+        /* Brand color (dark) — see the light block above for the full
+           rationale. Same default hue story: violet today, until a store
+           picks its own hex (then this same value applies in both themes —
+           see BrandTokens.jsx). */
+        --primary:          #7667ff;
+        --primary-strong:   color-mix(in srgb, var(--primary) 84%, white);
+        --accent:           #7667ff;
+        --accent-strong:    color-mix(in srgb, var(--accent) 84%, white);
     }
 
     /* Smooth cross-fade when the theme flips (not on every hover). */
@@ -79,8 +203,16 @@
     }
 
     body {
-        @apply antialiased;
+        @apply antialiased bg-surface text-content;
+        min-height: 100vh;
+        background-image:
+            radial-gradient(circle at 88% -10%, rgb(17 136 88 / .07), transparent 31rem),
+            radial-gradient(circle at 20% 110%, rgb(71 112 86 / .04), transparent 34rem);
+        background-attachment: fixed;
     }
+
+    button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+    ::selection { background: rgb(17 136 88 / .22); }
 
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -89,69 +221,69 @@
 }
 
 /* ── Buttons ─────────────────────────────────────── */
+/* Radius/colors route through tokens (--radius-button, --primary, …) so the
+   Appearance settings (brand color, radius) actually cascade here — this is
+   the shared layer several older pages still build on directly. */
 @utility btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
-           rounded-lg transition-all duration-150 cursor-pointer select-none
+           transition-all duration-150 cursor-pointer select-none
            focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
            active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none;
+    border-radius: var(--radius-button);
 }
 @utility btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700
-           focus-visible:ring-blue-500 dark:focus-visible:ring-offset-gray-900;
+    @apply btn bg-primary text-primary-contrast hover:bg-primary-strong
+           focus-visible:ring-primary;
 }
 @utility btn-secondary {
-    @apply btn bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
-           border border-gray-300 dark:border-gray-600
-           hover:bg-gray-50 dark:hover:bg-gray-600
-           focus-visible:ring-gray-400;
+    @apply btn bg-card text-text border border-border
+           hover:bg-surface-soft focus-visible:ring-border;
 }
 @utility btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500;
+    @apply btn bg-danger text-white hover:brightness-90 focus-visible:ring-danger;
 }
 @utility btn-success {
-    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500;
+    @apply btn bg-success text-white hover:brightness-90 focus-visible:ring-success;
 }
 @utility btn-ghost {
-    @apply btn text-gray-600 dark:text-gray-400
-           hover:bg-gray-100 dark:hover:bg-gray-700
-           focus-visible:ring-gray-400;
+    @apply btn text-text-muted hover:bg-surface-soft focus-visible:ring-border;
 }
 @utility btn-icon {
-    @apply p-2 rounded-lg text-gray-500 dark:text-gray-400
-           hover:bg-gray-100 dark:hover:bg-gray-700
+    @apply p-2 text-text-muted hover:bg-surface-soft
            transition-all duration-150 focus:outline-none
-           focus-visible:ring-2 focus-visible:ring-blue-500;
+           focus-visible:ring-2 focus-visible:ring-primary;
+    border-radius: var(--radius-button);
 }
 
 /* ── Cards ───────────────────────────────────────── */
 @utility card {
-    @apply bg-white dark:bg-gray-800 rounded-2xl
-           border border-gray-200 dark:border-gray-700 p-6;
+    @apply bg-card border border-border;
+    border-radius: var(--radius-card);
+    padding: calc(1.5rem * var(--density-scale));
 }
 @utility card-sm {
-    @apply bg-white dark:bg-gray-800 rounded-xl
-           border border-gray-200 dark:border-gray-700 p-4;
+    @apply bg-card border border-border;
+    border-radius: calc(var(--radius-card) * 0.85);
+    padding: calc(1rem * var(--density-scale));
 }
 
 /* ── Form Controls ───────────────────────────────── */
 @utility input {
     @apply block w-full px-3.5 py-2.5 text-sm
-           text-gray-900 dark:text-white
-           bg-white dark:bg-gray-700
-           border border-gray-300 dark:border-gray-600
-           rounded-lg
-           placeholder:text-gray-400 dark:placeholder:text-gray-500
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           text-text bg-card border border-border
+           placeholder:text-text-muted
+           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
            transition duration-150;
+    border-radius: var(--radius-button);
 }
 @utility label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5;
+    @apply block text-sm font-medium text-text-muted mb-1.5;
 }
 @utility input-error {
-    @apply border-red-400 focus:ring-red-400;
+    @apply border-danger focus:ring-danger;
 }
 @utility error-text {
-    @apply mt-1 text-xs text-red-500 dark:text-red-400;
+    @apply mt-1 text-xs text-danger;
 }
 
 /* ── Badges ──────────────────────────────────────── */
@@ -159,30 +291,34 @@
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
 }
 @utility badge-blue   { @apply bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400; }
-@utility badge-green  { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400; }
-@utility badge-yellow { @apply bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400; }
-@utility badge-red    { @apply bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400; }
-@utility badge-gray   { @apply bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300; }
+/* green/yellow/red badges are the semantic success/warning/danger states —
+   routed through those tokens so they harmonize with the brand instead of a
+   raw Tailwind hue, while staying semantically fixed (never brand-primary). */
+@utility badge-green  { @apply bg-success-soft text-success; }
+@utility badge-yellow { @apply bg-warning-soft text-warning; }
+@utility badge-red    { @apply bg-danger-soft text-danger; }
+@utility badge-gray   { @apply bg-surface-soft text-text-muted; }
 @utility badge-purple { @apply bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400; }
 @utility badge-indigo { @apply bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400; }
 
 /* ── Tables ──────────────────────────────────────── */
 @utility table-container {
-    @apply bg-white dark:bg-gray-800 rounded-2xl
-           border border-gray-200 dark:border-gray-700 overflow-hidden;
+    @apply bg-card border border-border overflow-hidden;
+    border-radius: var(--radius-card);
 }
 @utility table-th {
-    @apply px-5 py-3.5 text-left text-xs font-semibold
-           text-gray-500 dark:text-gray-400 uppercase tracking-wider
-           bg-gray-50 dark:bg-gray-900/40;
+    @apply text-left text-xs font-semibold
+           text-text-muted uppercase tracking-wider
+           bg-surface-soft;
+    padding: calc(0.875rem * var(--density-scale)) 1.25rem;
 }
 @utility table-td {
-    @apply px-5 py-4 text-sm text-gray-900 dark:text-gray-100;
+    @apply text-sm text-text;
+    padding: calc(1rem * var(--density-scale)) 1.25rem;
 }
 @utility table-row {
-    @apply border-t border-gray-100 dark:border-gray-700/60
-           hover:bg-gray-50 dark:hover:bg-gray-700/30
-           transition-colors duration-100;
+    @apply border-t border-border bg-table-row
+           hover:bg-table-hover transition-colors duration-100;
 }
 
 /* ── Page layout helpers ─────────────────────────── */
@@ -190,21 +326,21 @@
     @apply flex items-start justify-between gap-4 mb-8;
 }
 @utility page-title {
-    @apply text-2xl font-bold tracking-tight text-gray-900 dark:text-white;
+    @apply text-2xl font-bold tracking-tight text-text;
 }
 @utility page-subtitle {
-    @apply mt-0.5 text-sm text-gray-500 dark:text-gray-400;
+    @apply mt-0.5 text-sm text-text-muted;
 }
 @utility section-title {
-    @apply text-base font-semibold text-gray-900 dark:text-white;
+    @apply text-base font-semibold text-text;
 }
 
 /* ── Stat cards ──────────────────────────────────── */
 @utility stat-value {
-    @apply text-3xl font-bold tracking-tight text-gray-900 dark:text-white;
+    @apply text-3xl font-bold tracking-tight text-text;
 }
 @utility stat-label {
-    @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+    @apply text-sm font-medium text-text-muted;
 }
 
 /* ── Timeline ────────────────────────────────────── */
@@ -214,11 +350,52 @@
 
 /* ── Divider ─────────────────────────────────────── */
 @utility divider {
-    @apply border-t border-gray-200 dark:border-gray-700;
+    @apply border-t border-border;
 }
 
 /* ── Filter bar ──────────────────────────────────── */
 @utility filter-bar {
-    @apply bg-white dark:bg-gray-800 rounded-2xl
-           border border-gray-200 dark:border-gray-700 p-4;
+    @apply bg-card border border-border;
+    border-radius: var(--radius-card);
+    padding: calc(1rem * var(--density-scale));
+}
+
+/* ── Premium shell & motion helpers ───────────────── */
+/* NOTE: dark mode was previously broken here — a `.quixotic-shell` class
+   force-redeclared --surface/--surface-2/--content/etc. to fixed light hex
+   values directly on the shell's own element. CSS custom properties resolve
+   at the element they're set on, so that local redeclaration always beat
+   `:root.dark`'s values no matter what theme was active. Never redeclare
+   theme tokens on a non-:root selector — set them once in :root/:root.dark
+   only (see above) and let every component inherit. */
+.shadow-premium { box-shadow: var(--shadow); }
+
+.page-enter { animation: page-enter .38s cubic-bezier(.22, 1, .36, 1) both; }
+.skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--content) 7%, transparent);
+}
+.skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / .08), transparent);
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes page-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
 }

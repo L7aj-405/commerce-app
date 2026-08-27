@@ -21,6 +21,7 @@ use App\Http\Controllers\Dashboard\ProductController;
 use App\Http\Controllers\Dashboard\ProductSyncController;
 use App\Http\Controllers\Dashboard\ReturnController;
 use App\Http\Controllers\Dashboard\RoleController;
+use App\Http\Controllers\Dashboard\SenditConnectionController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\StockController;
 use App\Http\Controllers\Dashboard\StockTransferController;
@@ -262,10 +263,22 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
             Route::middleware('perm:settings.manage')->prefix('settings')->name('settings.')->group(function () {
                 Route::get('/',  [SettingsController::class, 'index'])->name('index');
                 Route::post('/', [SettingsController::class, 'update'])->name('update');
+                Route::patch('/branding', [SettingsController::class, 'updateBranding'])->name('branding.update');
+            });
+
+            // Integrations Center: the index itself is shared by commerce,
+            // delivery, and tools tabs, so it is NOT blanket-gated on
+            // integrations.manage (a Manager holds delivery.connections.manage
+            // but not integrations.manage, and must still be able to open this
+            // page to reach the Delivery Companies tab). The controller only
+            // fills in the categories the caller actually has permission for
+            // and 403s if they have neither. Every write/sub-resource route
+            // below keeps its original integrations.manage gate untouched.
+            Route::prefix('integrations')->name('integrations.')->group(function () {
+                Route::get('/', [IntegrationsController::class, 'index'])->name('index');
             });
 
             Route::middleware('perm:integrations.manage')->prefix('integrations')->name('integrations.')->group(function () {
-                Route::get('/',             [IntegrationsController::class, 'index'])->name('index');
                 Route::get('/woocommerce',  [IntegrationsController::class, 'woocommerce'])->name('woocommerce');
                 Route::post('/woocommerce', [IntegrationsController::class, 'saveWoocommerce'])->name('woocommerce.save');
                 Route::get('/shopify',      [IntegrationsController::class, 'shopify'])->name('shopify');
@@ -299,6 +312,31 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 });
             });
 
+            // Sendit — a second external delivery provider, plugged into the
+            // SAME shipment/tracking/dispatch machinery as Ozon below.
+            // Deliberately its own controller/page rather than folded into
+            // DeliveryConnectionController/Connections.jsx (Ozon's own
+            // connection page logic must not change) — same permission,
+            // separate route group so the two never collide.
+            //
+            // MUST be registered BEFORE the Ozon group's {connection}
+            // wildcard routes: Laravel matches routes in registration
+            // order, and a literal "sendit" segment would otherwise be
+            // swallowed by e.g. `delivery-connections/{connection}/test`
+            // (both are 3 path segments after the prefix) before ever
+            // reaching this group.
+            Route::middleware('perm:delivery.connections.manage')->prefix('delivery-connections/sendit')->name('delivery-connections.sendit.')->group(function () {
+                Route::get('/',                    [SenditConnectionController::class, 'index'])->name('index');
+                Route::post('/',                    [SenditConnectionController::class, 'store'])->name('store');
+                Route::post('/test',                [SenditConnectionController::class, 'test'])->name('test');
+                Route::post('/sync-districts',      [SenditConnectionController::class, 'syncDistricts'])->name('sync-districts');
+                Route::post('/cities/map',           [SenditConnectionController::class, 'mapCity'])->name('cities.map');
+                Route::post('/cities/map-all-suggested', [SenditConnectionController::class, 'mapAllSuggested'])->name('cities.map-all-suggested');
+                Route::post('/cities/clear-mapping',     [SenditConnectionController::class, 'clearMapping'])->name('cities.clear-mapping');
+                Route::post('/disconnect',          [SenditConnectionController::class, 'disconnect'])->name('disconnect');
+                Route::post('/labels',              [SenditConnectionController::class, 'getLabels'])->name('labels');
+            });
+
             // External delivery providers (Ozon Express first). Separate from
             // the internal /my-deliveries driver queue above and from the
             // Dispatch board's own order_shipments bookkeeping — this is the
@@ -317,6 +355,8 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
             Route::prefix('delivery-shipments')->name('delivery-shipments.')->group(function () {
                 Route::middleware('perm:delivery.shipments.create')
                     ->post('/orders/{order}/ozon', [DeliveryShipmentController::class, 'sendToOzon'])->name('send-ozon');
+                Route::middleware('perm:delivery.shipments.create')
+                    ->post('/orders/{order}/sendit', [DeliveryShipmentController::class, 'sendToSendit'])->name('send-sendit');
                 Route::middleware('perm:delivery.shipments.create')
                     ->post('/{shipment}/retry-verification', [DeliveryShipmentController::class, 'retryVerification'])->name('retry-verification');
                 Route::middleware('perm:delivery.shipments.track')

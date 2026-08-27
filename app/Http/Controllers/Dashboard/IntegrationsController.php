@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Connectors\ShopifyConnector;
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryConnection;
 use App\Models\PlatformConnection;
 use App\Services\Shopify\ShopifyAuthException;
 use App\Services\Shopify\ShopifyAuthService;
@@ -23,14 +24,30 @@ class IntegrationsController extends Controller
     /** Topics currently wired up end to end (Shopify Integration Workflow Upgrade). */
     private const SHOPIFY_WEBHOOK_EVENTS = ['orders/create', 'orders/updated', 'products/create', 'products/update'];
 
+    /**
+     * The Integrations Center — one page, three tabbed categories (commerce,
+     * delivery, tools). NOT blanket-gated on integrations.manage (see the
+     * route comment): a caller only gets the categories they actually hold
+     * the permission for, and is 403'd only if they hold neither.
+     */
     public function index(Request $request): Response
     {
-        $store = $request->user()->getActiveStore();
+        $user  = $request->user();
+        $store = $user->getActiveStore();
 
-        $connections = $store === null ? collect() : PlatformConnection::query()
+        $canCommerce = $user->hasStorePermission($store, 'integrations.manage');
+        $canDelivery = $user->hasStorePermission($store, 'delivery.connections.manage');
+
+        abort_unless($canCommerce || $canDelivery, 403, 'You do not have permission to access this area.');
+
+        $platformByCode = $store === null ? collect() : PlatformConnection::query()
             ->where('store_id', $store->id)
-            ->get(['id', 'platform', 'status', 'label', 'last_synced_at', 'synced_products_count', 'synced_orders_count']);
+            ->get(['id', 'platform', 'status', 'label', 'last_synced_at', 'synced_products_count', 'synced_orders_count'])
+            ->keyBy('platform');
 
+        // Legacy shape, still consumed by ChannelFrontendCoverageTest and any
+        // other existing caller of the plain provider list — kept alongside
+        // the new grouped shape rather than replaced.
         $providers = [
             ['key' => 'woocommerce', 'name' => 'WooCommerce', 'description' => 'WordPress-based stores'],
             ['key' => 'shopify',     'name' => 'Shopify',     'description' => 'Shopify storefronts'],
@@ -38,11 +55,168 @@ class IntegrationsController extends Controller
             ['key' => 'whatsapp',    'name' => 'WhatsApp',    'description' => 'Order confirmations via WhatsApp'],
         ];
 
+        $tab = $request->query('tab');
+        $tab = in_array($tab, ['commerce', 'delivery', 'tools'], true) ? $tab : ($canCommerce ? 'commerce' : 'delivery');
+
         return Inertia::render('Dashboard/Integrations/Index', [
             'store'       => $store?->only(['id', 'name']),
             'providers'   => $providers,
-            'connections' => $connections,
+            'connections' => $platformByCode->values(),
+            'tab'         => $tab,
+            'can'         => ['commerce' => $canCommerce, 'delivery' => $canDelivery],
+            'commerce'    => $canCommerce ? $this->commerceCards($platformByCode) : [],
+            'tools'       => $canCommerce ? $this->toolsCards($platformByCode) : [],
+            'delivery'    => $canDelivery ? $this->deliveryCards($store) : [],
         ]);
+    }
+
+    /** @param \Illuminate\Support\Collection<string, PlatformConnection> $platformByCode */
+    private function commerceCards($platformByCode): array
+    {
+        $defs = [
+            ['code' => 'shopify',     'name' => 'Shopify',     'description' => 'Sync products, orders, and stock with your Shopify storefront.'],
+            ['code' => 'woocommerce', 'name' => 'WooCommerce', 'description' => 'Sync products, orders, and stock with your WordPress-based WooCommerce store.'],
+            ['code' => 'youcan',      'name' => 'YouCan',      'description' => 'Sync products, orders, and stock with your YouCan Shop.'],
+        ];
+
+        return array_map(function (array $d) use ($platformByCode) {
+            /** @var PlatformConnection|null $conn */
+            $conn = $platformByCode->get($d['code']);
+
+            return [
+                'code' => $d['code'],
+                'category' => 'commerce',
+                'name' => $d['name'],
+                'description' => $d['description'],
+                'status' => $this->platformCardStatus($conn),
+                'capabilities' => ['Sync products', 'Sync orders', 'Stock sync'],
+                'is_available' => true,
+                'is_connected' => $conn?->status === 'active',
+                'coming_soon' => false,
+                'connect_url' => "/dashboard/integrations/{$d['code']}",
+                'manage_url' => $conn !== null ? "/dashboard/integrations/connections/{$conn->id}" : null,
+                'synced_products_count' => $conn?->synced_products_count,
+                'synced_orders_count' => $conn?->synced_orders_count,
+                'last_sync' => $conn?->last_synced_at?->toIso8601String(),
+            ];
+        }, $defs);
+    }
+
+    /** @param \Illuminate\Support\Collection<string, PlatformConnection> $platformByCode */
+    private function toolsCards($platformByCode): array
+    {
+        $wa = $platformByCode->get('whatsapp');
+
+        $cards = [[
+            'code' => 'whatsapp',
+            'category' => 'tools',
+            'name' => 'WhatsApp',
+            'description' => 'Send automated order confirmations to customers via WhatsApp.',
+            'status' => $this->platformCardStatus($wa),
+            'capabilities' => ['Order confirmations'],
+            'is_available' => true,
+            'is_connected' => $wa?->status === 'active',
+            'coming_soon' => false,
+            'connect_url' => '/dashboard/integrations/whatsapp',
+            'manage_url' => $wa?->status === 'active' ? '/dashboard/integrations/whatsapp' : null,
+        ]];
+
+        foreach ([
+            ['code' => 'google_sheets',    'name' => 'Google Sheets',    'description' => 'Export orders and stock data to a live spreadsheet.'],
+            ['code' => 'barcode_scanner',  'name' => 'Barcode scanners', 'description' => 'Connect handheld or USB barcode scanners for faster picking and stock counts.'],
+            ['code' => 'label_printer',    'name' => 'Label printers',   'description' => 'Print shipping labels and barcodes directly from the dashboard.'],
+        ] as $d) {
+            $cards[] = $this->comingSoonCard($d['code'], 'tools', $d['name'], $d['description']);
+        }
+
+        return $cards;
+    }
+
+    private function deliveryCards(?\App\Models\Store $store): array
+    {
+        $ozon = $store === null ? null : DeliveryConnection::query()
+            ->where('store_id', $store->id)
+            ->where('provider_code', 'ozon')
+            ->first();
+
+        $ozonStatus = match (true) {
+            $ozon === null => 'not_connected',
+            $ozon->status === DeliveryConnection::STATUS_CONNECTED => 'connected',
+            $ozon->status === DeliveryConnection::STATUS_ERROR => 'error',
+            default => 'not_connected', // STATUS_DISABLED
+        };
+
+        $sendit = $store === null ? null : DeliveryConnection::query()
+            ->where('store_id', $store->id)
+            ->where('provider_code', 'sendit')
+            ->first();
+
+        $senditStatus = match (true) {
+            $sendit === null => 'not_connected',
+            $sendit->status === DeliveryConnection::STATUS_CONNECTED => 'connected',
+            $sendit->status === DeliveryConnection::STATUS_ERROR => 'error',
+            default => 'not_connected', // STATUS_DISABLED
+        };
+
+        $cards = [
+            [
+                'code' => 'ozon',
+                'category' => 'delivery',
+                'name' => 'Ozon Express',
+                'description' => 'Send packed orders, track shipments, and manage delivery notes.',
+                'status' => $ozonStatus,
+                'capabilities' => ['Create shipments', 'Tracking', 'City mapping', 'Delivery notes / BL'],
+                'is_available' => true,
+                'is_connected' => $ozonStatus === 'connected',
+                'coming_soon' => false,
+                'connect_url' => '/dashboard/delivery-connections',
+                'manage_url' => '/dashboard/delivery-connections',
+            ],
+            [
+                'code' => 'sendit',
+                'category' => 'delivery',
+                'name' => 'Sendit',
+                'description' => 'Send packed orders, track shipments, and print labels.',
+                'status' => $senditStatus,
+                'capabilities' => ['Shipments', 'Tracking', 'District mapping', 'Labels', 'Webhooks'],
+                'is_available' => true,
+                'is_connected' => $senditStatus === 'connected',
+                'coming_soon' => false,
+                'connect_url' => '/dashboard/delivery-connections/sendit',
+                'manage_url' => '/dashboard/delivery-connections/sendit',
+            ],
+        ];
+
+        $cards[] = $this->comingSoonCard('amana', 'delivery', 'Amana', 'Moroccan delivery carrier.', ['Create shipments', 'Tracking']);
+
+        return $cards;
+    }
+
+    private function comingSoonCard(string $code, string $category, string $name, string $description, array $capabilities = []): array
+    {
+        return [
+            'code' => $code,
+            'category' => $category,
+            'name' => $name,
+            'description' => $description,
+            'status' => 'coming_soon',
+            'capabilities' => $capabilities,
+            'is_available' => false,
+            'is_connected' => false,
+            'coming_soon' => true,
+            'connect_url' => null,
+            'manage_url' => null,
+        ];
+    }
+
+    /** Connected/Not connected/Error/Needs attention, from a nullable PlatformConnection. */
+    private function platformCardStatus(?PlatformConnection $conn): string
+    {
+        if ($conn === null) return 'not_connected';
+        if ($conn->status === 'active') return 'connected';
+        if ($conn->status === 'error') return 'error';
+
+        return 'needs_attention';
     }
 
     public function woocommerce(Request $request): Response

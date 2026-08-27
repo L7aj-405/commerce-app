@@ -14,7 +14,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-/** Scheduled poll of every non-terminal Ozon shipment, grouped by connection for bulk tracking. */
+/** Scheduled poll of every non-terminal shipment (any provider), grouped by connection for bulk tracking. */
 class TrackActiveShipmentsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

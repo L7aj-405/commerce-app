@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\DeliveryConnection;
 use App\Models\Order;
 use App\Models\PosOrder;
+use App\Models\User;
 use App\Services\Delivery\DeliveryCityMappingResolver;
 use App\Services\Orders\OrderWorkflowService;
 use App\Services\Pos\DocumentGenerationService;
@@ -152,21 +153,38 @@ class OrderController extends Controller
             return Inertia::render('Dashboard/Orders/Manage', ['store' => null, 'orders' => []]);
         }
 
-        $pos = PosOrder::query()
+        $posModels = PosOrder::query()
             ->where('store_id', $store->id)
             ->with(['items', 'store:id,currency', 'shippingCity:id,name'])
             ->latest()
             ->limit(300)
-            ->get()
-            ->map(fn (PosOrder $o) => OrderPresenter::pos($o));
+            ->get();
 
-        $online = Order::query()
+        $onlineModels = Order::query()
             ->where('store_id', $store->id)
             ->with(['store:id,currency', 'shippingCity:id,name'])
             ->latest()
             ->limit(300)
-            ->get()
-            ->map(fn (Order $o) => OrderPresenter::online($o));
+            ->get();
+
+        // Same decoration pattern as DepartmentController::queueFor() — one
+        // batch lookup of every assignee across both channels, read-only,
+        // no workflow change. `assigned_to`/`assignee_name` let the board's
+        // summary strip and filter bar show "assigned" without inventing data.
+        $assignees = User::whereIn(
+            'id',
+            $posModels->pluck('assigned_to')->merge($onlineModels->pluck('assigned_to'))->filter()->unique(),
+        )->pluck('name', 'id');
+
+        $decorate = function (array $row, $model) use ($assignees): array {
+            $row['assigned_to']   = $model->assigned_to;
+            $row['assignee_name'] = $model->assigned_to ? ($assignees[$model->assigned_to] ?? null) : null;
+
+            return $row;
+        };
+
+        $pos = $posModels->map(fn (PosOrder $o) => $decorate(OrderPresenter::pos($o), $o));
+        $online = $onlineModels->map(fn (Order $o) => $decorate(OrderPresenter::online($o), $o));
 
         // Merge both channels into one recency-sorted list. Tabs/source/search
         // are applied client-side for instant switching (fine at this volume).

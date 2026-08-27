@@ -75,11 +75,12 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
             subtitle: 'Connect external carriers to ship packed orders automatically',
             breadcrumbs: [
                 { label: 'Dashboard', href: '/dashboard' },
-                { label: 'Delivery providers' },
+                { label: 'Integrations', href: '/dashboard/integrations?tab=delivery' },
+                { label: 'Ozon Express' },
             ],
             actions: (
-                <Link href="/dashboard" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
-                    <ArrowLeft className="w-4 h-4" /> Back
+                <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
+                    <ArrowLeft className="w-4 h-4" /> Back to Integrations
                 </Link>
             ),
         }}>

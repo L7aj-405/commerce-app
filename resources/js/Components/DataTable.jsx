@@ -10,7 +10,7 @@ export default function DataTable({
     footer,
 }) {
     return (
-        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden shadow-sm dark:shadow-none">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] overflow-hidden shadow-sm dark:shadow-none">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead className="bg-surface-3 text-xs uppercase tracking-wider text-content-muted border-b border-line">

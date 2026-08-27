@@ -3272,3 +3272,228 @@
 | 05:50 | Ran full tests/Feature/Foundation (569 tests via vendor/bin/pest -d memory_limit=1024M, artisan test wrapper hit a pre-existing 128MB ceiling on this large suite unrelated to my changes), tests/Feature/Delivery (205), regression filters, npm run build | — | all passed; tests/Feature/Orders has 2 pre-existing failures + 9 pre-existing errors (orphaned Livewire blade views on this branch, and an already-known claim-gate/OrderChannelViewsTest gap from earlier in this session) unrelated to this ticket | ~1500 |
 | 06:00 | Logged bug-order-sync-inline-timeout-and-missing-webhook-notifications + 4 Key Learnings entries | .wolf/buglog.json, .wolf/cerebrum.md | recorded | ~1200 |
 | 02:35 | Session end: 127 writes across 58 files (OzonProductsPayloadTest.php, OzonShipmentService.php, OzonExpressConnector.php, DeliveryConnectionController.php, Connections.jsx) | 62 reads | ~233823 tok |
+
+## Session: 2026-08-25 19:49
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:09 | Edited resources/js/Components/StatusBadge.jsx | expanded (+7 lines) | ~124 |
+| 20:09 | Edited routes/dashboard.php | modified group() | ~280 |
+| 20:09 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 1 import(s) | ~39 |
+| 20:09 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | added 3 condition(s) | ~2203 |
+| 20:10 | Edited resources/js/Layouts/SaasLayout.jsx | 2→6 lines | ~161 |
+| 20:10 | Edited resources/js/Layouts/SaasLayout.jsx | added nullish coalescing | ~246 |
+| 20:11 | Created resources/js/Pages/Dashboard/Integrations/Index.jsx | — | ~2406 |
+| 20:11 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | modified if() | ~216 |
+| 20:11 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 9→10 lines | ~175 |
+| 20:11 | Created tests/Feature/Foundation/IntegrationsCenterTest.php | — | ~1336 |
+| 20:12 | Created tests/Feature/Foundation/IntegrationsTabsTest.php | — | ~988 |
+| 20:12 | Edited tests/Feature/Foundation/IntegrationsTabsTest.php | itCashier() → itViewer() | ~114 |
+| 20:12 | Edited tests/Feature/Foundation/IntegrationsTabsTest.php | itCashier() → itViewer() | ~75 |
+| 20:12 | Created tests/Feature/Delivery/DeliveryProvidersIntegrationTabTest.php | — | ~1190 |
+| 20:13 | Edited tests/Feature/Delivery/DeliveryProvidersIntegrationTabTest.php | 10→9 lines | ~133 |
+| 20:13 | Created tests/Feature/Foundation/IntegrationNavigationTest.php | — | ~940 |
+| 20:23 | Session end: 16 writes across 10 files (StatusBadge.jsx, dashboard.php, IntegrationsController.php, SaasLayout.jsx, Index.jsx) | 17 reads | ~51814 tok |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | CSS: IntegrationsController, activeOn | ~299 |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | added 2 condition(s) | ~126 |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | includes() → hasNavPermission() | ~54 |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | includes() → hasNavPermission() | ~44 |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | isActive() → isNavItemActive() | ~106 |
+| 20:33 | Edited resources/js/Layouts/SaasLayout.jsx | added nullish coalescing | ~127 |
+| 20:34 | Created tests/Feature/Foundation/IntegrationNavigationTest.php | — | ~1540 |
+| 20:39 | Session end: 23 writes across 10 files (StatusBadge.jsx, dashboard.php, IntegrationsController.php, SaasLayout.jsx, Index.jsx) | 19 reads | ~57663 tok |
+| 21:00 | Created database/migrations/2026_08_26_000001_add_sendit_delivery_provider.php | — | ~258 |
+| 21:01 | Created database/migrations/2026_08_26_000002_add_generic_location_fields_to_delivery_provider_cities_table.php | — | ~509 |
+| 21:01 | Edited app/Models/DeliveryProvider.php | 2→3 lines | ~29 |
+| 21:01 | Edited app/Models/DeliveryConnection.php | modified isOzon() | ~61 |
+| 21:01 | Edited app/Models/DeliveryConnection.php | modified toApiArray() | ~312 |
+| 21:01 | Edited app/Models/Shipment.php | modified isOzon() | ~61 |
+| 21:01 | Edited app/Models/DeliveryProviderCity.php | modified casts() | ~192 |
+| 21:02 | Created app/Connectors/Delivery/SenditConnector.php | — | ~5560 |
+| 21:03 | Created app/Connectors/Delivery/SenditStatusMapper.php | — | ~598 |
+| 21:03 | Created app/Factories/DeliveryConnectorFactory.php | — | ~315 |
+| 21:03 | Edited app/Services/Delivery/ShipmentTrackingService.php | modified __construct() | ~335 |
+| 21:03 | Edited app/Services/Delivery/ShipmentTrackingService.php | OzonExpressConnector() → make() | ~36 |
+| 21:03 | Edited app/Jobs/TrackActiveShipmentsJob.php | inline fix | ~30 |
+| 21:03 | Edited app/Services/Delivery/ShipmentTrackingService.php | modified apply() | ~217 |
+| 21:04 | Edited app/Services/Delivery/ShipmentTrackingService.php | added nullish coalescing | ~85 |
+| 21:04 | Created app/Services/Delivery/SenditShipmentService.php | — | ~2196 |
+| 21:04 | Edited app/Services/Delivery/SenditShipmentService.php | 3→3 lines | ~47 |
+| 21:04 | Edited app/Services/Delivery/SenditShipmentService.php | inline fix | ~20 |
+| 21:04 | Created app/Services/Delivery/SenditShipmentCreationException.php | — | ~228 |
+| 21:05 | Created app/Services/Delivery/SenditDistrictMappingService.php | — | ~1371 |
+| 21:05 | Created app/Services/Delivery/SenditWebhookService.php | — | ~929 |
+| 21:06 | Created app/Http/Controllers/Api/SenditWebhookController.php | — | ~587 |
+| 21:06 | Edited routes/api.php | added 1 import(s) | ~60 |
+| 21:06 | Edited routes/api.php | 2→7 lines | ~115 |
+| 21:06 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | added 2 import(s) | ~132 |
+| 21:06 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | added error handling | ~631 |
+| 21:06 | Edited routes/dashboard.php | modified group() | ~750 |
+| 21:06 | Edited routes/dashboard.php | added 1 import(s) | ~59 |
+| 21:07 | Created app/Http/Controllers/Dashboard/SenditConnectionController.php | — | ~3227 |
+| 21:07 | Edited app/Http/Controllers/Dashboard/IntegrationsController.php | modified match() | ~547 |
+| 21:08 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified use() | ~410 |
+| 21:08 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 5→10 lines | ~151 |
+| 21:08 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~62 |
+| 21:08 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | expanded (+10 lines) | ~598 |
+| 21:08 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: district_id, pickup_district_id, amount | ~1570 |
+| 21:09 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 15→15 lines | ~324 |
+| 21:10 | Created resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | — | ~7059 |
+| 21:11 | Edited routes/dashboard.php | modified group() | ~984 |
+| 21:11 | Created tests/Feature/Delivery/SenditConnectionTest.php | — | ~2048 |
+| 21:12 | Edited tests/Feature/Delivery/SenditConnectionTest.php | modified it() | ~255 |
+| 21:12 | Created tests/Feature/Delivery/SenditDistrictSyncTest.php | — | ~1123 |
+| 21:12 | Created tests/Feature/Delivery/SenditCityMappingTest.php | — | ~1471 |
+| 21:13 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | 7→7 lines | ~93 |
+| 21:13 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | modified if() | ~287 |
+| 21:13 | Edited tests/Feature/Delivery/SenditCityMappingTest.php | modified it() | ~242 |
+| 21:14 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | modified suggestFor() | ~347 |
+| 21:14 | Edited app/Services/Delivery/DeliveryCityMappingSuggestionService.php | modified if() | ~291 |
+| 21:15 | Created tests/Feature/Delivery/SenditCreateShipmentTest.php | — | ~2642 |
+| 21:15 | Created tests/Feature/Delivery/SenditTrackingTest.php | — | ~1815 |
+| 21:16 | Created tests/Feature/Delivery/SenditWebhookTest.php | — | ~2683 |
+| 21:17 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | "${window.location.origin}" → "${window.location.origin}" | ~31 |
+| 21:17 | Created tests/Feature/Delivery/SenditLabelsTest.php | — | ~1094 |
+| 21:17 | Created tests/Feature/Delivery/DeliveryProvidersIntegrationTabTest.php | — | ~1894 |
+| 21:21 | Edited tests/Feature/Foundation/IntegrationNavigationTest.php | modified it() | ~206 |
+| 21:23 | Created tests/Feature/Delivery/DeliveryBoardSenditActionsTest.php | — | ~1858 |
+| 21:32 | Session end: 78 writes across 41 files (StatusBadge.jsx, dashboard.php, IntegrationsController.php, SaasLayout.jsx, Index.jsx) | 51 reads | ~169737 tok |
+| 21:49 | Created database/migrations/2026_08_27_000001_add_district_name_fields_to_delivery_provider_cities_table.php | — | ~405 |
+| 21:49 | Created database/migrations/2026_08_27_000002_add_pagination_diagnostics_to_delivery_connections_table.php | — | ~433 |
+| 21:49 | Edited app/Models/DeliveryProviderCity.php | 7→11 lines | ~160 |
+| 21:49 | Edited app/Models/DeliveryConnection.php | modified casts() | ~233 |
+| 21:49 | Edited app/Models/DeliveryConnection.php | 4→6 lines | ~121 |
+| 21:50 | Edited app/Connectors/Delivery/SenditConnector.php | expanded (+16 lines) | ~215 |
+| 21:50 | Edited app/Connectors/Delivery/SenditConnector.php | added 5 condition(s) | ~2650 |
+| 21:50 | Edited app/Services/Delivery/SenditDistrictMappingService.php | added 1 import(s) | ~88 |
+| 21:51 | Edited app/Services/Delivery/SenditDistrictMappingService.php | modified syncDistricts() | ~994 |
+| 21:51 | Edited app/Http/Controllers/Dashboard/SenditConnectionController.php | 10→13 lines | ~210 |
+| 21:51 | Edited app/Http/Controllers/Dashboard/SenditConnectionController.php | added 1 condition(s) | ~704 |
+| 21:51 | Edited app/Http/Controllers/Dashboard/SenditConnectionController.php | expanded (+8 lines) | ~212 |
+| 21:51 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~45 |
+| 21:51 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | CSS: sendit_missing_major_cities, sendit_distinct_cities_count | ~83 |
+| 21:51 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~55 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | 11→13 lines | ~170 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~47 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | expanded (+22 lines) | ~860 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | 4→6 lines | ~121 |
+| 21:53 | Created app/Console/Commands/DiagnoseSenditDistrictsCommand.php | — | ~689 |
+| 21:54 | Created tests/Feature/Delivery/SenditDistrictSyncTest.php | — | ~2118 |
+| 21:54 | Edited tests/Feature/Delivery/SenditDistrictSyncTest.php | modified assertSent() | ~58 |
+| 21:54 | Edited tests/Feature/Delivery/SenditDistrictSyncTest.php | modified senditSinglePageDistrictsResponse() | ~60 |
+| 21:55 | Created tests/Feature/Delivery/SenditDistrictPaginationTest.php | — | ~2432 |
+| 21:55 | Edited tests/Feature/Delivery/SenditDistrictPaginationTest.php | modified use() | ~59 |
+| 21:56 | Edited app/Services/Delivery/SenditDistrictMappingService.php | added 1 condition(s) | ~1296 |
+| 21:57 | Edited tests/Feature/Delivery/SenditCityMappingTest.php | added 2 import(s) | ~98 |
+| 21:57 | Edited tests/Feature/Delivery/SenditCityMappingTest.php | added nullish coalescing | ~918 |
+| 22:04 | Session end: 106 writes across 45 files (StatusBadge.jsx, dashboard.php, IntegrationsController.php, SaasLayout.jsx, Index.jsx) | 57 reads | ~206810 tok |
+| 22:25 | Edited app/Services/Delivery/OzonShipmentService.php | added error handling | ~269 |
+| 22:25 | Edited app/Services/Delivery/SenditShipmentService.php | added error handling | ~288 |
+| 22:25 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 3 import(s) | ~72 |
+| 22:25 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified dispatch() | ~112 |
+| 22:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 condition(s) | ~1230 |
+| 22:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 2 condition(s) | ~455 |
+| 22:26 | Edited app/Http/Controllers/Dashboard/DeliveryShipmentController.php | inline fix | ~28 |
+| 22:27 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added optional chaining | ~1010 |
+| 22:27 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | modified isBusy() | ~200 |
+| 22:27 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added optional chaining | ~356 |
+| 22:28 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added optional chaining | ~4146 |
+| 22:29 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~16 |
+| 22:29 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added 1 condition(s) | ~209 |
+| 22:31 | Created tests/Feature/Delivery/DispatchModalProviderModeTest.php | — | ~2721 |
+| 22:32 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | modified buildError() | ~205 |
+| 22:32 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | 2→7 lines | ~116 |
+| 22:33 | Edited app/Services/Delivery/DeliveryCityMappingResolver.php | inline fix | ~26 |
+| 22:33 | Edited tests/Feature/Delivery/DispatchModalProviderModeTest.php | 2→2 lines | ~72 |
+| 22:33 | Edited tests/Feature/Delivery/DispatchModalProviderModeTest.php | 2→2 lines | ~74 |
+| 22:35 | Created tests/Feature/Delivery/DeliveryBoardDispatchModalTest.php | — | ~1164 |
+| 22:35 | Edited tests/Feature/Delivery/DeliveryBoardDispatchModalTest.php | 7→11 lines | ~143 |
+| 22:35 | Edited tests/Feature/Delivery/DeliveryBoardDispatchModalTest.php | modified InternalAgentPanel() | ~43 |
+| 22:35 | Created tests/Feature/Delivery/ManualCourierDispatchTest.php | — | ~1496 |
+| 22:36 | Edited tests/Feature/Delivery/ManualCourierDispatchTest.php | 4→6 lines | ~74 |
+| 22:36 | Created tests/Feature/Delivery/InternalAgentDispatchTest.php | — | ~1214 |
+| 22:37 | Created tests/Feature/Delivery/OzonDispatchModalTest.php | — | ~1576 |
+| 22:37 | Edited tests/Feature/Delivery/OzonDispatchModalTest.php | 3→4 lines | ~64 |
+| 22:37 | Created tests/Feature/Delivery/SenditDispatchModalTest.php | — | ~1653 |
+| 22:44 | Session end: 134 writes across 53 files (StatusBadge.jsx, dashboard.php, IntegrationsController.php, SaasLayout.jsx, Index.jsx) | 58 reads | ~229983 tok |
+| 13:03 | Read OpenWolf guidance, frontend anatomy, cerebrum preferences, and the attached redesign brief | .wolf/*, pasted-text.txt | Established real-data premium dark redesign constraints | ~30000 |
+| 13:08 | Attempted required baseline design capture | .wolf/designqc-captures/ | Blocked because openwolf CLI is unavailable on PATH; continued from supplied references | ~150 |
+| 13:15 | Implemented premium design tokens, motion, skeletons, count-up metrics, and shared component styling | resources/css/app.css, resources/js/Components/* | Shared UI system now propagates across dashboard pages | ~9000 |
+| 13:20 | Refactored SaaS shell, responsive navigation, topbar, quick actions, and permission-aware command search | resources/js/Layouts/SaasLayout.jsx | Preserved existing route and permission model while improving navigation clarity | ~8000 |
+| 13:23 | Upgraded dashboard, integrations, tables, alerts, and primary modal surfaces | resources/js/Pages/Dashboard/*, resources/js/Components/* | Real-data screens now follow the supplied premium dark visual direction | ~7000 |
+| 13:28 | Session end: premium dashboard redesign delivered across 19 frontend files | app.css, SaasLayout.jsx, shared components, Dashboard/Index.jsx, Integrations/Index.jsx | JSON and whitespace integrity checks passed; tests/build intentionally not run | ~42000 |
+
+## Session: 2026-08-26 (Quixotic Phase 1 shell + dashboard)
+
+| 14:15 | Read the replacement Quixotic reference brief and treated it as superseding the earlier dark dashboard direction | pasted-text.txt, attached WEBP | Confirmed Phase 1 scope: application shell and main dashboard only | ~3500 |
+| 14:30 | Added an isolated premium-dashboard component family | resources/js/Components/PremiumDashboard/* | Implemented the requested shell, floating topbar, icon rail, metric/card/chart/order/action/skeleton/empty-state primitives | ~6000 |
+| 14:45 | Rebuilt the main SaaS shell around the existing route and permission graph | resources/js/Layouts/SaasLayout.jsx | Preserved all module access, tenant/store switching, notifications, user menu, quick actions, and command search | ~5500 |
+| 14:55 | Rebuilt the main dashboard from real controller props only | resources/js/Pages/Dashboard/Index.jsx | Added real totals, recent orders, inventory/delivery/invoice/POS context, and honest unavailable-series states | ~5000 |
+| 15:05 | Scoped the light warm-gray/emerald visual language to the new shell and changed only the default first-session theme | resources/css/app.css, resources/views/app.blade.php, resources/js/Hooks/useTheme.js | Explicit saved theme preference remains supported; unrelated page components were restored to avoid Phase 1 scope creep | ~2500 |
+| 15:10 | Attempted browser QA against saas-commerce.test | in-app browser | Local hostname was unresolved and no common local server port was listening; no server/build/test was started per user instruction | ~500 |
+
+## Session: 2026-08-27 21:42
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:48 | Created ../../../../.claude/plans/cryptic-mixing-puzzle.md | — | ~4432 |
+| 21:51 | Edited resources/css/app.css | expanded (+21 lines) | ~353 |
+| 21:51 | Edited resources/css/app.css | expanded (+38 lines) | ~771 |
+| 21:51 | Edited resources/css/app.css | 11→11 lines | ~179 |
+| 21:52 | Created resources/js/Components/PremiumDashboard/PremiumAppShell.jsx | — | ~180 |
+| 21:52 | Created resources/js/Support/roleShortcuts.js | — | ~1037 |
+| 21:52 | Created resources/js/Support/contextualNav.js | — | ~1984 |
+| 21:53 | Created resources/js/Components/PremiumDashboard/PermissionAwareRail.jsx | — | ~1131 |
+| 21:53 | Created resources/js/Components/PremiumDashboard/FullNavigationDrawer.jsx | — | ~1936 |
+| 21:53 | Created resources/js/Components/PremiumDashboard/CommandPalette.jsx | — | ~984 |
+| 21:54 | Created resources/js/Components/PremiumDashboard/ContextualModuleNav.jsx | — | ~349 |
+| 21:54 | Created resources/js/Components/PremiumDashboard/CommandSearchBar.jsx | — | ~554 |
+| 21:54 | Created resources/js/Components/PremiumDashboard/FloatingTopbar.jsx | — | ~1465 |
+| 21:55 | Created resources/js/Layouts/SaasLayout.jsx | — | ~2970 |
+| 21:55 | Created tests/Feature/Foundation/ThemeModeTest.php | — | ~718 |
+| 21:56 | Created tests/Feature/Foundation/AppShellNavigationTest.php | — | ~1026 |
+| 21:56 | Created tests/Feature/Foundation/PermissionAwareNavigationTest.php | — | ~1274 |
+| 21:56 | Created tests/Feature/Foundation/ContextualTopbarTest.php | — | ~633 |
+| 21:57 | Edited tests/Feature/Foundation/IntegrationNavigationTest.php | modified it() | ~209 |
+| 21:59 | Session end: 19 writes across 17 files (cryptic-mixing-puzzle.md, app.css, PremiumAppShell.jsx, roleShortcuts.js, contextualNav.js) | 20 reads | ~51729 tok |
+| 22:28 | Created ../../../../.claude/plans/cryptic-mixing-puzzle.md | — | ~5418 |
+| 22:29 | Edited resources/css/app.css | CSS: --color-primary-contrast, --color-accent, --color-accent-strong | ~233 |
+| 22:30 | Edited resources/css/app.css | expanded (+38 lines) | ~962 |
+| 22:30 | Edited resources/css/app.css | CSS: story, --primary, --primary-strong | ~396 |
+| 22:30 | Edited resources/css/app.css | 134→139 lines | ~1454 |
+| 22:31 | Created app/Support/BrandAppearance.php | — | ~639 |
+| 22:31 | Edited app/Http/Controllers/Dashboard/SettingsController.php | added 1 import(s) | ~159 |
+| 22:31 | Edited app/Http/Controllers/Dashboard/SettingsController.php | added 2 condition(s) | ~478 |
+| 22:31 | Edited routes/dashboard.php | modified group() | ~112 |
+| 22:31 | Edited app/Http/Middleware/HandleInertiaRequests.php | modified version() | ~230 |
+| 22:32 | Created resources/js/Support/color.js | — | ~276 |
+| 22:32 | Created resources/js/Support/applyBrandTokens.js | — | ~554 |
+| 22:33 | Created resources/js/Hooks/useDensity.js | — | ~454 |
+| 22:33 | Edited resources/js/app.jsx | added optional chaining | ~342 |
+| 22:33 | Edited resources/js/Components/Button.jsx | modified Button() | ~381 |
+| 22:33 | Edited resources/js/Components/Card.jsx | 2→2 lines | ~34 |
+| 22:33 | Edited resources/js/Components/DataTable.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~37 |
+| 22:33 | Edited resources/js/Components/StatsCard.jsx | CSS: primary | ~600 |
+| 22:34 | Edited resources/js/Components/StatsCard.jsx | CSS: amber | ~50 |
+| 22:34 | Edited resources/js/Components/SearchFilterBar.jsx | modified SearchFilterBar() | ~1448 |
+| 22:35 | Edited resources/js/Components/StatusBadge.jsx | 16→21 lines | ~319 |
+| 22:35 | Edited resources/js/Components/ThemeToggle.jsx | "inline-flex items-center " → "inline-flex items-center " | ~82 |
+| 22:36 | Created resources/js/Pages/Settings/Appearance.jsx | — | ~4884 |
+| 22:36 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 import(s) | ~18 |
+| 22:36 | Edited app/Http/Controllers/Dashboard/OrderController.php | added nullish coalescing | ~445 |
+| 22:39 | Created resources/js/Pages/Dashboard/Orders/Manage.jsx | — | ~13566 |
+| 22:40 | Edited resources/css/app.css | CSS: --color-success-soft, --color-warning-soft, --color-danger-soft | ~79 |
+| 22:41 | Created tests/Feature/Foundation/ThemeTokenTest.php | — | ~590 |
+| 22:41 | Created tests/Feature/Foundation/AppearanceSettingsTest.php | — | ~826 |
+| 22:41 | Created tests/Feature/Foundation/BrandAppearancePersistenceTest.php | — | ~1284 |
+| 22:42 | Created tests/Feature/Foundation/OrdersPageDeDuplicationTest.php | — | ~977 |
+| 22:42 | Edited tests/Feature/Foundation/OrdersPageDeDuplicationTest.php | 7→8 lines | ~108 |
+| 22:42 | Edited tests/Feature/Foundation/OrdersPageDeDuplicationTest.php | modified it() | ~200 |
+| 22:42 | Created tests/Feature/Foundation/ComponentThemeConsistencyTest.php | — | ~567 |
+| 22:43 | Created tests/Feature/Foundation/PermissionAwareAppearanceTest.php | — | ~789 |
+| 22:44 | Session end: 54 writes across 41 files (cryptic-mixing-puzzle.md, app.css, PremiumAppShell.jsx, roleShortcuts.js, contextualNav.js) | 37 reads | ~125367 tok |
+| 23:01 | Edited resources/js/Components/ToastNotification.jsx | 5→5 lines | ~109 |
+| 23:02 | Edited resources/js/Components/ToastNotification.jsx | "pointer-events-auto flex " → "pointer-events-auto flex " | ~50 |
+| 23:04 | Edited resources/js/Components/NotificationBell.jsx | modified NotificationBell() | ~251 |
+| 23:04 | Edited resources/js/Components/NotificationBell.jsx | 9→9 lines | ~148 |
+| 23:04 | Edited resources/js/Components/NotificationBell.jsx | "mt-1 w-2 h-2 rounded-full" → "mt-1 w-2 h-2 rounded-full" | ~35 |

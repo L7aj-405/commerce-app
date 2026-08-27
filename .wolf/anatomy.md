@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-25T01:19:54.030Z
-> Files: 388 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-27T22:04:56.620Z
+> Files: 460 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -11,6 +11,7 @@
 
 ## ../../../../.claude/plans/
 
+- `cryptic-mixing-puzzle.md` — Appearance/Brand Settings + UI De-duplication (Orders first) (~5079 tok)
 - `parallel-prancing-flame.md` — Delivery Provider Foundation + Ozon Express Integration (~4721 tok)
 - `tidy-frolicking-moler.md` — Phase CV1 — Canonical Product Options and Variant Wizard Persistence (~3384 tok)
 
@@ -63,11 +64,14 @@
 
 - `OzonExpressConnector.php` — Ozon Express Morocco (https://api.ozonexpress.ma). Auth is embedded in the (~10523 tok)
 - `OzonStatusMapper.php` — Maps Ozon's raw tracking status strings to the shared normalized set. (~608 tok)
+- `SenditConnector.php` — Sendit (https://app.sendit.ma/api/v1). Token auth: POST /login with (~7494 tok)
+- `SenditStatusMapper.php` — Maps Sendit's documented raw status vocabulary to the shared normalized (~598 tok)
 
 ## app/Console/Commands/
 
 - `CatalogCleanupPreviewCommand.php` — CatalogCleanupPreviewCommand: handle (~551 tok)
 - `DiagnoseProductCommand.php` — DiagnoseProductCommand: handle (~358 tok)
+- `DiagnoseSenditDistrictsCommand.php` — Read-only diagnostic for a Sendit district sync — never calls Sendit (~689 tok)
 - `PurgeImportedProductsCommand.php` — PurgeImportedProductsCommand: handle (~816 tok)
 - `PurgeProductCommand.php` — PurgeProductCommand: handle (~595 tok)
 - `RepairProductCommand.php` — RepairProductCommand: handle (~551 tok)
@@ -87,6 +91,7 @@
 
 ## app/Factories/
 
+- `DeliveryConnectorFactory.php` — Instantiates the correct delivery-provider connector for a connection — (~315 tok)
 
 ## app/Http/Controllers/
 
@@ -96,6 +101,7 @@
 
 ## app/Http/Controllers/Api/
 
+- `SenditWebhookController.php` — Receives Sendit's delivery-status-update webhook. Guest route (see (~587 tok)
 - `ShopifyWebhookController.php` — Single endpoint for every Shopify webhook topic — the event is read (~1745 tok)
 - `WooCommerceWebhookController.php` — Single endpoint for every WooCommerce order webhook topic — mirrors (~1653 tok)
 
@@ -108,15 +114,17 @@
 - `DashboardController.php` — index (~1906 tok)
 - `DeliveryConnectionController.php` — Delivery provider connection settings — Ozon Express first. (~2962 tok)
 - `DeliveryNoteController.php` — create, addShipments, save (~707 tok)
-- `DeliveryShipmentController.php` — Sending a packed order to an external delivery provider, and refreshing its tracking. (~1341 tok)
-- `DepartmentController.php` — Focused work queues, one per operational department. (~5016 tok)
-- `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~4235 tok)
+- `DeliveryShipmentController.php` — Sending a packed order to an external delivery provider, and refreshing its tracking. (~1966 tok)
+- `DepartmentController.php` — Focused work queues, one per operational department. (~5955 tok)
+- `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~6435 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~1642 tok)
-- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~5289 tok)
+- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~5525 tok)
 - `OrderNotificationController.php` — Lightweight polling endpoint for order badges/toasts — no websockets/ (~1054 tok)
 - `ProductCleanupController.php` — Safe bulk cleanup for imported products — archive, unlink a platform (~1768 tok)
 - `ProductController.php` — index, syncFromPlatform, create, store (~10438 tok)
 - `ProductSyncController.php` — كيجيب الـ Connections المتاحة بحال لي كان ف دالة render() (~1324 tok)
+- `SenditConnectionController.php` — Sendit connection settings, district sync, and district mapping — the (~3771 tok)
+- `SettingsController.php` — Store-level brand appearance (primary/accent color, font, radius) — (~868 tok)
 - `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~9786 tok)
 - `StockTransferController.php` — index, create, store, slip (~2839 tok)
 - `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
@@ -139,7 +147,7 @@
 
 ## app/Http/Middleware/
 
-- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~1328 tok)
+- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~1455 tok)
 
 ## app/Http/Requests/Auth/
 
@@ -151,7 +159,7 @@
 - `ProductPublishJob.php` — Publishes one canonical Product to one PlatformConnection and records the (~1147 tok)
 - `ProductSyncJob.php` — Imports one PlatformConnection's catalog into the store and records the (~960 tok)
 - `RecheckWaitingStockOrdersJob.php` — Dispatched by InventoryEngine whenever available stock increases at a (~474 tok)
-- `TrackActiveShipmentsJob.php` — Scheduled poll of every non-terminal Ozon shipment, grouped by connection for bulk tracking. (~466 tok)
+- `TrackActiveShipmentsJob.php` — Scheduled poll of every non-terminal shipment (any provider), grouped by connection for bulk trackin (~469 tok)
 
 ## app/Jobs/Pos/
 
@@ -193,11 +201,11 @@
 ## app/Models/
 
 - `CityDeliveryProviderMapping.php` — Links an internal City to one provider's city (e.g. Ozon). (~198 tok)
-- `DeliveryConnection.php` — A store's credentials + settings for one delivery provider (e.g. Ozon (~951 tok)
+- `DeliveryConnection.php` — A store's credentials + settings for one delivery provider (e.g. Ozon (~1287 tok)
 - `DeliveryNote.php` — A carrier handover batch (provider-side BL), distinct from the internal MAN- manifest system. (~317 tok)
 - `DeliveryNoteShipment.php` — Model — 2 fields (~74 tok)
-- `DeliveryProvider.php` — Model — 3 fields (~116 tok)
-- `DeliveryProviderCity.php` — One provider's city, as synced from its API (e.g. Ozon's /cities). (~257 tok)
+- `DeliveryProvider.php` — Model — 3 fields (~126 tok)
+- `DeliveryProviderCity.php` — One provider's city, as synced from its API (e.g. Ozon's /cities). (~388 tok)
 - `InventoryReservation.php` — Model — 13 fields, 4 rels (~383 tok)
 - `Order.php` — Model — 47 fields, 4 rels (~2535 tok)
 - `OrderNotification.php` — Per-user "new order" notification row — one per (user, order, type), see the migration's own doc com (~364 tok)
@@ -212,7 +220,7 @@
 - `ProductPublishResult.php` — Model — 10 fields, 4 rels (~383 tok)
 - `ProductSyncBatch.php` — Recompute counts/status from the batch's own result rows. (~625 tok)
 - `ProductSyncResult.php` — One row per (sync batch, platform connection) — a sync operates on a whole connection's catalog, not (~335 tok)
-- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1345 tok)
+- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1376 tok)
 - `ShipmentEvent.php` — Append-only tracking history for one shipment. (~236 tok)
 - `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
 - `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
@@ -256,13 +264,17 @@
 
 ## app/Services/Delivery/
 
-- `DeliveryCityMappingResolver.php` — Resolves which Ozon (or any provider) city a packed order should ship to, (~2769 tok)
-- `DeliveryCityMappingSuggestionService.php` — Conservative internal-city -> provider-city matching, for the "Map all (~1763 tok)
+- `DeliveryCityMappingResolver.php` — Resolves which Ozon (or any provider) city a packed order should ship to, (~2880 tok)
+- `DeliveryCityMappingSuggestionService.php` — Conservative internal-city -> provider-city matching, for the "Map all (~1873 tok)
 - `DeliveryNoteService.php` — Orchestrates Ozon's Bon de Livraison (delivery note) flow: create, add parcels, save, get PDFs. (~890 tok)
 - `OzonCityMappingService.php` — OzonCityMappingService: syncCities, mapCity, mapAllSuggested, unmappedCities (~1160 tok)
 - `OzonShipmentCreationException.php` — Thrown when Ozon rejects add-parcel or its response can't be parsed for a (~198 tok)
-- `OzonShipmentService.php` — Sends a packed order to Ozon Express and records the result. (~4689 tok)
-- `ShipmentTrackingService.php` — Refreshes Ozon tracking state and, when a shipment reaches a terminal (~1320 tok)
+- `OzonShipmentService.php` — Sends a packed order to Ozon Express and records the result. (~4913 tok)
+- `SenditDistrictMappingService.php` — Sendit's district-sync + internal-city mapping — mirrors (~2604 tok)
+- `SenditShipmentCreationException.php` — Thrown when Sendit rejects POST /deliveries or its response can't be (~228 tok)
+- `SenditShipmentService.php` — Sends a packed order to Sendit and records the result. Mirrors (~2407 tok)
+- `SenditWebhookService.php` — Applies a Sendit webhook payload to the matching shipment. Signature (~929 tok)
+- `ShipmentTrackingService.php` — Refreshes a shipment's tracking state (any provider, via (~1556 tok)
 
 ## app/Services/Inventory/
 
@@ -342,6 +354,7 @@
 
 ## app/Support/
 
+- `BrandAppearance.php` — Single source of truth for store-level brand appearance (primary/accent (~639 tok)
 - `OnboardingOptions.php` — Static option lists shared by every onboarding controller/page — kept in (~1309 tok)
 - `OrderAddressSummary.php` — The customer's ORIGINAL shipping/delivery address, as the platform sent (~1958 tok)
 - `OrderLineItems.php` — One line-item shape for both order models, for code that has to touch stock. (~1754 tok)
@@ -398,6 +411,10 @@
 - `2026_08_25_000001_add_pricing_fields_to_delivery_provider_cities_table.php` — Ozon's real /cities response carries REF and three price fields per city (~452 tok)
 - `2026_08_25_000001_create_order_sync_batches_and_results_tables.php` — Mirrors product_sync_batches/product_sync_results (same queued-job + (~804 tok)
 - `2026_08_25_000002_create_order_notifications_table.php` — One row per (user, order, type) — per-user "seen" state on purpose (the (~426 tok)
+- `2026_08_26_000001_add_sendit_delivery_provider.php` — Seeds Sendit into the delivery_providers catalogue — required before any (~258 tok)
+- `2026_08_26_000002_add_generic_location_fields_to_delivery_provider_cities_table.php` — Generic (provider-agnostic) location fields, first needed by Sendit's (~509 tok)
+- `2026_08_27_000001_add_district_name_fields_to_delivery_provider_cities_table.php` — Sendit's /districts rows carry TWO distinct name fields — `ville` (the (~405 tok)
+- `2026_08_27_000002_add_pagination_diagnostics_to_delivery_connections_table.php` — Diagnostics for a district/city sync, alongside the existing (~433 tok)
 
 ## database/seeders/
 
@@ -410,20 +427,25 @@
 
 ## resources/css/
 
+- `app.css` — Styles: 15 rules, 100 vars (~4669 tok)
 
 ## resources/js/
 
-- `app.jsx` — /*.jsx', { eager: true }); (~174 tok)
+- `app.jsx` — /*.jsx', { eager: true }); (~365 tok)
 
 ## resources/js/Components/
 
-- `Button.jsx` — Codifies the button classes already used consistently across (~340 tok)
-- `Card.jsx` — Thin wrapper for the `bg-surface-2 border border-line rounded-xl` pattern (~396 tok)
-- `NotificationBell.jsx` — `notifications` is the live, server-polled list from (~1508 tok)
-- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~1227 tok)
+- `Button.jsx` — Codifies the button classes already used consistently across (~393 tok)
+- `Card.jsx` — Thin wrapper for the `bg-surface-2 border border-line rounded-xl` pattern (~401 tok)
+- `DataTable.jsx` — DataTable — renders table (~1061 tok)
+- `NotificationBell.jsx` — `notifications` is the live, server-polled list from (~1574 tok)
+- `SearchFilterBar.jsx` — isMac — renders form (~1497 tok)
+- `StatsCard.jsx` — Tinted icon chips — subtle in light, vivid in dark. Text darkens in light for contrast. (~628 tok)
+- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~1410 tok)
 - `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
 - `SyncProductsModal.jsx` — DONE_STATUSES (~3475 tok)
-- `ToastNotification.jsx` — `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each (~1096 tok)
+- `ThemeToggle.jsx` — Clean icon toggle that flips between light and dark. (~284 tok)
+- `ToastNotification.jsx` — `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each (~1074 tok)
 - `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
 - `UserDropdown.jsx` — UserDropdown (~1095 tok)
 
@@ -447,6 +469,24 @@
 - `Select.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~404 tok)
 - `WizardFooter.jsx` — Back / Skip / Continue row shared by every onboarding step. (~552 tok)
 
+## resources/js/Components/PremiumDashboard/
+
+- `CommandPalette.jsx` — Cmd/Ctrl+K search over every nav item the current user can access (~984 tok)
+- `CommandSearchBar.jsx` — Opens the existing CommandPalette (Cmd/Ctrl+K, searches every accessible (~554 tok)
+- `ContextualModuleNav.jsx` — Module-scoped tabs for the topbar center — replaces the old fixed (~349 tok)
+- `DashboardSkeleton.jsx` — Reduced-motion-aware loading skeleton for the premium dashboard composition. (~260 tok)
+- `EmptyMetricState.jsx` — Honest empty state for metrics or series the backend does not provide. (~170 tok)
+- `FloatingTopbar.jsx` — FloatingTopbar (~1465 tok)
+- `FullNavigationDrawer.jsx` — Display grouping only — every underlying section/item label stays exactly (~1936 tok)
+- `MiniChartCard.jsx` — Real-series mini chart renderer that falls back to an explicit unavailable-data state instead of invented values. (~520 tok)
+- `PermissionAwareRail.jsx` — Compact floating icon dock — quick access only, curated per role by (~1131 tok)
+- `PremiumAppShell.jsx` — PremiumAppShell (~180 tok)
+- `PremiumMetricCard.jsx` — Green credit-card-inspired metric panel with reduced-motion-safe count-up behavior. (~780 tok)
+- `QuickActionButton.jsx` — Reusable Inertia quick-action pill for existing routes. (~190 tok)
+- `RecentOrdersCard.jsx` — Responsive recent-orders table using only DashboardController order props. (~850 tok)
+- `SoftCard.jsx` — Shared white soft-shadow dashboard surface. (~90 tok)
+- `StatusPill.jsx` — Accessible order-status badge mapped to the existing backend statuses. (~280 tok)
+
 ## resources/js/Components/Products/
 
 - `AdjustStockModal.jsx` — Inventory-safe stock adjustment for the Product Edit page. Posts to (~2257 tok)
@@ -461,6 +501,7 @@
 ## resources/js/Hooks/
 
 - `useCart.js` — initialState: reducer, clampPercent, lineSubtotal + 5 more (~2931 tok)
+- `useDensity.js` — Personal UI density preference — 'comfortable' | 'compact'. Mirrors (~454 tok)
 - `useOperationsFilters.js` — Warehouse / city / assigned-employee / client-organization filters layered (~432 tok)
 - `useOrderNotifications.js` — Polls GET /dashboard/notifications/order-counts every 20s — the project (~615 tok)
 - `useQueue.js` — Shared state for a department work queue. (~1013 tok)
@@ -469,7 +510,7 @@
 
 - `AgencyLayout.jsx` — Lightweight shell for the agency workspace — deliberately not a second (~1087 tok)
 - `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
-- `SaasLayout.jsx` — NAV_SECTIONS (~5144 tok)
+- `SaasLayout.jsx` — NAV_SECTIONS (~2970 tok)
 
 ## resources/js/Pages/
 
@@ -494,7 +535,7 @@
 
 ## resources/js/Pages/Dashboard/
 
-- `Index.jsx` — Index (~6538 tok)
+- `Index.jsx` — Quixotic-reference dashboard using real store totals, recent orders, inventory, delivery, invoices, and POS session data; unavailable time-series render honest empty states. (~5600 tok)
 - `Stock.jsx` — Stock (~7110 tok)
 - `StockMovements.jsx` — TYPE_STYLES — renders table (~1675 tok)
 - `StockTransferCreate.jsx` — KINDS — renders form (~7323 tok)
@@ -502,18 +543,19 @@
 
 ## resources/js/Pages/Dashboard/Delivery/
 
-- `Connections.jsx` — Derives the 5-way UI status from a mapped row and/or a raw suggestion object. (~6176 tok)
+- `Connections.jsx` — Derives the 5-way UI status from a mapped row and/or a raw suggestion object. (~6212 tok)
+- `SenditConnections.jsx` — citySync — renders form (~7654 tok)
 
 ## resources/js/Pages/Dashboard/Departments/
 
 - `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5793 tok)
-- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~10378 tok)
+- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~13648 tok)
 - `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~5616 tok)
 
 ## resources/js/Pages/Dashboard/Integrations/
 
 - `ConnectionProfile.jsx` — PLATFORM_LABELS (~7218 tok)
-- `Index.jsx` — ICONS (~2027 tok)
+- `Index.jsx` — ICONS (~2417 tok)
 
 ## resources/js/Pages/Dashboard/Integrations/Platforms/
 
@@ -531,7 +573,7 @@
 
 - `Index.jsx` — STATUS_OPTIONS — renders table (~2556 tok)
 - `Index.jsx` — Unified POS+online orders list; Source/Status filters, origin badges, view/receipt actions (~1600 tok)
-- `Manage.jsx` — COLUMNS (~13667 tok)
+- `Manage.jsx` — COLUMNS (~13566 tok)
 - `Manage.jsx` — Multi-channel fulfillment board (Kanban+table); dept/source tabs, drawer transitions (~7000 tok)
 - `Show.jsx` — Show — renders table (~3496 tok)
 - `ShowOnline.jsx` — Pre-send visibility into how "Send to Ozon" would resolve this order's city — helps debug "not mappe (~4544 tok)
@@ -586,9 +628,16 @@
 
 ## resources/js/Pages/Settings/
 
-- `Appearance.jsx` — Purely a client-side preference (localStorage + prefers-color-scheme, (~717 tok)
+- `Appearance.jsx` — Unified Appearance page. Theme mode + density are personal, client-only (~4884 tok)
 - `Profile.jsx` — Profile — renders form (~1477 tok)
 - `Security.jsx` — Security — renders form (~1257 tok)
+
+## resources/js/Support/
+
+- `applyBrandTokens.js` — Curated, system-safe font stacks (Settings -> Appearance -> Font family). (~554 tok)
+- `color.js` — Small, dependency-free color helpers for the brand appearance settings — (~276 tok)
+- `contextualNav.js` — Contextual topbar tabs, keyed by the current URL's prefix. Replaces the old (~1984 tok)
+- `roleShortcuts.js` — Curates the compact icon rail's contents per role, on top of the existing (~1037 tok)
 
 ## resources/views/
 
@@ -665,10 +714,10 @@
 
 ## routes/
 
-- `api.php` (~312 tok)
+- `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~339 tok)
-- `dashboard.php` (~6967 tok)
+- `dashboard.php` (~7828 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -723,10 +772,16 @@
 
 ## tests/Feature/Delivery/
 
+- `DeliveryBoardDispatchModalTest.php` — Declares dbdmDispatchSource (~1239 tok)
 - `DeliveryBoardOzonShipmentTest.php` — boardDispatcher: boardOrder (~1724 tok)
+- `DeliveryBoardSenditActionsTest.php` — Declares boardWorkspace (~1858 tok)
 - `DeliveryCityMappingResolverTest.php` — Declares makeUnroutedOrder (~2164 tok)
 - `DeliveryProviderCityUiPropsTest.php` (~2362 tok)
 - `DeliveryProviderFoundationTest.php` (~809 tok)
+- `DeliveryProvidersIntegrationTabTest.php` — Declares dpOwnerWorkspace (~1894 tok)
+- `DispatchModalProviderModeTest.php` — dmpWorkspace: dmpReadyOrder (~2725 tok)
+- `InternalAgentDispatchTest.php` — Declares iadWorkspace (~1214 tok)
+- `ManualCourierDispatchTest.php` — Declares mcdWorkspace (~1516 tok)
 - `OzonCityMappingBulkTest.php` — Declares bulkTestManager (~1848 tok)
 - `OzonCityMappingSuggestionTest.php` — suggestionFor: ozonCity (~2102 tok)
 - `OzonCityMappingTest.php` (~1232 tok)
@@ -736,6 +791,7 @@
 - `OzonCreateShipmentResponseParsingTest.php` (~1966 tok)
 - `OzonCreateShipmentTest.php` (~2245 tok)
 - `OzonDeliveryNoteTest.php` (~1328 tok)
+- `OzonDispatchModalTest.php` — Declares odmWorkspace (~1580 tok)
 - `OzonParcelPriceFormatTest.php` (~1211 tok)
 - `OzonParcelStockModeTest.php` — A real local Product matching the SKU, so the order line resolves instead of tripping the "unmapped (~3239 tok)
 - `OzonProductsPayloadTest.php` — productsPayloadCallPrivate: productsPayloadResolveRef, productsPayloadBaseLine, productsPayloadDispa (~3102 tok)
@@ -746,6 +802,15 @@
 - `OzonShipmentUiPropsTest.php` (~1324 tok)
 - `OzonShipmentVerificationTest.php` — verificationDispatcher: verificationOrder (~4340 tok)
 - `OzonTrackingTest.php` (~2234 tok)
+- `SenditCityMappingTest.php` (~2488 tok)
+- `SenditConnectionTest.php` — Declares senditManager (~1976 tok)
+- `SenditCreateShipmentTest.php` — Declares senditLoginResponse (~2642 tok)
+- `SenditDispatchModalTest.php` — Declares sdmWorkspace (~1653 tok)
+- `SenditDistrictPaginationTest.php` — A Laravel-style flat paginator page: pagination meta alongside a flat "data" row list. (~2411 tok)
+- `SenditDistrictSyncTest.php` — A single-page (no pagination metadata at all) districts response — the simplest, still-valid shape. (~2110 tok)
+- `SenditLabelsTest.php` (~1094 tok)
+- `SenditTrackingTest.php` (~1815 tok)
+- `SenditWebhookTest.php` — senditWebhookSign: senditWebhookPayload (~2683 tok)
 
 ## tests/Feature/Foundation/
 
@@ -753,8 +818,12 @@
 - `AgencyNavigationSeparationTest.php` — Declares agencyNavWorkspace (~767 tok)
 - `AgencyOperationsNavigationTest.php` — Agency Operations Navigation — an agency admin operating a shared (~1926 tok)
 - `AgencyOrderSourceScopeTest.php` — Phase OST6 — an agency admin filtering by source (platform/connection) (~1809 tok)
+- `AppearanceSettingsTest.php` — apstWorkspace: apstCashier, apstPageSource (~826 tok)
+- `AppShellNavigationTest.php` — asntWorkspace: asntRailSource, asntDrawerSource, asntTopbarSource, asntSaasLayoutSource (~1026 tok)
+- `BrandAppearancePersistenceTest.php` — Declares bapWorkspace (~1284 tok)
 - `ChannelFrontendCoverageTest.php` — Declares channelCoverageWorkspace (~1285 tok)
 - `CityWarehouseAllocationShortageTest.php` — City-to-warehouse allocation, including the "no mapping found" fallback (~2635 tok)
+- `ComponentThemeConsistencyTest.php` — Declares ctcRead (~567 tok)
 - `ConfirmationAddressPrefillTest.php` — Confirmation Desk address prefill — the customer's original (~2861 tok)
 - `ConfirmationCityWarehouseSelectionTest.php` — Confirmation Desk city selection — the city dropdown is preselected from (~2636 tok)
 - `ConfirmationDeskClaimTest.php` — Confirmation Desk claim-gated actions — an order must be claimed by the (~3527 tok)
@@ -764,8 +833,12 @@
 - `ConnectionProfileTest.php` — cpWorkspace: cpWoo, cpShopifyClientCredentials (~1704 tok)
 - `ConnectionScopeTest.php` — csWorkspace: csWoo (~1431 tok)
 - `ConnectionSyncResetTest.php` — csrWorkspace: csrWoo, csrShopify (~2982 tok)
+- `ContextualTopbarTest.php` — ctntWorkspace: ctntConfigSource, ctntHrefs (~633 tok)
 - `DashboardNavigationVisibilityTest.php` — navWorkspace: navMemberWithRole (~1588 tok)
 - `ExternalStockPushJobTest.php` — Phase S6 — ExternalStockPushJob is the optional async wrapper around (~2166 tok)
+- `IntegrationNavigationTest.php` — inOwnerWorkspace: inManager, inSidebarSource, isNavItemActive (~1734 tok)
+- `IntegrationsCenterTest.php` — Declares icOwnerWorkspace (~1336 tok)
+- `IntegrationsTabsTest.php` — itOwnerWorkspace: itManager, itViewer (~986 tok)
 - `InventoryEngineTest.php` — inventoryMerchant: inventoryProduct (~4304 tok)
 - `NewOrderNotificationTest.php` — nonWorkspace: nonMember, nonShopifyWebhook (~1854 tok)
 - `OnlineOrderLineInventoryResolverTest.php` — OrderLineInventoryResolver — the single, platform-agnostic resolver for (~2807 tok)
@@ -778,9 +851,12 @@
 - `OrderSourceFilteringTest.php` — Phase OST5/OST6 — the Orders index filters by source_type (pos/online), (~1970 tok)
 - `OrderSourceTrackingTest.php` — Phase OST2/OST4 — every order carries normalized, queryable source (~2466 tok)
 - `OrderSourceUiPropsTest.php` — Phase OST5 — the Confirmation Desk queue and the order detail page both (~1394 tok)
+- `OrdersPageDeDuplicationTest.php` — opdWorkspace: opdManageSource (~1030 tok)
 - `OrderSyncIncrementalTest.php` — WooCommerceConnector::getOrders() sends `after` as a GET query param, not a form/JSON body — Http::R (~2197 tok)
 - `OrderSyncQueueTest.php` — osqWorkspace: osqWooConnection (~1662 tok)
 - `OrderWebhookIdempotencyTest.php` — Declares owiWorkspace (~1517 tok)
+- `PermissionAwareAppearanceTest.php` — paaOwnerWorkspace: paaManager (~789 tok)
+- `PermissionAwareNavigationTest.php` — pantOwnerWorkspace: pantMember, pantRoleShortcutsSource (~1274 tok)
 - `PosInventoryWorkflowTest.php` — Phase O3 — POS stock semantics via InventoryEngine (organization-backed (~2750 tok)
 - `ProductArchiveTest.php` — pclAWorkspace: pclAProduct (~903 tok)
 - `ProductBulkCleanupTest.php` — pclBMerchant: pclBWoo (~5474 tok)
@@ -830,6 +906,8 @@
 - `ShopifyVariantSkuPublishTest.php` — For a variable product, SKU lives on each Shopify variant — publishing (~1461 tok)
 - `ShopifyWebhookTest.php` — shopifyWebhookWorkspace: shopifyWebhookHeaders, shopifyProductPayload, shopifyOrderPayload (~2169 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
+- `ThemeModeTest.php` — themeAppCss: themeShellSource, themeTopbarSource (~718 tok)
+- `ThemeTokenTest.php` — Declares ttAppCss (~590 tok)
 - `WaitingStockMappingRepairTest.php` — Waiting Stock mapping repair — a shortage line that was dropped entirely (~2364 tok)
 - `WaitingStockReallocationTest.php` — Waiting Stock Reallocation — the core fix: an order confirmed with missing (~2502 tok)
 - `WaitingStockShortageRequestTest.php` — Shortage/reclamation actions on the Waiting for Stock page: "Request (~2598 tok)

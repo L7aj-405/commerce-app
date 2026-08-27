@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\SenditWebhookController;
 use App\Http\Controllers\Api\ShopifyWebhookController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 use App\Http\Controllers\Api\WooCommerceWebhookController;
@@ -29,3 +30,8 @@ Route::post('/webhooks/shopify/{connection}', [ShopifyWebhookController::class, 
 
 // Same pattern for WooCommerce — topic read from X-WC-Webhook-Topic.
 Route::post('/webhooks/woocommerce/{connection}', [WooCommerceWebhookController::class, 'handle']);
+
+// Sendit delivery-status-update webhook — X-Sendit-Signature verified
+// inside the controller (HMAC-SHA256 over the raw body, connection's
+// secret_key as the key).
+Route::post('/webhooks/sendit/{connection}', [SenditWebhookController::class, 'handle']);

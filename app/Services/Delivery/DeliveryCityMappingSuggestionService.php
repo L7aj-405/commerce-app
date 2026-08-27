@@ -64,12 +64,17 @@ class DeliveryCityMappingSuggestionService
         }
 
         $internalCities = $query->orderBy('name')->get();
+        // A short display label for the reason text below — "Ozon"/"Sendit"
+        // (matches each provider's own casing convention) rather than a DB
+        // lookup on every suggestion; ucfirst() of the code is exact for
+        // every provider_code this project currently has.
+        $providerLabel = ucfirst($providerCode);
 
-        return $internalCities->map(fn (City $city) => $this->suggestFor($city, $providerCities))->values();
+        return $internalCities->map(fn (City $city) => $this->suggestFor($city, $providerCities, $providerLabel))->values();
     }
 
     /** @return array{internal_city_id: string, internal_city_name: string, suggested_provider_city_id: ?string, suggested_provider_city_name: ?string, confidence: float, match_type: string, can_auto_map: bool, reason: string} */
-    private function suggestFor(City $city, Collection $providerCities): array
+    private function suggestFor(City $city, Collection $providerCities, string $providerLabel): array
     {
         $base = ['internal_city_id' => $city->id, 'internal_city_name' => $city->name];
 
@@ -77,7 +82,7 @@ class DeliveryCityMappingSuggestionService
             return $base + [
                 'suggested_provider_city_id' => null, 'suggested_provider_city_name' => null,
                 'confidence' => 0.0, 'match_type' => 'none', 'can_auto_map' => false,
-                'reason' => 'No Ozon cities synced yet.',
+                'reason' => "No {$providerLabel} cities synced yet.",
             ];
         }
 
@@ -121,7 +126,7 @@ class DeliveryCityMappingSuggestionService
             return $base + [
                 'suggested_provider_city_id' => null, 'suggested_provider_city_name' => null,
                 'confidence' => round($best['score'] ?? 0.0, 1), 'match_type' => 'none', 'can_auto_map' => false,
-                'reason' => 'No similar Ozon city found.',
+                'reason' => "No similar {$providerLabel} city found.",
             ];
         }
 
@@ -133,7 +138,7 @@ class DeliveryCityMappingSuggestionService
             return $base + [
                 'suggested_provider_city_id' => $best['pc']->id, 'suggested_provider_city_name' => $best['pc']->city_name,
                 'confidence' => round($best['score'], 1), 'match_type' => 'ambiguous', 'can_auto_map' => false,
-                'reason' => "Multiple similarly-close Ozon cities found (e.g. \"{$best['pc']->city_name}\" vs \"{$runnerUp['pc']->city_name}\") — pick one manually.",
+                'reason' => "Multiple similarly-close {$providerLabel} cities found (e.g. \"{$best['pc']->city_name}\" vs \"{$runnerUp['pc']->city_name}\") — pick one manually.",
             ];
         }
 

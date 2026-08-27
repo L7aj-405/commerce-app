@@ -27,6 +27,9 @@ class DeliveryConnection extends Model
         'store_id', 'organization_id', 'provider_code', 'name',
         'credentials', 'settings', 'status', 'last_tested_at', 'last_error', 'created_by',
         'last_city_sync_at', 'last_city_sync_error', 'last_city_sync_count',
+        // Sync diagnostics — see the 2026_08_27 migration doc comment on
+        // why these are real columns, not `settings` keys.
+        'last_city_sync_pickup_district_id', 'last_city_sync_page_count',
     ];
 
     protected $hidden = ['credentials'];
@@ -39,6 +42,7 @@ class DeliveryConnection extends Model
             'last_tested_at' => 'datetime',
             'last_city_sync_at' => 'datetime',
             'last_city_sync_count' => 'integer',
+            'last_city_sync_page_count' => 'integer',
         ];
     }
 
@@ -60,6 +64,11 @@ class DeliveryConnection extends Model
     public function isOzon(): bool
     {
         return $this->provider_code === DeliveryProvider::OZON;
+    }
+
+    public function isSendit(): bool
+    {
+        return $this->provider_code === DeliveryProvider::SENDIT;
     }
 
     public function credential(string $key): ?string
@@ -88,13 +97,24 @@ class DeliveryConnection extends Model
      */
     public function toApiArray(): array
     {
+        // Sendit's credential pair is public_key/secret_key, not Ozon's
+        // customer_id/api_key — has_credentials/public_key are computed per
+        // provider so an Ozon connection's shape never changes (existing
+        // callers read `customer_id` directly). public_key is safe to
+        // expose (it identifies the account, like Ozon's customer_id);
+        // secret_key/api_key never appear here, same as before.
+        $hasCredentials = $this->isSendit()
+            ? filled($this->credentials['public_key'] ?? null) && filled($this->credentials['secret_key'] ?? null)
+            : filled($this->credentials['customer_id'] ?? null) && filled($this->credentials['api_key'] ?? null);
+
         return [
             'id' => $this->id,
             'provider_code' => $this->provider_code,
             'name' => $this->name,
             'status' => $this->status,
-            'has_credentials' => filled($this->credentials['customer_id'] ?? null) && filled($this->credentials['api_key'] ?? null),
+            'has_credentials' => $hasCredentials,
             'customer_id' => $this->credential('customer_id'),
+            'public_key' => $this->isSendit() ? $this->credential('public_key') : null,
             'settings' => $this->settings,
             'last_tested_at' => $this->last_tested_at?->toIso8601String(),
             'last_error' => $this->last_error,
@@ -104,6 +124,8 @@ class DeliveryConnection extends Model
             'last_city_sync_at' => $this->last_city_sync_at?->toIso8601String(),
             'last_city_sync_error' => $this->last_city_sync_error,
             'last_city_sync_count' => $this->last_city_sync_count,
+            'last_city_sync_pickup_district_id' => $this->last_city_sync_pickup_district_id,
+            'last_city_sync_page_count' => $this->last_city_sync_page_count,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

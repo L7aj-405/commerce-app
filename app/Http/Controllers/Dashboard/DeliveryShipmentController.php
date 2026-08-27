@@ -10,6 +10,8 @@ use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Delivery\OzonShipmentCreationException;
 use App\Services\Delivery\OzonShipmentService;
+use App\Services\Delivery\SenditShipmentCreationException;
+use App\Services\Delivery\SenditShipmentService;
 use App\Services\Delivery\ShipmentTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,6 +79,55 @@ class DeliveryShipmentController extends Controller
         }
 
         return back()->with('success', "Ozon parcel created and verified. Tracking: {$shipment->tracking_number}");
+    }
+
+    public function sendToSendit(Request $request, Order $order, SenditShipmentService $shipments): RedirectResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $order->store_id !== $store->id, 404);
+
+        $connection = DeliveryConnection::query()
+            ->where('store_id', $store->id)
+            ->where('provider_code', 'sendit')
+            ->first();
+
+        if ($connection === null) {
+            return back()->with('error', 'Connect Sendit before sending orders to it.');
+        }
+
+        $validated = $request->validate([
+            'amount' => ['nullable', 'numeric', 'min:0'],
+            'comment' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $shipment = $shipments->send($order, $connection, $validated, $request->user());
+        } catch (ValidationException $e) {
+            $redirect = back()->with('error', $e->validator->errors()->first());
+
+            // Same city-issue affordance as Send to Ozon — an actionable
+            // "Open mapping" hint, never just the raw error text.
+            if ($e->validator->errors()->has('city')) {
+                $resolution = app(\App\Services\Delivery\DeliveryCityMappingResolver::class)->resolve($order, $connection);
+
+                $redirect->with('city_issue', [
+                    'raw_city' => $resolution['raw_city_text'],
+                    'suggested_city_id' => $resolution['suggested_internal_city_id'],
+                    'suggested_city_name' => $resolution['suggested_internal_city_name'],
+                    'provider' => 'sendit',
+                ]);
+            }
+
+            return $redirect;
+        } catch (SenditShipmentCreationException $e) {
+            // Sendit rejected the delivery or its response couldn't be
+            // parsed — a provider-response problem, not a readiness
+            // problem. Flash the safe debug details (never public_key/
+            // secret_key/token) so the UI can show a collapsible "why".
+            return back()->with('error', $e->getMessage())->with('shipment_issue', $e->debug);
+        }
+
+        return back()->with('success', "Sendit shipment created. Code: {$shipment->tracking_number}");
     }
 
     public function retryVerification(Request $request, Shipment $shipment, OzonShipmentService $shipments): RedirectResponse

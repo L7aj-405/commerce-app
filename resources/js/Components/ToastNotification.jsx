@@ -3,9 +3,9 @@ import { usePage } from '@inertiajs/react';
 import { CheckCircle2, XCircle, AlertTriangle, X } from 'lucide-react';
 
 const TONES = {
-    success: { ring: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200', icon: CheckCircle2,  iconClass: 'text-emerald-600 dark:text-emerald-400' },
-    error:   { ring: 'border-red-500/30 bg-red-500/10 text-red-200',             icon: XCircle,       iconClass: 'text-red-600 dark:text-red-400'     },
-    warning: { ring: 'border-amber-500/30 bg-amber-500/10 text-amber-200',       icon: AlertTriangle, iconClass: 'text-amber-600 dark:text-amber-400'   },
+    success: { ring: 'border-success/30 bg-success-soft text-content', icon: CheckCircle2,  iconClass: 'text-success' },
+    error:   { ring: 'border-danger/30 bg-danger-soft text-content',   icon: XCircle,       iconClass: 'text-danger'  },
+    warning: { ring: 'border-warning/30 bg-warning-soft text-content', icon: AlertTriangle, iconClass: 'text-warning' },
 };
 
 const DURATION_MS = 4000;
@@ -65,7 +65,7 @@ export default function ToastNotification({ polled = [] }) {
                     <div
                         key={t.id}
                         role="status"
-                        className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border backdrop-blur-sm shadow-xl ${tone.ring}`}
+                        className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-[var(--radius-card)] border backdrop-blur-sm shadow-xl bg-card ${tone.ring}`}
                     >
                         <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${tone.iconClass}`} />
                         <div className="flex-1 text-sm">{t.message}</div>
