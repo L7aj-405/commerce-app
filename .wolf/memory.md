@@ -3497,3 +3497,297 @@
 | 23:04 | Edited resources/js/Components/NotificationBell.jsx | modified NotificationBell() | ~251 |
 | 23:04 | Edited resources/js/Components/NotificationBell.jsx | 9→9 lines | ~148 |
 | 23:04 | Edited resources/js/Components/NotificationBell.jsx | "mt-1 w-2 h-2 rounded-full" → "mt-1 w-2 h-2 rounded-full" | ~35 |
+| 23:07 | Session end: 59 writes across 43 files (cryptic-mixing-puzzle.md, app.css, PremiumAppShell.jsx, roleShortcuts.js, contextualNav.js) | 40 reads | ~128917 tok |
+| 23:08 | Edited resources/js/Components/Departments/DepartmentNav.jsx | 36→36 lines | ~564 |
+| 23:08 | Edited resources/js/Components/Departments/OperationsNav.jsx | 37→37 lines | ~567 |
+| 23:08 | Edited resources/js/Components/Departments/OperationsFilterBar.jsx | "px-3 py-2 text-sm rounded" → "px-3 py-2 text-sm rounded" | ~49 |
+| 23:08 | Edited resources/js/Components/Departments/OperationsTable.jsx | "overflow-x-auto rounded-x" → "overflow-x-auto rounded-[" | ~29 |
+| 23:08 | Edited resources/js/Components/Departments/OperationsTable.jsx | 5→5 lines | ~93 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | modified StatTiles() | ~166 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | 35→35 lines | ~555 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | 2→2 lines | ~30 |
+| 23:09 | Edited resources/js/Pages/Dashboard/Index.jsx | 19→19 lines | ~442 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | 3→3 lines | ~62 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | inline fix | ~36 |
+| 23:09 | Edited resources/js/Pages/Dashboard/Index.jsx | 20→20 lines | ~394 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | "mt-4 w-full inline-flex i" → "mt-4 w-full inline-flex i" | ~78 |
+| 23:09 | Edited resources/js/Components/Departments/QueueParts.jsx | 2→2 lines | ~34 |
+| 23:09 | Edited resources/js/Pages/Dashboard/Index.jsx | 24→24 lines | ~514 |
+| 23:10 | Edited resources/js/Components/Departments/QueueParts.jsx | 47→47 lines | ~806 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Index.jsx | 20→20 lines | ~448 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Index.jsx | 9→9 lines | ~310 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 4→4 lines | ~93 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Settings/Index.jsx | 29→29 lines | ~578 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | inline fix | ~16 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | inline fix | ~49 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | inline fix | ~32 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Settings/Index.jsx | modified Field() | ~473 |
+| 23:10 | Edited resources/js/Pages/Dashboard/Settings/Index.jsx | inline fix | ~40 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 2→2 lines | ~43 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 3→3 lines | ~113 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | inline fix | ~7 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 6→6 lines | ~116 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 3→3 lines | ~116 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | "inline-flex items-center " → "inline-flex items-center " | ~82 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | "inline-flex items-center " → "inline-flex items-center " | ~75 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Settings/Index.jsx | 3→3 lines | ~84 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "bg-primary border-primary" → "bg-primary-soft border-pr" | ~28 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Settings/Index.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~41 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | "inline-flex items-center " → "inline-flex items-center " | ~36 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 3→3 lines | ~82 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Stores/Index.jsx | 42→42 lines | ~777 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | 13→13 lines | ~319 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Products/Index.jsx | "bg-primary text-white" → "bg-primary text-primary-c" | ~32 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 11→11 lines | ~228 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Stores/Index.jsx | 6→6 lines | ~148 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 4→4 lines | ~97 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | "rounded-lg border border-" → "rounded-[var(--radius-but" | ~43 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 8→8 lines | ~227 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | inline fix | ~11 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 3→3 lines | ~112 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 3→3 lines | ~106 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | "inline-flex items-center " → "inline-flex items-center " | ~56 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | inline fix | ~29 |
+| 23:11 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 4→4 lines | ~150 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Index.jsx | 2→2 lines | ~79 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 4→4 lines | ~158 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 4→4 lines | ~155 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | "text-red-600 dark:text-re" → "text-danger" | ~22 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | 3→3 lines | ~88 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | 3→3 lines | ~60 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | modified TextArea() | ~253 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | 7→7 lines | ~136 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | "inline-flex items-center " → "inline-flex items-center " | ~62 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | 12→12 lines | ~216 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | 3→3 lines | ~72 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | inline fix | ~4 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | "border-red-500/60" → "border-danger/60" | ~12 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Products/Create.jsx | "w-full bg-primary-soft ho" → "w-full bg-primary-soft ho" | ~72 |
+| 23:12 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | inline fix | ~18 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Create.jsx | 8→8 lines | ~151 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | inline fix | ~10 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~16 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | 17→17 lines | ~386 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~16 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | inline fix | ~4 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | "border-red-500" → "border-danger" | ~12 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~5 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "mb-4 px-4 py-3 rounded-lg" → "mb-4 px-4 py-3 rounded-[v" | ~39 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Team.jsx | 5→5 lines | ~51 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Team.jsx | "w-8 h-8 rounded-full bg-g" → "w-8 h-8 rounded-full bg-p" | ~41 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Team.jsx | "p-1.5 rounded-md text-con" → "p-1.5 rounded-md text-con" | ~25 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | 7→7 lines | ~136 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "inline-flex items-center " → "inline-flex items-center " | ~71 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "bg-primary border-primary" → "bg-primary border-primary" | ~35 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Team.jsx | "px-2 py-1 text-xs font-me" → "px-2 py-1 text-xs font-me" | ~53 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~13 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "text-white" → "text-primary" | ~28 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Team.jsx | "inline-flex items-center " → "inline-flex items-center " | ~57 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "text-xs text-amber-600 da" → "text-xs text-warning p-2 " | ~59 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Stores/Edit.jsx | inline fix | ~18 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "inline-flex items-center " → "inline-flex items-center " | ~67 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | "bg-emerald-500/15 text-em" → "bg-success-soft text-succ" | ~40 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | 5→5 lines | ~99 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "ml-auto inline-flex items" → "ml-auto inline-flex items" | ~59 |
+| 23:13 | Edited resources/js/Pages/Dashboard/AddMember.jsx | "w-full px-3 py-2.5 rounde" → "w-full px-3 py-2.5 rounde" | ~59 |
+| 23:13 | Edited resources/js/Pages/Dashboard/AddMember.jsx | "border-red-500/60" → "border-danger/60" | ~15 |
+| 23:13 | Edited resources/js/Pages/Dashboard/AddMember.jsx | "border-red-500/60" → "border-danger/60" | ~15 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | "border-red-500/60" → "border-danger/60" | ~16 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | inline fix | ~4 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Team.jsx | 3→3 lines | ~86 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~4 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | 3→3 lines | ~58 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Products/Edit.jsx | inline fix | ~39 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~66 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | 22→22 lines | ~480 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | 3→3 lines | ~124 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | 3→3 lines | ~82 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "w-full px-3 py-2.5 rounde" → "w-full px-3 py-2.5 rounde" | ~54 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | inline fix | ~4 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | 3→3 lines | ~92 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | inline fix | ~42 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~77 |
+| 23:14 | Edited resources/js/Components/Products/AdjustStockModal.jsx | "w-full inline-flex items-" → "w-full inline-flex items-" | ~66 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | 10→10 lines | ~351 |
+| 23:14 | Edited resources/js/Pages/Dashboard/AddMember.jsx | "text-[10px] font-medium u" → "text-[10px] font-medium u" | ~43 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~77 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "h-4 w-4 rounded border-sl" → "h-4 w-4 rounded border-li" | ~26 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 4→4 lines | ~146 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "w-4 h-4 text-indigo-600 d" → "w-4 h-4 text-primary" | ~29 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "border-red-500/60" → "border-danger/60" | ~13 |
+| 23:14 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "inline-flex items-center " → "inline-flex items-center " | ~65 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~78 |
+| 23:14 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~71 |
+| 23:15 | Edited resources/js/Pages/Dashboard/EditMember.jsx | inline fix | ~65 |
+| 23:15 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "inline-flex items-center " → "inline-flex items-center " | ~31 |
+| 23:15 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "text-xs text-amber-600 da" → "text-xs text-warning" | ~36 |
+| 23:15 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "flex items-center gap-2 t" → "flex items-center gap-2 t" | ~27 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~14 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "group inline-flex items-c" → "group inline-flex items-c" | ~54 |
+| 23:15 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/59bd1015-ad24-42de-a27d-7be499bdcc99/scratchpad/fix_dispatch.py | — | ~2733 |
+| 23:15 | Edited resources/js/Pages/Dashboard/EditMember.jsx | "rounded-xl border border-" → "rounded-[var(--radius-car" | ~34 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~54 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | 5→5 lines | ~135 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | 3→3 lines | ~58 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 3→3 lines | ~75 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | 22→22 lines | ~480 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | "inline-flex items-center " → "inline-flex items-center " | ~73 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "px-3 py-2 text-sm font-me" → "px-3 py-2 text-sm font-me" | ~58 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 4→4 lines | ~114 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | "text-[10px] font-medium u" → "text-[10px] font-medium u" | ~43 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | "mt-1 text-xs text-red-600" → "mt-1 text-xs text-danger" | ~34 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "p-3.5 rounded-lg border b" → "p-3.5 rounded-[var(--radi" | ~33 |
+| 23:15 | Edited resources/js/Pages/Dashboard/InviteMember.jsx | "inline-flex items-center " → "inline-flex items-center " | ~57 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "shrink-0 inline-flex item" → "shrink-0 inline-flex item" | ~76 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Roles/Index.jsx | "inline-flex items-center " → "inline-flex items-center " | ~57 |
+| 23:15 | Created ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/59bd1015-ad24-42de-a27d-7be499bdcc99/scratchpad/fix_dispatch.js | — | ~2754 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | inline fix | ~8 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Roles/Index.jsx | 4→4 lines | ~135 |
+| 23:15 | Edited resources/js/Pages/Dashboard/Roles/Index.jsx | "p-1.5 rounded-md text-con" → "p-1.5 rounded-md text-con" | ~38 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | "inline-flex items-center " → "inline-flex items-center " | ~70 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | inline fix | ~6 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | inline fix | ~4 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | inline fix | ~17 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "w-4 h-4 text-indigo-600 d" → "w-4 h-4 text-primary" | ~27 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "text-xs text-indigo-600 d" → "text-xs text-primary hove" | ~32 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "inline-flex items-center " → "inline-flex items-center " | ~73 |
+| 23:16 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | expanded (+7 lines) | ~377 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "mb-4 flex items-center ga" → "mb-4 flex items-center ga" | ~49 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | 3→3 lines | ~98 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "w-full px-3 py-2.5 rounde" → "w-full px-3 py-2.5 rounde" | ~60 |
+| 23:16 | Edited resources/js/Components/Dashboard/AdjustStockModal.jsx | "px-3 py-2 rounded-lg text" → "px-3 py-2 rounded-[var(--" | ~68 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | "rounded-xl border border-" → "rounded-[var(--radius-car" | ~42 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Roles/Form.jsx | 3→3 lines | ~82 |
+| 23:16 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | inline fix | ~35 |
+| 09:50 | Edited resources/js/Pages/Dashboard/Operations/Packing.jsx | 9→9 lines | ~235 |
+| 09:50 | Edited resources/js/Pages/Dashboard/Operations/ReadyForDelivery.jsx | 17→17 lines | ~379 |
+| 09:50 | Edited resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx | "px-3 py-2 text-sm rounded" → "px-3 py-2 text-sm rounded" | ~53 |
+| 09:50 | Edited resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx | "overflow-x-auto rounded-x" → "overflow-x-auto rounded-[" | ~31 |
+| 09:50 | Edited resources/js/Pages/Dashboard/Operations/TransferReceiving.jsx | "inline-flex items-center " → "inline-flex items-center " | ~69 |
+| 09:50 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | "bg-indigo-600 text-white " → "bg-primary text-primary-c" | ~32 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 15→15 lines | ~300 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 9→9 lines | ~187 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 12→12 lines | ~187 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | inline fix | ~13 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 5→5 lines | ~84 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 9→9 lines | ~142 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | "mt-3 bg-surface border bo" → "mt-3 bg-surface border bo" | ~31 |
+| 09:51 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | "relative w-full sm:max-w-" → "relative w-full sm:max-w-" | ~50 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 3→3 lines | ~65 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 6→6 lines | ~147 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 3→3 lines | ~72 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | "flex-1 inline-flex items-" → "flex-1 inline-flex items-" | ~62 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 3→3 lines | ~63 |
+| 09:52 | Edited resources/js/Pages/Delivery/DeliveryAgentView.jsx | 35→35 lines | ~585 |
+| 09:52 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | 3→3 lines | ~67 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | "w-full pl-9 pr-8 py-2 tex" → "w-full pl-9 pr-8 py-2 tex" | ~68 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~32 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | 2→2 lines | ~47 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Index.jsx | "inline-flex items-center " → "inline-flex items-center " | ~65 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 17→17 lines | ~143 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 3→3 lines | ~82 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~30 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | "font-mono text-content ho" → "font-mono text-content ho" | ~30 |
+| 09:53 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 3→3 lines | ~79 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | CSS: success, danger | ~49 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | "bg-surface border rounded" → "bg-surface border rounded" | ~28 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | "inline-flex items-center " → "inline-flex items-center " | ~31 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 13→13 lines | ~338 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | "flex items-start gap-2.5 " → "flex items-start gap-2.5 " | ~50 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 2→2 lines | ~97 |
+| 09:54 | Edited resources/js/Pages/Dashboard/Orders/Returns/Inspect.jsx | 11→11 lines | ~306 |
+| 09:55 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~9 |
+| 09:55 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~8 |
+| 09:55 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~4 |
+| 09:55 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~4 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~14 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~13 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~16 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~12 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | 2→2 lines | ~23 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | 4→4 lines | ~113 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | inline fix | ~16 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | "bg-amber-500/10 border bo" → "bg-warning-soft border bo" | ~25 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | "p-4 border-b border-line " → "p-4 border-b border-line " | ~31 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/ConnectionProfile.jsx | "text-xs text-red-700 dark" → "text-xs text-danger bg-da" | ~44 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~9 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~8 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~16 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~6 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~4 |
+| 09:56 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~4 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | 2→2 lines | ~45 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | "amber" → "warning" | ~13 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | "emerald" → "success" | ~13 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | CSS: warning, success | ~28 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | 5→5 lines | ~73 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | 2→2 lines | ~55 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | inline fix | ~20 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/Shopify.jsx | "w-4 h-4 text-emerald-500" → "w-4 h-4 text-success" | ~32 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~9 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~8 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~16 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~6 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~4 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~4 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WooCommerce.jsx | inline fix | ~16 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~9 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~8 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~16 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~6 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~4 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~4 |
+| 09:57 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/YouCan.jsx | inline fix | ~16 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~9 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~8 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~16 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~6 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~4 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~4 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | inline fix | ~16 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | 5→5 lines | ~113 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Platforms/WhatsApp.jsx | "text-indigo-600 dark:text" → "text-primary hover:text-p" | ~24 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | 5→5 lines | ~97 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | inline fix | ~16 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | inline fix | ~8 |
+| 09:58 | Edited resources/js/Pages/Dashboard/Integrations/Index.jsx | inline fix | ~9 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~9 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~8 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~16 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~6 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~4 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~4 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~4 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | 2→2 lines | ~41 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | inline fix | ~23 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/Connections.jsx | "p-1.5 rounded-[var(--radi" → "p-1.5 rounded-[var(--radi" | ~47 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~9 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~8 |
+| 09:59 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~16 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~6 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~4 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~4 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~4 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | 2→2 lines | ~41 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | "inline-flex items-center " → "inline-flex items-center " | ~67 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | inline fix | ~45 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | 5→5 lines | ~137 |
+| 10:00 | Edited resources/js/Pages/Dashboard/Delivery/SenditConnections.jsx | "p-1.5 rounded-[var(--radi" → "p-1.5 rounded-[var(--radi" | ~47 |
+| 10:00 | Edited resources/js/Pages/Settings/Profile.jsx | "mb-4 text-sm font-medium " → "mb-4 text-sm font-medium " | ~21 |
+| 10:00 | Edited resources/js/Pages/Settings/Profile.jsx | "mt-2 flex items-start gap" → "mt-2 flex items-start gap" | ~27 |
+| 10:00 | Edited resources/js/Pages/Settings/Profile.jsx | 6→6 lines | ~123 |
+| 10:01 | Edited resources/js/Pages/Settings/Profile.jsx | 9→9 lines | ~153 |
+| 10:01 | Edited resources/js/Pages/Settings/Security.jsx | 9→9 lines | ~153 |
+| 10:01 | Edited resources/js/Pages/Settings/Security.jsx | inline fix | ~9 |
+| 10:02 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | inline fix | ~25 |
+| 10:02 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | "inline-flex items-center " → "inline-flex items-center " | ~70 |
+| 10:02 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | inline fix | ~29 |
+| 10:02 | Edited resources/js/Pages/Dashboard/Operations/Picking.jsx | inline fix | ~28 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | inline fix | ~9 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | inline fix | ~16 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "text-xs text-indigo-700 d" → "text-xs text-primary bg-p" | ~43 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "rounded bg-surface-3 bord" → "rounded bg-surface-3 bord" | ~38 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | 9→9 lines | ~172 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~43 |
+| 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "bg-indigo-500 h-full tran" → "bg-primary h-full transit" | ~33 |
+| 10:04 | Edited resources/js/Components/SyncProductsModal.jsx | 7→7 lines | ~218 |

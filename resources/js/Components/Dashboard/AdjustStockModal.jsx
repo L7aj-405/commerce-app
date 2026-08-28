@@ -77,11 +77,18 @@ const TABS = [
     },
 ];
 
+// Each tab's accent is routed through the shared semantic tokens rather than
+// a raw Tailwind hue: "Set stock" tracks the brand primary, the other three
+// map to the fixed success/warning/danger states (restock = positive,
+// returns = needs attention, damaged = negative) — same vocabulary as
+// StatusBadge's stock/sync maps. `text` is the button's own label color:
+// primary is store-customizable so it needs the contrast-safe token, while
+// success/warning/danger are fixed-safe hues where white always contrasts.
 const ACCENTS = {
-    indigo:  { tabText: 'text-indigo-700 dark:text-indigo-300',   tabBar: 'bg-indigo-600',  chipBg: 'bg-indigo-500/10',  rowActive: 'bg-indigo-500/5',  btn: 'bg-indigo-600 hover:bg-indigo-500' },
-    emerald: { tabText: 'text-emerald-700 dark:text-emerald-300', tabBar: 'bg-emerald-600', chipBg: 'bg-emerald-500/10', rowActive: 'bg-emerald-500/5', btn: 'bg-emerald-600 hover:bg-emerald-500' },
-    amber:   { tabText: 'text-amber-700 dark:text-amber-300',     tabBar: 'bg-amber-600',   chipBg: 'bg-amber-500/10',   rowActive: 'bg-amber-500/5',   btn: 'bg-amber-600 hover:bg-amber-500' },
-    rose:    { tabText: 'text-rose-700 dark:text-rose-300',       tabBar: 'bg-rose-600',    chipBg: 'bg-rose-500/10',    rowActive: 'bg-rose-500/5',    btn: 'bg-rose-600 hover:bg-rose-500' },
+    indigo:  { tabText: 'text-primary',  tabBar: 'bg-primary',  chipBg: 'bg-primary-soft',  rowActive: 'bg-primary-soft',  btn: 'bg-primary hover:bg-primary-strong',    text: 'text-primary-contrast' },
+    emerald: { tabText: 'text-success',  tabBar: 'bg-success',  chipBg: 'bg-success-soft',  rowActive: 'bg-success-soft',  btn: 'bg-success hover:brightness-90',        text: 'text-white' },
+    amber:   { tabText: 'text-warning',  tabBar: 'bg-warning',  chipBg: 'bg-warning-soft',  rowActive: 'bg-warning-soft',  btn: 'bg-warning hover:brightness-90',        text: 'text-white' },
+    rose:    { tabText: 'text-danger',   tabBar: 'bg-danger',   chipBg: 'bg-danger-soft',   rowActive: 'bg-danger-soft',   btn: 'bg-danger hover:brightness-90',         text: 'text-white' },
 };
 
 // Turn a raw input string into a signed stock change for the given operation.
@@ -278,13 +285,13 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
             onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
         >
-            <div className={`bg-surface-2 border border-line rounded-2xl shadow-2xl w-full ${isVariable ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] flex flex-col`}>
+            <div className={`bg-surface-2 border border-line rounded-[var(--radius-card)] shadow-2xl w-full ${isVariable ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] flex flex-col`}>
                 <header className="flex items-center justify-between border-b border-line px-5 py-4">
                     <div className="min-w-0">
                         <h3 className="font-semibold text-content truncate flex items-center gap-2">
                             Adjust stock
                             {isVariable && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary-soft text-primary-strong dark:text-primary text-[10px] font-medium">
                                     <Layers className="w-2.5 h-2.5" />
                                     {product.variant_count} variants
                                 </span>
@@ -346,7 +353,7 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
                         <p className="text-xs text-content-muted">{tab.hint}</p>
 
                         {error && (
-                            <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs px-3 py-2">
+                            <div className="rounded-md bg-danger-soft border border-danger/30 text-danger text-xs px-3 py-2">
                                 {error}
                             </div>
                         )}
@@ -357,7 +364,7 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
                             <select
                                 value={reasons[tabKey]}
                                 onChange={(e) => setReasons((prev) => ({ ...prev, [tabKey]: e.target.value }))}
-                                className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="mt-1 w-full px-3 py-2 rounded-[var(--radius-button)] border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                                 {tab.reasons.map((r) => (
                                     <option key={r.value} value={r.value}>{r.label}</option>
@@ -387,12 +394,12 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
                                         value={filter}
                                         onChange={(e) => setFilter(e.target.value)}
                                         placeholder="Filter variants by name or SKU…"
-                                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-line bg-surface text-content focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-[var(--radius-button)] border border-line bg-surface text-content focus:outline-none focus:ring-2 focus:ring-primary"
                                     />
                                 </div>
                             )}
 
-                            <div className="rounded-lg border border-line divide-y divide-line/60 max-h-64 overflow-y-auto">
+                            <div className="rounded-[var(--radius-button)] border border-line divide-y divide-line/60 max-h-64 overflow-y-auto">
                                 {displayRows.length === 0 ? (
                                     <p className="px-3 py-6 text-center text-xs text-content-muted">No variants match your filter.</p>
                                 ) : (
@@ -421,7 +428,7 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 placeholder="Extra context for this adjustment"
-                                className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="mt-1 w-full px-3 py-2 rounded-[var(--radius-button)] border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                         </label>
                     </div>
@@ -437,14 +444,14 @@ export default function AdjustStockModal({ product, warehouse = null, onClose, o
                                 type="button"
                                 onClick={onClose}
                                 disabled={submitting}
-                                className="px-3 py-2 rounded-lg bg-content/10 text-content text-sm font-medium hover:bg-content/20 disabled:opacity-50 transition"
+                                className="px-3 py-2 rounded-[var(--radius-button)] bg-content/10 text-content text-sm font-medium hover:bg-content/20 disabled:opacity-50 transition"
                             >
                                 Cancel
                             </button>
                             <button
                                 type="submit"
                                 disabled={submitting || pendingRows.length === 0}
-                                className={`px-3 py-2 rounded-lg text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${accent.btn}`}
+                                className={`px-3 py-2 rounded-[var(--radius-button)] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 ${accent.btn} ${accent.text}`}
                             >
                                 {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Saving…</> : 'Save adjustment'}
                             </button>
@@ -469,8 +476,8 @@ function AdjustmentResultView({ result, onDone }) {
     return (
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-5 space-y-4">
             <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-success-soft flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                 </div>
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-content">Stock updated</p>
@@ -479,12 +486,12 @@ function AdjustmentResultView({ result, onDone }) {
             </div>
 
             {result.results?.length > 0 && (
-                <div className="rounded-lg border border-line divide-y divide-line/60">
+                <div className="rounded-[var(--radius-button)] border border-line divide-y divide-line/60">
                     {result.results.map((r) => (
                         <div key={r.variant_id ?? 'base'} className="flex items-center justify-between px-3 py-2 text-xs">
                             <span className="text-content-muted">{r.variant_id ? 'Variant' : 'Product'}</span>
                             <span className="tabular-nums text-content">
-                                On hand <b>{r.on_hand}</b> · Reserved <b>{r.reserved}</b> · Available <b className="text-emerald-600 dark:text-emerald-400">{r.available}</b>
+                                On hand <b>{r.on_hand}</b> · Reserved <b>{r.reserved}</b> · Available <b className="text-success">{r.available}</b>
                             </span>
                         </div>
                     ))}
@@ -492,15 +499,15 @@ function AdjustmentResultView({ result, onDone }) {
             )}
 
             <div className="grid grid-cols-2 gap-2">
-                <StatChip icon={CheckCircle2} tone={released > 0 ? 'emerald' : 'muted'} label="Waiting orders released" value={released} />
-                <StatChip icon={Clock} tone={reserved > 0 ? 'indigo' : 'muted'} label="Units reserved for orders" value={reserved} />
+                <StatChip icon={CheckCircle2} tone={released > 0 ? 'success' : 'muted'} label="Waiting orders released" value={released} />
+                <StatChip icon={Clock} tone={reserved > 0 ? 'primary' : 'muted'} label="Units reserved for orders" value={reserved} />
             </div>
 
             {result.external_sync && result.external_sync !== 'skipped' && (
                 <p className={`text-[11px] px-3 py-2 rounded-md ${
-                    result.external_sync === 'queued' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                        : result.external_sync === 'failed' ? 'bg-red-500/10 text-red-700 dark:text-red-300'
-                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    result.external_sync === 'queued' ? 'bg-success-soft text-success'
+                        : result.external_sync === 'failed' ? 'bg-danger-soft text-danger'
+                            : 'bg-warning-soft text-warning'
                 }`}>
                     External stock sync {result.external_sync === 'queued' ? 'queued' : result.external_sync === 'failed' ? 'failed' : 'partially failed'}.
                 </p>
@@ -508,10 +515,10 @@ function AdjustmentResultView({ result, onDone }) {
 
             {released > 0 && (
                 <div className="flex gap-2">
-                    <a href={result.links?.pick_and_pack ?? '/dashboard/departments/packing'} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 transition">
+                    <a href={result.links?.pick_and_pack ?? '/dashboard/departments/packing'} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 transition">
                         View Pick &amp; Pack <ArrowRight className="w-3 h-3" />
                     </a>
-                    <a href={result.links?.waiting_stock ?? '/dashboard/operations/waiting-stock'} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 transition">
+                    <a href={result.links?.waiting_stock ?? '/dashboard/operations/waiting-stock'} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 transition">
                         View Waiting Stock <ArrowRight className="w-3 h-3" />
                     </a>
                 </div>
@@ -520,7 +527,7 @@ function AdjustmentResultView({ result, onDone }) {
             <button
                 type="button"
                 onClick={onDone}
-                className="w-full px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition"
+                className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-primary text-primary-contrast text-sm font-semibold hover:bg-primary-strong transition"
             >
                 Done
             </button>
@@ -530,12 +537,12 @@ function AdjustmentResultView({ result, onDone }) {
 
 function StatChip({ icon: Icon, tone, label, value }) {
     const tones = {
-        emerald: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-        indigo:  'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+        success: 'bg-success-soft text-success',
+        primary: 'bg-primary-soft text-primary',
         muted:   'bg-surface-3 text-content-muted',
     };
     return (
-        <div className={`rounded-lg px-3 py-2 ${tones[tone]}`}>
+        <div className={`rounded-[var(--radius-button)] px-3 py-2 ${tones[tone]}`}>
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider opacity-80">
                 <Icon className="w-3 h-3" /> {label}
             </div>
@@ -565,10 +572,10 @@ function StockRow({ row, op, mode, accent, value, onChange, preview: serverPrevi
     let previewClass = 'text-content-muted/40';
     if (preview !== null) {
         previewClass = preview < 0
-            ? 'text-red-600 dark:text-red-400 font-semibold'
+            ? 'text-danger font-semibold'
             : change > 0
-                ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
-                : 'text-amber-600 dark:text-amber-400 font-semibold';
+                ? 'text-success font-semibold'
+                : 'text-warning font-semibold';
     }
 
     // Expected-after-save summary: the exact server preview once it resolves,
@@ -595,7 +602,7 @@ function StockRow({ row, op, mode, accent, value, onChange, preview: serverPrevi
                         {' · '}Reserved <b className="text-content">{row.reserved}</b>
                         {' · '}Available <b className="text-content">{row.available}</b>
                         {row.waiting_demand > 0 && (
-                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 font-medium">
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-warning-soft text-warning font-medium">
                                 Waiting {row.waiting_demand}
                             </span>
                         )}
@@ -615,7 +622,7 @@ function StockRow({ row, op, mode, accent, value, onChange, preview: serverPrevi
                     onChange={(e) => onChange(e.target.value)}
                     placeholder={placeholder}
                     aria-label={`${op === 'set' ? 'New level' : 'Quantity'} for ${row.name}`}
-                    className="flex-shrink-0 w-20 px-2 py-1.5 text-sm text-center rounded-lg border border-line bg-surface text-content tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-shrink-0 w-20 px-2 py-1.5 text-sm text-center rounded-[var(--radius-button)] border border-line bg-surface text-content tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
                 />
 
                 <div className="flex-shrink-0 w-10 text-right text-xs tabular-nums">
@@ -627,8 +634,8 @@ function StockRow({ row, op, mode, accent, value, onChange, preview: serverPrevi
                 <div className="mt-1.5 pl-0 text-[11px] text-content-muted tabular-nums">
                     Expected after save: On hand <b className="text-content">{expected.expected_on_hand}</b>
                     {', '}Reserved <b className="text-content">{expected.expected_reserved}</b>
-                    {releasable > 0 && <span className="text-emerald-600 dark:text-emerald-400"> (+{releasable} released)</span>}
-                    {', '}Available <b className="text-emerald-600 dark:text-emerald-400">{expected.expected_available}</b>
+                    {releasable > 0 && <span className="text-success"> (+{releasable} released)</span>}
+                    {', '}Available <b className="text-success">{expected.expected_available}</b>
                 </div>
             )}
         </div>

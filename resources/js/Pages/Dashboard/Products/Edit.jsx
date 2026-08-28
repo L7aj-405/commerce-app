@@ -350,12 +350,12 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                         onClick={() => setPublishModalOpen(true)}
                         disabled={connections.length === 0}
                         title={connections.length === 0 ? 'No active platform connections for this store.' : undefined}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                         <Upload className="w-4 h-4" />
                         Publish to platforms
                     </button>
-                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
+                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
                 </div>
@@ -367,7 +367,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                 <PublishReadinessPanel readiness={readiness} />
 
                 {/* --- STEP INDICATOR TRAIL --- */}
-                <div className="bg-surface-2 border border-line py-4 px-6 rounded-xl shadow-sm">
+                <div className="bg-surface-2 border border-line py-4 px-6 rounded-[var(--radius-card)] shadow-sm">
                     <div className="flex items-center justify-between">
                         {stepLabels.map((label, i) => {
                             const num = i + 1;
@@ -380,21 +380,21 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                     >
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
                                             num === step 
-                                                ? 'bg-indigo-600 border-indigo-500 text-white ring-4 ring-indigo-500/10' 
+                                                ? 'bg-primary border-primary text-primary-contrast ring-4 ring-primary/10'
                                                 : num < step 
-                                                ? 'bg-indigo-950 border-indigo-500/50 text-indigo-600 dark:text-indigo-400' 
+                                                ? 'bg-primary-soft border-primary/50 text-primary' 
                                                 : 'bg-surface border-line text-content-muted'
                                         }`}>
                                             {num < step ? <CheckCircle className="w-4 h-4" /> : num}
                                         </div>
                                         <span className={`text-xs font-medium hidden md:inline whitespace-nowrap ${
-                                            num === step ? 'text-white' : 'text-content-muted'
+                                            num === step ? 'text-primary' : 'text-content-muted'
                                         }`}>
                                             {label}
                                         </span>
                                     </button>
                                     {i < stepLabels.length - 1 && (
-                                        <div className={`h-px flex-1 mx-4 ${num < step ? 'bg-indigo-500/50' : 'bg-surface-3'}`} />
+                                        <div className={`h-px flex-1 mx-4 ${num < step ? 'bg-primary-soft' : 'bg-surface-3'}`} />
                                     )}
                                 </div>
                             );
@@ -403,23 +403,23 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                 </div>
 
                 {/* --- MAIN INTERFACE CONTAINER --- */}
-                <form onSubmit={submit} className="bg-surface-2 border border-line rounded-xl p-6 space-y-6 shadow-xl">
+                <form onSubmit={submit} className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-6 shadow-xl">
                     
                     {/* STEP 1: PRODUCT TYPE CONFIGURATION */}
                     {step === 1 && (
                         <div className="space-y-4 animate-fadeIn">
                             <Section title="Product Structural Type">
-                                <p className="text-xs text-content-muted mb-4 font-mono">Current Type In DB: <span className="text-indigo-600 dark:text-indigo-400">{data.type}</span></p>
+                                <p className="text-xs text-content-muted mb-4 font-mono">Current Type In DB: <span className="text-primary">{data.type}</span></p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div 
                                         onClick={() => setData('type', 'simple')}
-                                        className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all flex gap-4 ${
+                                        className={`relative p-5 rounded-[var(--radius-card)] border-2 cursor-pointer transition-all flex gap-4 ${
                                             data.type === 'simple'
-                                                ? 'border-indigo-500 bg-indigo-500/5 text-white'
+                                                ? 'border-primary bg-primary-soft text-primary'
                                                 : 'border-line bg-surface/50 text-content-muted hover:border-line'
                                         }`}
                                     >
-                                        <Package className={`w-8 h-8 flex-shrink-0 ${data.type === 'simple' ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted/60'}`} />
+                                        <Package className={`w-8 h-8 flex-shrink-0 ${data.type === 'simple' ? 'text-primary' : 'text-content-muted/60'}`} />
                                         <div>
                                             <p className="text-sm font-semibold">Simple Product</p>
                                             <p className="text-xs text-content-muted mt-1">منتج عادي برقم SKU واحد وثمن موحد.</p>
@@ -428,13 +428,13 @@ export default function Edit({ product, connections = [], warehouses = [], readi
 
                                     <div 
                                         onClick={() => setData('type', 'variable')}
-                                        className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all flex gap-4 ${
+                                        className={`relative p-5 rounded-[var(--radius-card)] border-2 cursor-pointer transition-all flex gap-4 ${
                                             data.type === 'variable'
-                                                ? 'border-indigo-500 bg-indigo-500/5 text-white'
+                                                ? 'border-primary bg-primary-soft text-primary'
                                                 : 'border-line bg-surface/50 text-content-muted hover:border-line'
                                         }`}
                                     >
-                                        <Settings className={`w-8 h-8 flex-shrink-0 ${data.type === 'variable' ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted/60'}`} />
+                                        <Settings className={`w-8 h-8 flex-shrink-0 ${data.type === 'variable' ? 'text-primary' : 'text-content-muted/60'}`} />
                                         <div>
                                             <p className="text-sm font-semibold">Variable Product</p>
                                             <p className="text-xs text-content-muted mt-1">منتج بخصائص متعددة وجدول فاريانتس ديناميكي.</p>
@@ -480,7 +480,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
                                         <div>
                                             <label className="block text-xs font-medium text-content-muted mb-1">Stock on hand</label>
-                                            <div className="px-3 py-2 rounded-lg bg-surface border border-line text-content text-sm font-semibold tabular-nums">
+                                            <div className="px-3 py-2 rounded-[var(--radius-button)] bg-surface border border-line text-content text-sm font-semibold tabular-nums">
                                                 {product?.total_stock ?? 0}
                                             </div>
                                         </div>
@@ -488,7 +488,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                             <button
                                                 type="button"
                                                 onClick={() => setAdjusting({ variantId: null, variantName: null })}
-                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 h-[38px]"
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 h-[38px]"
                                             >
                                                 <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust stock
                                             </button>
@@ -501,22 +501,22 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                             {/* Options Section */}
                             {data.type === 'variable' && (
                                 <Section title="Product options">
-                                    <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                                    <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
 
                                         {/* Add a new option */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                                             <div>
                                                 <label className="block text-xs text-content-muted mb-1">Option name</label>
                                                 <input type="text" placeholder="e.g., Size" value={currentAttrName} onChange={e => setCurrentAttrName(e.target.value)}
-                                                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                                    className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs text-content-muted mb-1">Values (separate with ",")</label>
                                                 <input type="text" placeholder="e.g., S, M, L" value={currentAttrValues} onChange={e => setCurrentAttrValues(e.target.value)}
-                                                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                                    className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                             </div>
                                             <button type="button" onClick={handleAddAttribute}
-                                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
+                                                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
                                                 <Plus className="w-3.5 h-3.5" /> Add option
                                             </button>
                                         </div>
@@ -536,7 +536,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                         </div>
 
                                         <button type="button" onClick={generateVariantsMatrix}
-                                            className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
+                                            className="w-full bg-primary-soft hover:brightness-95 text-primary border border-primary/30 py-2 rounded-[var(--radius-button)] text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
                                             <Layers className="w-3.5 h-3.5" /> Generate variants
                                         </button>
 
@@ -548,17 +548,17 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                             {/* Variants Section */}
                             {data.type === 'variable' && (
                                 <Section title="Variants">
-                                    <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                                    <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
                                         {data.variants && data.variants.length > 0 && (
                                             <div className="flex justify-end">
                                                 <button type="button" onClick={handleRegenerateSkus}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">
                                                     <Layers className="w-3.5 h-3.5" /> Regenerate SKUs
                                                 </button>
                                             </div>
                                         )}
                                         {data.variants && data.variants.length > 0 ? (
-                                            <div className="overflow-x-auto border border-line rounded-lg mt-2">
+                                            <div className="overflow-x-auto border border-line rounded-[var(--radius-button)] mt-2">
                                                 <table className="w-full text-left border-collapse bg-surface text-xs">
                                                     <thead className="bg-surface text-content-muted font-medium border-b border-line">
                                                         <tr>
@@ -579,15 +579,15 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="text" value={v.sku || ''} onChange={e => handleVariantChange(index, 'sku', e.target.value)}
-                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-indigo-500" />
+                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-primary" />
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="number" step="0.01" value={v.price ?? ''} onChange={e => handleVariantChange(index, 'price', e.target.value)}
-                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-indigo-500" />
+                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-primary" />
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">{stockForVariant(v.id)}</span>
+                                                                        <span className="text-success font-bold tabular-nums">{stockForVariant(v.id)}</span>
                                                                         {canAdjustStock && (
                                                                             v.id ? (
                                                                                 <button
@@ -623,7 +623,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                                 </table>
                                             </div>
                                         ) : (
-                                            <p className="text-xs text-amber-600 dark:text-amber-400/80 p-2 text-center bg-amber-500/5 rounded border border-amber-500/10">No variant items linked inside database array node yet.</p>
+                                            <p className="text-xs text-warning p-2 text-center bg-warning-soft rounded border border-warning/20">No variant items linked inside database array node yet.</p>
                                         )}
                                     </div>
                                 </Section>
@@ -640,7 +640,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                         <label className="block text-sm font-medium text-content-muted mb-1">Status</label>
                                         <select
                                             value={data.status} onChange={(e) => setData('status', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                                         >
                                             <option value="active">Active</option>
                                             <option value="draft">Draft</option>
@@ -664,7 +664,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                                         ) : (
                                             <div className="flex flex-wrap gap-2">
                                                 {product.channel_listings.map((listing) => (
-                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-3 border border-line text-xs">
+                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-[var(--radius-button)] bg-surface-3 border border-line text-xs">
                                                         <span className="font-medium text-content">{listing.connection?.label ?? listing.connection?.platform}</span>
                                                         <span className="text-content-muted font-mono">#{listing.external_product_id}</span>
                                                         <StatusBadge type="sync" status={listing.sync_status} />
@@ -696,7 +696,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                             type="button" 
                             onClick={prevStep} 
                             disabled={step === 1}
-                            className={`px-4 py-2 text-xs font-medium text-content-muted bg-surface-3 rounded-lg hover:bg-content/10 transition ${
+                            className={`px-4 py-2 text-xs font-medium text-content-muted bg-surface-3 rounded-[var(--radius-button)] hover:bg-content/10 transition ${
                                 step === 1 ? 'opacity-30 cursor-not-allowed' : ''
                             }`}
                         >
@@ -707,7 +707,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                             <button 
                                 type="button" 
                                 onClick={nextStep} 
-                                className="px-4 py-2 text-xs font-semibold text-content bg-indigo-600 rounded-lg hover:bg-indigo-500 transition"
+                                className="px-4 py-2 text-xs font-semibold text-content bg-primary rounded-[var(--radius-button)] hover:bg-primary-strong transition"
                             >
                                 Next Step
                             </button>
@@ -715,7 +715,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
                             <button 
                                 type="submit" 
                                 disabled={processing} 
-                                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 transition shadow-md"
+                                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 transition shadow-md"
                             >
                                 {processing ? (
                                     <>
@@ -761,7 +761,7 @@ export default function Edit({ product, connections = [], warehouses = [], readi
 function Section({ title, children }) {
     return (
         <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 border-b border-line/60 pb-1.5">{title}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-line/60 pb-1.5">{title}</h3>
             {children}
         </div>
     );
@@ -770,10 +770,10 @@ function Section({ title, children }) {
 function Field({ label, type = 'text', value, onChange, error, required, ...rest }) {
     return (
         <div className="w-full">
-            <label className="block text-xs font-medium text-content-muted mb-1">{label} {required && <span className="text-red-600 dark:text-red-400">*</span>}</label>
+            <label className="block text-xs font-medium text-content-muted mb-1">{label} {required && <span className="text-danger">*</span>}</label>
             <input type={type} value={value} onChange={(e) => onChange(e.target.value)} {...rest}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-primary`} />
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -783,8 +783,8 @@ function TextArea({ label, value, onChange, error }) {
         <div className="w-full">
             <label className="block text-xs font-medium text-content-muted mb-1">{label}</label>
             <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-primary`} />
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -802,7 +802,7 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
     };
 
     return (
-        <div className="bg-surface-2 px-3 py-2 rounded-lg border border-line space-y-2">
+        <div className="bg-surface-2 px-3 py-2 rounded-[var(--radius-button)] border border-line space-y-2">
             <div className="flex items-center justify-between gap-2">
                 {editingName ? (
                     <input
@@ -811,14 +811,14 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                         onChange={(e) => setNameDraft(e.target.value)}
                         onBlur={commitName}
                         onKeyDown={(e) => e.key === 'Enter' && commitName()}
-                        className="text-xs font-semibold uppercase bg-surface border border-indigo-500/40 rounded px-1.5 py-0.5 text-content focus:outline-none"
+                        className="text-xs font-semibold uppercase bg-surface border border-primary/40 rounded px-1.5 py-0.5 text-content focus:outline-none"
                     />
                 ) : (
-                    <button type="button" onClick={() => setEditingName(true)} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase hover:underline">
+                    <button type="button" onClick={() => setEditingName(true)} className="text-xs font-semibold text-primary uppercase hover:underline">
                         {option.name}:
                     </button>
                 )}
-                <button type="button" onClick={onRemoveOption} className="text-content-muted hover:text-red-600 dark:text-red-400 transition">
+                <button type="button" onClick={onRemoveOption} className="text-content-muted hover:text-danger transition">
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
@@ -827,7 +827,7 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                 {option.values.map((v, vIdx) => (
                     <span key={vIdx} className="inline-flex items-center gap-1 bg-surface px-2 py-0.5 rounded border border-line text-content-muted text-xs">
                         {v}
-                        <button type="button" onClick={() => onRemoveValue(vIdx)} className="text-content-muted/60 hover:text-red-600 dark:hover:text-red-400">
+                        <button type="button" onClick={() => onRemoveValue(vIdx)} className="text-content-muted/60 hover:text-danger">
                             <Trash2 className="w-3 h-3" />
                         </button>
                     </span>
@@ -840,7 +840,7 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                     }}
                     onBlur={() => { if (newValue.trim() !== '') { onAddValue(newValue); setNewValue(''); } }}
                     placeholder="+ value"
-                    className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-indigo-500"
+                    className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-primary"
                 />
             </div>
         </div>
@@ -857,14 +857,14 @@ function PublishReadinessPanel({ readiness = {} }) {
     const platforms = Object.entries(readiness);
     if (platforms.length === 0) return null;
 
-    const badge = { ready: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300', warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', blocked: 'bg-red-500/15 text-red-700 dark:text-red-300' };
+    const badge = { ready: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', blocked: 'bg-danger-soft text-danger' };
 
     return (
-        <div className="bg-surface-2 border border-line rounded-xl p-4">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-4">
             <p className="text-xs font-semibold text-content-muted uppercase tracking-wide mb-2.5">Publish readiness</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {platforms.map(([platform, report]) => (
-                    <div key={platform} className="rounded-lg border border-line bg-surface p-3">
+                    <div key={platform} className="rounded-[var(--radius-button)] border border-line bg-surface p-3">
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-content uppercase">{platform}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${badge[report.status] ?? 'bg-slate-500/15 text-content-muted'}`}>
@@ -906,10 +906,10 @@ export function PublishReadinessNotice({ options = [], variants = [] }) {
     if (warnings.length === 0) return null;
 
     return (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
-            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Publish readiness</p>
+        <div className="rounded-[var(--radius-button)] border border-warning/30 bg-warning-soft p-3 space-y-1">
+            <p className="text-[11px] font-semibold text-warning uppercase tracking-wide">Publish readiness</p>
             {warnings.map((w, i) => (
-                <p key={i} className="text-xs text-amber-700 dark:text-amber-300">{w}</p>
+                <p key={i} className="text-xs text-warning">{w}</p>
             ))}
         </div>
     );

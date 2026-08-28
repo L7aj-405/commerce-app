@@ -109,8 +109,8 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                     <li
                                         key={q.keyOf(o)}
                                         className={[
-                                            'bg-surface border rounded-xl p-4 transition',
-                                            mine ? 'border-indigo-500/50 ring-1 ring-indigo-500/20' : 'border-line',
+                                            'bg-surface border rounded-[var(--radius-card)] p-4 transition',
+                                            mine ? 'border-primary/50 ring-1 ring-primary/20' : 'border-line',
                                         ].join(' ')}
                                     >
                                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -153,7 +153,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     {fmtMoney(o.total, currency)}
                                                 </div>
                                                 {o.assigned_to && (
-                                                    <div className={`mt-0.5 inline-flex items-center gap-1 text-[11px] ${mine ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted'}`}>
+                                                    <div className={`mt-0.5 inline-flex items-center gap-1 text-[11px] ${mine ? 'text-primary' : 'text-content-muted'}`}>
                                                         <Lock className="w-3 h-3" />
                                                         {mine ? 'Claimed by you' : `Claimed by ${o.assignee_name ?? 'another agent'}`}
                                                     </div>
@@ -174,14 +174,14 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 value={nameByOrder[q.keyOf(o)] ?? o.customer_name ?? ''}
                                                 onChange={(e) => setNameByOrder((v) => ({ ...v, [q.keyOf(o)]: e.target.value }))}
                                                 placeholder="Customer name"
-                                                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                className="w-full rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             />
                                             <input
                                                 type="text"
                                                 value={phoneByOrder[q.keyOf(o)] ?? o.customer_phone ?? ''}
                                                 onChange={(e) => setPhoneByOrder((v) => ({ ...v, [q.keyOf(o)]: e.target.value }))}
                                                 placeholder="Customer phone"
-                                                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                className="w-full rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             />
                                         </div>
 
@@ -198,7 +198,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 {o.original_address.notes && ` · Note: ${o.original_address.notes}`}
                                             </p>
                                         ) : (
-                                            <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                            <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-warning">
                                                 <AlertTriangle className="w-3 h-3" /> No customer address was provided by the platform.
                                             </p>
                                         )}
@@ -209,12 +209,12 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 value={addressByOrder[q.keyOf(o)] ?? o.delivery_address ?? ''}
                                                 onChange={(e) => setAddressByOrder((v) => ({ ...v, [q.keyOf(o)]: e.target.value }))}
                                                 placeholder="Confirmed delivery address"
-                                                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                className="w-full rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             />
                                             <select
                                                 value={cityByOrder[q.keyOf(o)] ?? o.suggested_city_id ?? ''}
                                                 onChange={(e) => setCityByOrder((v) => ({ ...v, [q.keyOf(o)]: e.target.value }))}
-                                                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                                className="w-full rounded-[var(--radius-button)] border border-line bg-surface px-3 py-2 text-sm text-content focus:outline-none focus:ring-2 focus:ring-primary/30"
                                             >
                                                 <option value="">Select city for allocation…</option>
                                                 {cities.map((city) => (
@@ -223,7 +223,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                             </select>
                                         </div>
                                         {! o.city_recognized && o.raw_city_name && ! cityByOrder[q.keyOf(o)] && (
-                                            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-warning">
                                                 <AlertTriangle className="w-3 h-3" />
                                                 Platform reported city "{o.raw_city_name}" — not in the city list. Select the matching city before confirming.
                                             </p>
@@ -240,7 +240,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 <button
                                                     disabled={busy}
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/claim`)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
                                                 >
                                                     <Hand className="w-4 h-4" /> Claim order
                                                 </button>
@@ -250,7 +250,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                 <button
                                                     disabled={busy}
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/release`)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
                                                 >
                                                     <LogOut className="w-4 h-4" /> Release claim
                                                 </button>
@@ -261,7 +261,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     disabled={busy || ! mine}
                                                     onClick={() => setCancelling(o)}
                                                     title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before cancelling it') : undefined}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-danger/40 text-danger hover:bg-danger-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
                                                     <XCircle className="w-4 h-4" /> Cancel order
                                                 </button>
@@ -269,7 +269,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                                     disabled={busy || ! mine}
                                                     onClick={() => move(o, 'confirmed')}
                                                     title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before confirming it') : undefined}
-                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-success text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
                                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                                                     Confirm order

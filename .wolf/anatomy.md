@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-27T22:04:56.620Z
-> Files: 460 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T09:04:01.245Z
+> Files: 476 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -26,6 +26,11 @@
 ## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/358ee1f2-0cee-456b-910c-65b6637b1237/scratchpad/
 
 - `ReproBugTest.php` (~886 tok)
+
+## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/59bd1015-ad24-42de-a27d-7be499bdcc99/scratchpad/
+
+- `fix_dispatch.js` — Declares fs (~2754 tok)
+- `fix_dispatch.py` — Declares inputCls (~2733 tok)
 
 ## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/
 
@@ -443,7 +448,7 @@
 - `StatsCard.jsx` — Tinted icon chips — subtle in light, vivid in dark. Text darkens in light for contrast. (~628 tok)
 - `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~1410 tok)
 - `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
-- `SyncProductsModal.jsx` — DONE_STATUSES (~3475 tok)
+- `SyncProductsModal.jsx` — DONE_STATUSES (~3480 tok)
 - `ThemeToggle.jsx` — Clean icon toggle that flips between light and dark. (~284 tok)
 - `ToastNotification.jsx` — `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each (~1074 tok)
 - `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
@@ -451,13 +456,15 @@
 
 ## resources/js/Components/Dashboard/
 
-- `AdjustStockModal.jsx` — TABS (~9609 tok)
+- `AdjustStockModal.jsx` — TABS (~9761 tok)
 
 ## resources/js/Components/Departments/
 
-- `OperationsFilterBar.jsx` — Warehouse / city / assignee / client-org select filters for an operations queue. (~377 tok)
-- `OperationsNav.jsx` — Switcher across the five single-station operations queues. (~955 tok)
-- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1390 tok)
+- `DepartmentNav.jsx` — Switcher across the four operational departments. (~956 tok)
+- `OperationsFilterBar.jsx` — Warehouse / city / assignee / client-org select filters for an operations queue. (~382 tok)
+- `OperationsNav.jsx` — Switcher across the five single-station operations queues. (~978 tok)
+- `OperationsTable.jsx` — Shared table body for the four order-based operations queues (~1389 tok)
+- `QueueParts.jsx` — Small pieces shared by every department dashboard, so the four pages differ (~4280 tok)
 
 ## resources/js/Components/Filters/
 
@@ -535,38 +542,45 @@
 
 ## resources/js/Pages/Dashboard/
 
-- `Index.jsx` — Quixotic-reference dashboard using real store totals, recent orders, inventory, delivery, invoices, and POS session data; unavailable time-series render honest empty states. (~5600 tok)
+- `AddMember.jsx` — AddMember — renders form (~2597 tok)
+- `EditMember.jsx` — EditMember — renders form (~3496 tok)
+- `Index.jsx` — Index (~4036 tok)
+- `InviteMember.jsx` — InviteMember — renders form (~1850 tok)
 - `Stock.jsx` — Stock (~7110 tok)
 - `StockMovements.jsx` — TYPE_STYLES — renders table (~1675 tok)
 - `StockTransferCreate.jsx` — KINDS — renders form (~7323 tok)
 - `StockTransfers.jsx` — KIND_BADGE — renders table (~2880 tok)
+- `Team.jsx` — RoleBadge — renders table (~1777 tok)
 
 ## resources/js/Pages/Dashboard/Delivery/
 
-- `Connections.jsx` — Derives the 5-way UI status from a mapped row and/or a raw suggestion object. (~6212 tok)
-- `SenditConnections.jsx` — citySync — renders form (~7654 tok)
+- `Connections.jsx` — Derives the 5-way UI status from a mapped row and/or a raw suggestion object. (~6249 tok)
+- `SenditConnections.jsx` — citySync — renders form (~7696 tok)
 
 ## resources/js/Pages/Dashboard/Departments/
 
-- `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5793 tok)
-- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~13648 tok)
-- `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~5616 tok)
+- `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5812 tok)
+- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~13678 tok)
+- `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~5668 tok)
 
 ## resources/js/Pages/Dashboard/Integrations/
 
-- `ConnectionProfile.jsx` — PLATFORM_LABELS (~7218 tok)
-- `Index.jsx` — ICONS (~2417 tok)
+- `ConnectionProfile.jsx` — PLATFORM_LABELS (~7251 tok)
+- `Index.jsx` — ICONS (~2466 tok)
 
 ## resources/js/Pages/Dashboard/Integrations/Platforms/
 
-- `Shopify.jsx` — Real-API-truth diagnostics — replaces the old generic "Test connection" (~6360 tok)
+- `Shopify.jsx` — Real-API-truth diagnostics — replaces the old generic "Test connection" (~6351 tok)
+- `WhatsApp.jsx` — WhatsApp — renders form (~1372 tok)
+- `WooCommerce.jsx` — WooCommerce — renders form (~1102 tok)
+- `YouCan.jsx` — YouCan — renders form (~950 tok)
 
 ## resources/js/Pages/Dashboard/Operations/
 
-- `Packing.jsx` — Picked orders being boxed up for handover — status = packing only. (~1157 tok)
-- `Picking.jsx` — Orders ready to pick, plus those currently being picked. (~1718 tok)
-- `ReadyForDelivery.jsx` — Packed orders staged for handover. Carrier assignment stays on the existing (~1301 tok)
-- `TransferReceiving.jsx` — Inbound InventoryTransfer rows awaiting receipt at a warehouse this org runs. (~1640 tok)
+- `Packing.jsx` — Picked orders being boxed up for handover — status = packing only. (~1171 tok)
+- `Picking.jsx` — Orders ready to pick, plus those currently being picked. (~1748 tok)
+- `ReadyForDelivery.jsx` — Packed orders staged for handover. Carrier assignment stays on the existing (~1306 tok)
+- `TransferReceiving.jsx` — Inbound InventoryTransfer rows awaiting receipt at a warehouse this org runs. (~1659 tok)
 - `WaitingForStock.jsx` — Orders confirmed but blocked on missing stock — with the line-level (~5432 tok)
 
 ## resources/js/Pages/Dashboard/Orders/
@@ -581,25 +595,29 @@
 
 ## resources/js/Pages/Dashboard/Orders/Returns/
 
-- `Index.jsx` — REASON_LABELS — renders table (~2238 tok)
+- `Index.jsx` — REASON_LABELS — renders table (~2264 tok)
+- `Inspect.jsx` — CONDITIONS (~4199 tok)
 
 ## resources/js/Pages/Dashboard/Products/
 
-- `Create.jsx` — Create — renders form (~5309 tok)
-- `Edit.jsx` — Edit (~15480 tok)
-- `Index.jsx` — Index (~4547 tok)
+- `Create.jsx` — Create — renders form (~5360 tok)
+- `Edit.jsx` — Edit (~15504 tok)
+- `Index.jsx` — Index (~4546 tok)
 
 ## resources/js/Pages/Dashboard/Roles/
 
+- `Form.jsx` — RoleForm — renders form (~2746 tok)
+- `Index.jsx` — RolesIndex (~1489 tok)
 
 ## resources/js/Pages/Dashboard/Settings/
 
+- `Index.jsx` — Index — renders form (~2050 tok)
 
 ## resources/js/Pages/Dashboard/Stores/
 
-- `Create.jsx` — Organization-first "Add Store": the workspace is never invented here — it (~2696 tok)
-- `Edit.jsx` — Edit — renders form (~1753 tok)
-- `Index.jsx` — TYPE_LABELS (~1862 tok)
+- `Create.jsx` — Organization-first "Add Store": the workspace is never invented here — it (~2737 tok)
+- `Edit.jsx` — Edit — renders form (~1764 tok)
+- `Index.jsx` — TYPE_LABELS (~1906 tok)
 
 ## resources/js/Pages/Dashboard/Warehouses/
 
@@ -607,6 +625,7 @@
 
 ## resources/js/Pages/Delivery/
 
+- `DeliveryAgentView.jsx` — Delivery agent view — a driver's own queue on a phone. (~6652 tok)
 
 ## resources/js/Pages/Onboarding/
 
@@ -629,8 +648,8 @@
 ## resources/js/Pages/Settings/
 
 - `Appearance.jsx` — Unified Appearance page. Theme mode + density are personal, client-only (~4884 tok)
-- `Profile.jsx` — Profile — renders form (~1477 tok)
-- `Security.jsx` — Security — renders form (~1257 tok)
+- `Profile.jsx` — Profile — renders form (~1462 tok)
+- `Security.jsx` — Security — renders form (~1272 tok)
 
 ## resources/js/Support/
 

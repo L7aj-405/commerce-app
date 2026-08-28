@@ -77,7 +77,7 @@ export default function Stock({
                         {canTransfer && (
                             <Link
                                 href="/dashboard/stock/transfers/create"
-                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong transition"
                             >
                                 <ArrowLeftRight className="w-4 h-4" />
                                 Transfer stock
@@ -191,7 +191,7 @@ function ProductCard({ product, lowStockThreshold, scopedWarehouseName, onAdjust
                     <div className="text-sm font-semibold text-content truncate flex items-center gap-1.5">
                         <span className="truncate">{product.name}</span>
                         {product.has_variants && (
-                            <span className="inline-flex items-center gap-0.5 flex-shrink-0 px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium">
+                            <span className="inline-flex items-center gap-0.5 flex-shrink-0 px-1.5 py-0.5 rounded-full bg-primary-soft text-primary-strong dark:text-primary text-[10px] font-medium">
                                 <Layers className="w-2.5 h-2.5" />
                                 {product.variant_count}
                             </span>
@@ -296,7 +296,7 @@ function ProductCard({ product, lowStockThreshold, scopedWarehouseName, onAdjust
                 <button
                     type="button"
                     onClick={onAdjust}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary-strong transition"
                 >
                     <Settings2 className="w-3.5 h-3.5" />
                     Adjust
@@ -326,7 +326,7 @@ function ViewToggle({ value, onChange }) {
                         aria-pressed={active}
                         title={`${o.label} view`}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition ${
-                            active ? 'bg-indigo-600 text-white shadow-sm' : 'text-content-muted hover:text-content hover:bg-surface-3'
+                            active ? 'bg-primary text-white shadow-sm' : 'text-content-muted hover:text-content hover:bg-surface-3'
                         }`}
                     >
                         <Icon className="w-3.5 h-3.5" />
@@ -387,7 +387,7 @@ function StockTableRow({ product, warehouseColumns, lowStockThreshold, onAdjust 
                 <div className="font-medium text-content flex items-center gap-1.5">
                     <span className="truncate max-w-[220px]">{product.name}</span>
                     {product.has_variants && (
-                        <span className="inline-flex items-center gap-0.5 flex-shrink-0 px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px] font-medium">
+                        <span className="inline-flex items-center gap-0.5 flex-shrink-0 px-1.5 py-0.5 rounded-full bg-primary-soft text-primary-strong dark:text-primary text-[10px] font-medium">
                             <Layers className="w-2.5 h-2.5" />
                             {product.variant_count}
                         </span>
@@ -425,7 +425,7 @@ function StockTableRow({ product, warehouseColumns, lowStockThreshold, onAdjust 
                 <button
                     type="button"
                     onClick={() => onAdjust(product)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary-strong transition"
                 >
                     <Settings2 className="w-3.5 h-3.5" />
                     Adjust
@@ -462,7 +462,7 @@ function Pagination({ links }) {
                     dangerouslySetInnerHTML={{ __html: l.label }}
                     className={[
                         'min-w-8 px-2.5 py-1 rounded-md text-xs transition',
-                        l.active ? 'bg-indigo-600 text-white' : 'text-content-muted hover:bg-surface-3 bg-surface-2 border border-line',
+                        l.active ? 'bg-primary text-white' : 'text-content-muted hover:bg-surface-3 bg-surface-2 border border-line',
                         l.url ? '' : 'opacity-40 pointer-events-none',
                     ].join(' ')}
                 />

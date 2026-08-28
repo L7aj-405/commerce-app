@@ -112,12 +112,12 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                         )
                     ) : (
                         <>
-                            <p className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-2.5">
+                            <p className="text-xs text-primary-strong bg-primary-soft border border-primary/30 rounded-[var(--radius-button)] p-2.5">
                                 Publish sends this SaaS product <strong>to</strong> the channel(s) you select below — the SaaS product is always the source of truth. Publishing to an already-linked channel updates the existing remote product; publishing to a new channel creates one and links it here (only if you check "create new" below). <strong>Queue publish</strong> (recommended) runs this in the background and is the official publish action; "Publish now" waits for the platform response in this request and is kept mainly for quick single-connection checks.
                             </p>
 
                             {mode === 'bulk' && (
-                                <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
+                                <p className="text-xs text-warning bg-warning-soft border border-warning/30 rounded-[var(--radius-button)] p-2.5">
                                     Only products with existing mappings for the selected channel will be updated. Unlinked products will be skipped unless create-on-publish is explicitly supported. Bulk publish is synchronous only for now (no background queue yet) — for a single product, prefer "Queue publish".
                                 </p>
                             )}
@@ -134,7 +134,7 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                         const blocked = isBlocked(conn.platform);
 
                                         return (
-                                            <label key={conn.id} className={`flex items-start gap-3 p-3 rounded-lg border ${blocked ? 'border-red-500/30 bg-red-500/5 cursor-not-allowed opacity-75' : 'border-line bg-surface hover:bg-surface-3 cursor-pointer'}`}>
+                                            <label key={conn.id} className={`flex items-start gap-3 p-3 rounded-[var(--radius-button)] border ${blocked ? 'border-danger/30 bg-danger-soft cursor-not-allowed opacity-75' : 'border-line bg-surface hover:bg-surface-3 cursor-pointer'}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selected.includes(conn.id)}
@@ -146,12 +146,12 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="text-sm font-medium text-content uppercase">{conn.platform}</span>
                                                         {conn.label && <span className="text-xs text-content-muted">{conn.label}</span>}
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${conn.status === 'active' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-slate-500/15 text-content-muted'}`}>
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${conn.status === 'active' ? 'bg-success-soft text-success' : 'bg-slate-500/15 text-content-muted'}`}>
                                                             {conn.status}
                                                         </span>
                                                     </div>
                                                     {blocked ? (
-                                                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                                                        <p className="mt-1 text-xs text-danger">
                                                             {readiness[conn.platform]?.errors?.[0] ?? 'Not ready to publish to this platform.'}
                                                         </p>
                                                     ) : mode === 'single' && (
@@ -161,7 +161,7 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                                                 {listing?.sync_status && <StatusBadge type="sync" status={listing.sync_status} />}
                                                             </div>
                                                         ) : (
-                                                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                                            <p className="mt-1 text-xs text-warning">
                                                                 This product is not linked to this channel yet.
                                                             </p>
                                                         )
@@ -174,20 +174,20 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                             )}
 
                             {hasUnlinkedSelected && (
-                                <label className="flex items-start gap-2 text-xs text-content-muted p-2.5 rounded-lg border border-line bg-surface">
+                                <label className="flex items-start gap-2 text-xs text-content-muted p-2.5 rounded-[var(--radius-button)] border border-line bg-surface">
                                     <input type="checkbox" checked={createMissing} onChange={(e) => setCreateMissing(e.target.checked)} className="mt-0.5 rounded border-line" />
                                     Create new product on channels without an existing link.
                                 </label>
                             )}
 
-                            {submitError && <p className="text-xs text-red-600 dark:text-red-400">{submitError}</p>}
+                            {submitError && <p className="text-xs text-danger">{submitError}</p>}
                         </>
                     )}
                 </div>
 
                 <div className="p-4 border-t border-line flex items-center justify-between gap-3 flex-shrink-0 bg-surface">
                     {outcome ? (
-                        <button type="button" onClick={onClose} className="ml-auto px-4 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                        <button type="button" onClick={onClose} className="ml-auto px-4 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">
                             Close
                         </button>
                     ) : (
@@ -196,7 +196,7 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                 {selected.length === 0 ? 'Choose at least one channel.' : `${selected.length} channel${selected.length === 1 ? '' : 's'} selected`}
                             </span>
                             <div className="flex items-center gap-2">
-                                <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">
+                                <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">
                                     Cancel
                                 </button>
                                 <button
@@ -204,7 +204,7 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                     onClick={submit}
                                     disabled={selected.length === 0 || submitting}
                                     title="Waits for the platform response in this request — kept for quick single-connection checks and backward compatibility."
-                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Publish now
@@ -215,7 +215,7 @@ export default function PublishTargetModal({ mode = 'single', product, productId
                                         onClick={submitQueued}
                                         disabled={selected.length === 0 || submitting}
                                         title="Official publish action — runs in the background, so it never times out on products with many variants."
-                                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                         Queue publish
@@ -233,14 +233,14 @@ export default function PublishTargetModal({ mode = 'single', product, productId
 function ResultsView({ mode, outcome, connections }) {
     const platformFor = (connectionId) => connections.find((c) => c.id === connectionId)?.platform ?? '—';
     const icon = { succeeded: CheckCircle2, failed: XCircle, skipped: MinusCircle };
-    const tone = { succeeded: 'text-emerald-600 dark:text-emerald-400', failed: 'text-red-600 dark:text-red-400', skipped: 'text-content-muted' };
+    const tone = { succeeded: 'text-success', failed: 'text-danger', skipped: 'text-content-muted' };
 
     return (
         <div className="space-y-4">
             {mode === 'bulk' && outcome.summary && (
                 <div className="grid grid-cols-3 gap-2 text-center">
-                    <SummaryStat label="Succeeded" value={outcome.summary.succeeded} tone="text-emerald-600 dark:text-emerald-400" />
-                    <SummaryStat label="Failed" value={outcome.summary.failed} tone="text-red-600 dark:text-red-400" />
+                    <SummaryStat label="Succeeded" value={outcome.summary.succeeded} tone="text-success" />
+                    <SummaryStat label="Failed" value={outcome.summary.failed} tone="text-danger" />
                     <SummaryStat label="Skipped" value={outcome.summary.skipped} tone="text-content-muted" />
                 </div>
             )}
@@ -249,7 +249,7 @@ function ResultsView({ mode, outcome, connections }) {
                 {(outcome.results ?? []).map((r, i) => {
                     const Icon = icon[r.status] ?? MinusCircle;
                     return (
-                        <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
+                        <div key={i} className="flex items-start gap-2 p-2.5 rounded-[var(--radius-button)] border border-line bg-surface text-xs">
                             <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${tone[r.status] ?? 'text-content-muted'}`} />
                             <div className="min-w-0">
                                 <span className="font-medium text-content uppercase">{r.platform ?? platformFor(r.connection_id)}</span>
@@ -267,11 +267,11 @@ function ResultsView({ mode, outcome, connections }) {
 function QueuedResultsView({ outcome, connections, onCheckStatus, polling }) {
     const platformFor = (connectionId) => connections.find((c) => c.id === connectionId)?.platform ?? '—';
     const icon = { succeeded: CheckCircle2, failed: XCircle, skipped: MinusCircle, queued: Clock, running: Loader2 };
-    const tone = { succeeded: 'text-emerald-600 dark:text-emerald-400', failed: 'text-red-600 dark:text-red-400', skipped: 'text-content-muted', queued: 'text-content-muted', running: 'text-indigo-600 dark:text-indigo-400' };
+    const tone = { succeeded: 'text-success', failed: 'text-danger', skipped: 'text-content-muted', queued: 'text-content-muted', running: 'text-primary' };
 
     return (
         <div className="space-y-4">
-            <div className="flex items-start gap-2 p-2.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-xs text-indigo-700 dark:text-indigo-300">
+            <div className="flex items-start gap-2 p-2.5 rounded-[var(--radius-button)] border border-primary/30 bg-primary-soft text-xs text-primary-strong">
                 <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div>
                     <p className="font-medium">Publish queued{outcome.batchStatus ? ` — ${outcome.batchStatus}` : ''}.</p>
@@ -286,7 +286,7 @@ function QueuedResultsView({ outcome, connections, onCheckStatus, polling }) {
                     {outcome.results.map((r, i) => {
                         const Icon = icon[r.status] ?? Clock;
                         return (
-                            <div key={i} className="flex items-start gap-2 p-2.5 rounded-lg border border-line bg-surface text-xs">
+                            <div key={i} className="flex items-start gap-2 p-2.5 rounded-[var(--radius-button)] border border-line bg-surface text-xs">
                                 <Icon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${tone[r.status] ?? 'text-content-muted'} ${r.status === 'running' ? 'animate-spin' : ''}`} />
                                 <div className="min-w-0">
                                     <span className="font-medium text-content uppercase">{r.platform ?? platformFor(r.connection_id)}</span>
@@ -299,7 +299,7 @@ function QueuedResultsView({ outcome, connections, onCheckStatus, polling }) {
                 </div>
             )}
 
-            <button type="button" onClick={onCheckStatus} disabled={polling} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50">
+            <button type="button" onClick={onCheckStatus} disabled={polling} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 disabled:opacity-50">
                 {polling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Check status
             </button>
@@ -309,7 +309,7 @@ function QueuedResultsView({ outcome, connections, onCheckStatus, polling }) {
 
 function SummaryStat({ label, value, tone }) {
     return (
-        <div className="p-2 rounded-lg bg-surface border border-line">
+        <div className="p-2 rounded-[var(--radius-button)] bg-surface border border-line">
             <div className={`text-lg font-bold tabular-nums ${tone}`}>{value}</div>
             <div className="text-[10px] uppercase text-content-muted">{label}</div>
         </div>

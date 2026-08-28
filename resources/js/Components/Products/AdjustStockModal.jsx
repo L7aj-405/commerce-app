@@ -55,7 +55,7 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-sm w-full overflow-hidden text-left">
+            <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] shadow-xl max-w-sm w-full overflow-hidden text-left">
                 <div className="p-4 border-b border-line flex justify-between items-center bg-surface">
                     <h3 className="font-semibold text-content text-sm">
                         Adjust stock{variantName ? ` — ${variantName}` : ''}
@@ -71,7 +71,7 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                         <select
                             value={warehouseId}
                             onChange={(e) => setWarehouseId(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         >
                             {(warehouses.length === 0 || warehouses.length > 1) && (
@@ -82,9 +82,9 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                             ))}
                         </select>
                         {warehouses.length > 1 && !warehouseId && (
-                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">Multiple warehouses exist — pick one before adjusting.</p>
+                            <p className="mt-1 text-xs text-warning">Multiple warehouses exist — pick one before adjusting.</p>
                         )}
-                        {errors.warehouse_id && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.warehouse_id}</p>}
+                        {errors.warehouse_id && <p className="mt-1 text-xs text-danger">{errors.warehouse_id}</p>}
                     </div>
 
                     <div>
@@ -95,9 +95,9 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                                     key={t.value}
                                     type="button"
                                     onClick={() => setType(t.value)}
-                                    className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                    className={`px-2 py-1.5 rounded-[var(--radius-button)] text-xs font-medium border transition ${
                                         type === t.value
-                                            ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                                            ? 'border-primary bg-primary-soft text-primary'
                                             : 'border-line bg-surface-3 text-content-muted hover:bg-content/10'
                                     }`}
                                 >
@@ -116,11 +116,11 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                             min={type === 'set_on_hand' ? 0 : 1}
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         />
-                        {errors.quantity && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.quantity}</p>}
-                        {errors.stock && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.stock}</p>}
+                        {errors.quantity && <p className="mt-1 text-xs text-danger">{errors.quantity}</p>}
+                        {errors.stock && <p className="mt-1 text-xs text-danger">{errors.stock}</p>}
                     </div>
 
                     <div>
@@ -130,16 +130,16 @@ export default function AdjustStockModal({ product, variantId, variantName, ware
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             placeholder="e.g. Physical recount, damaged goods, restock…"
-                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         />
-                        {errors.reason && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.reason}</p>}
+                        {errors.reason && <p className="mt-1 text-xs text-danger">{errors.reason}</p>}
                     </div>
 
                     <button
                         type="submit"
                         disabled={processing || !warehouseId}
-                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50"
                     >
                         {processing && <Loader2 className="w-4 h-4 animate-spin" />}
                         Save adjustment

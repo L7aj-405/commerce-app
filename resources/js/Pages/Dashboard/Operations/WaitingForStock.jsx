@@ -27,7 +27,7 @@ const STATE_TONE = {
     awaiting_restock: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
     restock_requested: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
     transfer_requested: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    waiting_for_transfer: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+    waiting_for_transfer: 'bg-primary-soft text-primary-strong dark:text-primary',
     ready_to_recheck: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
 };
 

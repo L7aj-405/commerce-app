@@ -185,7 +185,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
             align: 'right',
             render: (p) => {
                 const n = Number(p.total_stock ?? 0);
-                const tone = n <= 0 ? 'text-red-600 dark:text-red-400' : n <= 10 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400';
+                const tone = n <= 0 ? 'text-danger' : n <= 10 ? 'text-warning' : 'text-success';
                 return <span className={`font-semibold tabular-nums ${tone}`}>{n}</span>;
             },
         },
@@ -225,7 +225,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                     <Link
                         // 🆕 تحويل المسار لـ صفحة التعديل الخاصة بالمنتج الحالي باستعمال الـ id ديالو
                         href={`/dashboard/products/${p.id}/edit`}
-                        className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300 font-medium"
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-strong font-medium"
                     >
                         Edit
                     </Link>
@@ -243,7 +243,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                 <div className="flex items-center gap-2">
                     <Link
                         href="/dashboard/stock"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content"
                     >
                         <Layers className="w-4 h-4" /> Stock
                     </Link>
@@ -264,7 +264,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                     {canManage && (
                         <Link
                             href="/dashboard/products/create"
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong"
                         >
                             <Plus className="w-4 h-4" /> Add product
                         </Link>
@@ -273,7 +273,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
             ),
         }}>
             {selectedIds.length > 0 && (
-                <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex-wrap">
+                <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 rounded-[var(--radius-card)] bg-primary-soft border border-primary/30 flex-wrap">
                     <span className="text-sm text-content">{selectedIds.length} product{selectedIds.length === 1 ? '' : 's'} selected</span>
                     <div className="flex items-center gap-2 flex-wrap">
                         <button type="button" onClick={() => setSelectedIds([])} className="text-xs text-content-muted hover:text-content font-medium">
@@ -282,7 +282,7 @@ export default function Index({ store, products = { data: [], links: [] }, filte
                         <button
                             type="button"
                             onClick={() => setPublishTarget({ mode: 'bulk', productIds: selectedIds })}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong"
                         >
                             <Upload className="w-3.5 h-3.5" /> Publish selected
                         </button>
@@ -350,7 +350,7 @@ function Pagination({ links }) {
                     dangerouslySetInnerHTML={{ __html: l.label }}
                     className={[
                         'min-w-8 px-2.5 py-1 rounded-md text-xs transition',
-                        l.active ? 'bg-indigo-600 text-white' : 'text-content-muted hover:bg-surface-3',
+                        l.active ? 'bg-primary text-primary-contrast' : 'text-content-muted hover:bg-surface-3',
                         l.url ? '' : 'opacity-40 pointer-events-none',
                     ].join(' ')}
                 />

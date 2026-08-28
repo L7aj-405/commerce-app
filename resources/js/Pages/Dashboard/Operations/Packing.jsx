@@ -58,7 +58,7 @@ export default function Packing({ orders = [], is_agency_context = false }) {
                                     <button
                                         disabled={busy}
                                         onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/release`)}
-                                        className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
+                                        className="px-2.5 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
                                     >
                                         Release
                                     </button>
@@ -66,7 +66,7 @@ export default function Packing({ orders = [], is_agency_context = false }) {
                                 <button
                                     disabled={busy}
                                     onClick={() => move(o, 'ready_for_delivery')}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                                 >
                                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
                                     Packed &amp; ready

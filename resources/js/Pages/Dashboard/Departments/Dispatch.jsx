@@ -59,7 +59,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
             <DepartmentNav departments={departments} current="dispatch" />
 
             {cityIssue && (
-                <div className="mb-4 flex flex-wrap items-center gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+                <div className="mb-4 flex flex-wrap items-center gap-2 px-4 py-3 rounded-[var(--radius-card)] bg-warning-soft border border-warning/30 text-warning text-sm">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>
                         City &quot;{cityIssue.raw_city ?? 'unknown'}&quot; is not mapped to {cityIssue.provider === 'sendit' ? 'Sendit' : 'Ozon'}.
@@ -67,7 +67,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                     </span>
                     <Link
                         href={cityIssue.provider === 'sendit' ? '/dashboard/delivery-connections/sendit' : '/dashboard/delivery-connections'}
-                        className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-surface border border-amber-500/40 text-xs font-semibold hover:bg-surface-2 transition"
+                        className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-button)] bg-surface border border-warning/40 text-xs font-semibold hover:bg-surface-2 transition"
                     >
                         Open city mapping <ExternalLink className="w-3 h-3" />
                     </Link>
@@ -75,7 +75,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
             )}
 
             {shipmentIssue && (
-                <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-300 text-sm">
+                <div className="mb-4 px-4 py-3 rounded-[var(--radius-card)] bg-danger-soft border border-danger/30 text-danger text-sm">
                     <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span>
@@ -136,7 +136,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
             )}
 
             {shipmentVerification && (
-                <div className="mb-4 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm">
+                <div className="mb-4 px-4 py-3 rounded-[var(--radius-card)] bg-warning-soft border border-warning/30 text-warning text-sm">
                     <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
                         <span>Ozon returned a tracking number, but the parcel could not be verified in Ozon. Do not hand this parcel to carrier yet.</span>
@@ -144,7 +144,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                     {shipmentVerification.tracking_number_returned && (
                         <p className="mt-1 font-mono text-xs">{shipmentVerification.tracking_number_returned}</p>
                     )}
-                    <p className="mt-1.5 text-xs text-amber-700/90 dark:text-amber-300/80">
+                    <p className="mt-1.5 text-xs text-warning/80">
                         Some Ozon accounts may require adding parcels to a Bon de Livraison before operational pickup. Verify with Ozon parcel-info/tracking.
                     </p>
                     <details className="mt-2 text-xs text-content-muted">
@@ -208,7 +208,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                     <button
                                                         disabled={q.isBusy(o)}
                                                         onClick={() => post(o, `/dashboard/delivery-shipments/orders/${o.id}/ozon`)}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-surface border border-indigo-500/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-40 transition"
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-primary/40 text-primary hover:bg-primary-soft disabled:opacity-40 transition"
                                                     >
                                                         {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
                                                         {o.ozon_unverified ? 'Retry send to Ozon' : 'Send to Ozon'}
@@ -218,7 +218,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                     <button
                                                         disabled={q.isBusy(o)}
                                                         onClick={() => post(o, `/dashboard/delivery-shipments/orders/${o.id}/sendit`)}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-surface border border-blue-500/40 text-blue-600 dark:text-blue-300 hover:bg-blue-500/10 disabled:opacity-40 transition"
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-primary/40 text-primary hover:bg-primary-soft disabled:opacity-40 transition"
                                                     >
                                                         {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Truck className="w-4 h-4" />}
                                                         Send to Sendit
@@ -227,7 +227,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                 <button
                                                     disabled={q.isBusy(o)}
                                                     onClick={() => setAssigning(o)}
-                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 transition"
+                                                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 transition"
                                                 >
                                                     {q.isBusy(o) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                                     Dispatch order
@@ -273,14 +273,14 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                             <button
                                                                 disabled={busy}
                                                                 onClick={() => setFailing({ order: o, shipment: s })}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-danger/40 text-danger hover:bg-danger-soft disabled:opacity-40 transition"
                                                             >
                                                                 <XCircle className="w-4 h-4" /> Failed
                                                             </button>
                                                             <button
                                                                 disabled={busy}
                                                                 onClick={() => post(o, `/dashboard/departments/shipments/${s.id}/delivered`)}
-                                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 transition"
+                                                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-success text-white hover:brightness-90 disabled:opacity-40 transition"
                                                             >
                                                                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                                                                 Delivered
@@ -336,7 +336,7 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
 
 function ManifestBar({ manifests }) {
     return (
-        <section className="mb-4 bg-surface-2 border border-line rounded-xl p-3">
+        <section className="mb-4 bg-surface-2 border border-line rounded-[var(--radius-card)] p-3">
             <div className="flex items-center gap-2 mb-2.5 px-1">
                 <FileText className="w-4 h-4 text-content-muted" />
                 <h2 className="text-sm font-semibold text-content">Manifests</h2>
@@ -349,7 +349,7 @@ function ManifestBar({ manifests }) {
                         href={`/dashboard/departments/manifests/${encodeURIComponent(m.reference)}`}
                         target="_blank"
                         rel="noopener"
-                        className="group inline-flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-lg bg-surface border border-line hover:border-indigo-500/50 transition"
+                        className="group inline-flex items-center gap-2.5 pl-3 pr-2.5 py-2 rounded-[var(--radius-button)] bg-surface border border-line hover:border-primary/50 transition"
                     >
                         <span className="min-w-0">
                             <span className="block font-mono text-xs text-content truncate">{m.reference}</span>
@@ -370,7 +370,7 @@ function ManifestBar({ manifests }) {
 
 function Section({ title, count, children }) {
     return (
-        <section className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+        <section className="bg-surface-2 border border-line rounded-[var(--radius-card)] overflow-hidden">
             <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-line">
                 <h2 className="text-sm font-semibold text-content">{title}</h2>
                 <span className="min-w-5 px-1.5 rounded-full bg-surface border border-line text-[11px] tabular-nums text-content-muted">
@@ -385,13 +385,13 @@ function Section({ title, count, children }) {
 /** Persistent per-row banner for an Ozon parcel that add-parcel accepted but parcel-info/tracking could not confirm — the order stays "awaiting carrier" until this is retried. */
 function OzonUnverifiedBanner({ info, busy, onRetryVerification }) {
     return (
-        <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+        <div className="px-3 py-2.5 rounded-[var(--radius-card)] bg-warning-soft border border-warning/30 text-warning text-xs">
             <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div className="min-w-0">
                     <p>Ozon returned a tracking number, but the parcel could not be verified in Ozon. Do not hand this parcel to carrier yet.</p>
                     {info.tracking_number && <p className="mt-1 font-mono">{info.tracking_number}</p>}
-                    <p className="mt-1.5 text-amber-700/90 dark:text-amber-300/80">
+                    <p className="mt-1.5 text-warning/80">
                         Some Ozon accounts may require adding parcels to a Bon de Livraison before operational pickup. Verify with Ozon parcel-info/tracking.
                     </p>
                 </div>
@@ -400,7 +400,7 @@ function OzonUnverifiedBanner({ info, busy, onRetryVerification }) {
                 <button
                     disabled={busy}
                     onClick={onRetryVerification}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 disabled:opacity-40 transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-surface border border-warning/40 text-warning hover:bg-warning-soft disabled:opacity-40 transition"
                 >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                     Retry verification
@@ -557,7 +557,7 @@ function DispatchModal({ order, couriers, agents, busy, onCancel, onManualOrInte
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={onCancel} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div role="dialog" aria-modal="true" className="relative w-full max-w-xl bg-surface border border-line rounded-2xl shadow-2xl p-5 max-h-[90vh] overflow-y-auto">
+            <div role="dialog" aria-modal="true" className="relative w-full max-w-xl bg-surface border border-line rounded-[var(--radius-card)] shadow-2xl p-5 max-h-[90vh] overflow-y-auto">
                 <h3 className="text-base font-semibold text-content">Dispatch order</h3>
                 <p className="mt-0.5 text-sm text-content-muted">Choose how this order will be delivered.</p>
                 <p className="mt-1.5 text-sm text-content-muted">
@@ -574,9 +574,9 @@ function DispatchModal({ order, couriers, agents, busy, onCancel, onManualOrInte
                                 key={opt.value}
                                 onClick={() => setMode(opt.value)}
                                 className={[
-                                    'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-left transition',
+                                    'flex items-start gap-2.5 px-3 py-2.5 rounded-[var(--radius-button)] border text-left transition',
                                     on
-                                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                                        ? 'border-primary bg-primary-soft text-primary'
                                         : 'border-line bg-surface-2 text-content-muted hover:text-content hover:bg-surface-3',
                                 ].join(' ')}
                             >
@@ -603,7 +603,7 @@ function DispatchModal({ order, couriers, agents, busy, onCancel, onManualOrInte
                 </div>
 
                 <div className="mt-5 flex justify-end">
-                    <button onClick={onCancel} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content transition">
+                    <button onClick={onCancel} className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content transition">
                         Never mind
                     </button>
                 </div>
@@ -618,10 +618,10 @@ function IntegratedProviderPanel({ readiness, busy, onSend }) {
 
     if (providers.length === 0) {
         return (
-            <div className="px-4 py-6 text-center text-sm text-content-muted bg-surface-2 border border-line rounded-lg">
+            <div className="px-4 py-6 text-center text-sm text-content-muted bg-surface-2 border border-line rounded-[var(--radius-card)]">
                 No delivery provider is connected yet.
                 <div className="mt-2">
-                    <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
                         Connect a provider <ExternalLink className="w-3 h-3" />
                     </Link>
                 </div>
@@ -636,7 +636,7 @@ function IntegratedProviderPanel({ readiness, busy, onSend }) {
                 const r = readiness[code];
 
                 return (
-                    <div key={code} className="p-3.5 rounded-lg border border-line bg-surface-2">
+                    <div key={code} className="p-3.5 rounded-[var(--radius-card)] border border-line bg-surface-2">
                         <div className="flex items-start justify-between gap-3">
                             <div>
                                 <div className="flex items-center gap-2">
@@ -652,7 +652,7 @@ function IntegratedProviderPanel({ readiness, busy, onSend }) {
                             <button
                                 disabled={! r.ready || busy}
                                 onClick={() => onSend(code)}
-                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                             >
                                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
                                 {meta.sendLabel}
@@ -661,7 +661,7 @@ function IntegratedProviderPanel({ readiness, busy, onSend }) {
 
                         {! r.ready && r.reasons?.length > 0 && (
                             <div className="mt-2.5 pt-2.5 border-t border-line/60">
-                                <ul className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
+                                <ul className="space-y-1 text-xs text-warning">
                                     {r.reasons.map((reason, i) => (
                                         <li key={i} className="flex items-start gap-1.5">
                                             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" /> {reason}
@@ -669,10 +669,10 @@ function IntegratedProviderPanel({ readiness, busy, onSend }) {
                                     ))}
                                 </ul>
                                 <div className="mt-2 flex flex-wrap gap-3">
-                                    <Link href={meta.settingsUrl} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    <Link href={meta.settingsUrl} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                                         Open provider settings <ExternalLink className="w-3 h-3" />
                                     </Link>
-                                    <Link href={meta.settingsUrl} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    <Link href={meta.settingsUrl} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                                         Open city/district mapping <ExternalLink className="w-3 h-3" />
                                     </Link>
                                 </div>
@@ -739,7 +739,7 @@ function ManualCourierPanel({ couriers, busy, onSubmit }) {
                 <button
                     disabled={! valid || busy}
                     onClick={submit}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     Assign manual courier
@@ -781,7 +781,7 @@ function InternalAgentPanel({ agents, busy, onSubmit }) {
                 <button
                     disabled={! valid || busy}
                     onClick={submit}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     Assign agent
@@ -791,7 +791,7 @@ function InternalAgentPanel({ agents, busy, onSubmit }) {
     );
 }
 
-const inputCls = 'w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition';
+const inputCls = 'w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition';
 
 function Field({ label, hint, children }) {
     return (

@@ -23,7 +23,7 @@ export default function OperationsNav({ current }) {
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
             <nav
                 aria-label="Operations queues"
-                className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line overflow-x-auto"
+                className="flex items-center gap-1 p-1 rounded-[var(--radius-card)] bg-surface-2 border border-line overflow-x-auto"
             >
                 {PAGES.map((p) => {
                     const Icon = p.icon;
@@ -35,7 +35,7 @@ export default function OperationsNav({ current }) {
                             href={p.href}
                             aria-current={isActive ? 'page' : undefined}
                             className={[
-                                'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition',
+                                'inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] whitespace-nowrap transition',
                                 isActive
                                     ? 'bg-surface text-content shadow-sm border border-line'
                                     : 'text-content-muted hover:text-content hover:bg-surface-3 border border-transparent',
@@ -50,13 +50,13 @@ export default function OperationsNav({ current }) {
 
             <Link
                 href="/dashboard/departments/packing"
-                className="sm:ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                className="sm:ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
             >
                 <Truck className="w-4 h-4" /> Pick &amp; Pack Workbench
             </Link>
             <Link
                 href="/dashboard/orders/manage"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
             >
                 <LayoutGrid className="w-4 h-4" /> All orders
             </Link>

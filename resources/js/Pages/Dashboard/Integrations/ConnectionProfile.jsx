@@ -95,22 +95,22 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
             actions: (
                 <Link
                     href="/dashboard/integrations"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to integrations
                 </Link>
             ),
         }}>
             {feedback && (
-                <div className={`mb-4 px-4 py-2.5 rounded-lg border text-sm ${feedback.tone === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'}`}
+                <div className={`mb-4 px-4 py-2.5 rounded-[var(--radius-button)] border text-sm ${feedback.tone === 'success'
+                    ? 'bg-success-soft border-success/30 text-success'
+                    : 'bg-danger-soft border-danger/30 text-danger'}`}
                 >
                     {feedback.message}
                 </div>
             )}
 
-            <p className="mb-4 text-xs text-content-muted bg-surface-2 border border-line rounded-lg p-2.5">
+            <p className="mb-4 text-xs text-content-muted bg-surface-2 border border-line rounded-[var(--radius-button)] p-2.5">
                 Reset actions keep the connection credentials. Disconnect removes or disables the connection.
             </p>
 
@@ -124,13 +124,13 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                         <Row label="Auth status" value={<StatusBadge type="auth" status={state.auth.status} label={authLabel(state.auth.status)} />} />
                         <Row label="Last auth check" value={state.auth.checked_at ? new Date(state.auth.checked_at).toLocaleString() : 'Never'} />
                         {state.auth.error && (
-                            <Row label="Last auth error" value={<span className="text-red-600 dark:text-red-400">{state.auth.error}</span>} />
+                            <Row label="Last auth error" value={<span className="text-danger">{state.auth.error}</span>} />
                         )}
                         <Row label="Store" value={store?.name ?? '—'} />
                     </dl>
 
                     {state.auth.warning && (
-                        <p className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
+                        <p className="mt-3 text-xs text-warning bg-warning-soft border border-warning/30 rounded-[var(--radius-button)] p-2.5">
                             {state.auth.warning}
                         </p>
                     )}
@@ -152,7 +152,7 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                         />
                         <Link
                             href={`/dashboard/integrations/${state.connection.platform}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10"
                         >
                             <Pencil className="w-3.5 h-3.5" /> Reconnect / Edit credentials
                         </Link>
@@ -169,12 +169,12 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                         <Row label="Imported orders" value={state.syncStatus.imported_orders_count} />
                         <Row label="Last sync status" value={<StatusBadge type="sync" status={state.syncStatus.last_sync_status === 'ok' ? 'synced' : state.syncStatus.last_sync_status === 'error' ? 'error' : 'pending'} label={syncStatusLabel(state.syncStatus.last_sync_status)} />} />
                         {state.syncStatus.last_sync_error && (
-                            <Row label="Last sync error" value={<span className="text-red-600 dark:text-red-400">{state.syncStatus.last_sync_error}</span>} />
+                            <Row label="Last sync error" value={<span className="text-danger">{state.syncStatus.last_sync_error}</span>} />
                         )}
                     </dl>
 
                     {state.syncStatus.current_batch && (
-                        <div className="mt-3 p-2.5 rounded-lg bg-surface border border-line text-xs">
+                        <div className="mt-3 p-2.5 rounded-[var(--radius-button)] bg-surface border border-line text-xs">
                             <span className="font-medium text-content">Current sync batch: </span>
                             <span className="text-content-muted">
                                 {state.syncStatus.current_batch.status} ({state.syncStatus.current_batch.succeeded_count}/{state.syncStatus.current_batch.total_count} succeeded
@@ -184,7 +184,7 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                     )}
 
                     {state.syncStatus.current_order_batch && (
-                        <div className="mt-3 p-2.5 rounded-lg bg-surface border border-line text-xs space-y-1">
+                        <div className="mt-3 p-2.5 rounded-[var(--radius-button)] bg-surface border border-line text-xs space-y-1">
                             <div>
                                 <span className="font-medium text-content">Current order sync batch: </span>
                                 <span className="text-content-muted">
@@ -197,10 +197,10 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                                 </span>
                             </div>
                             {state.syncStatus.current_order_batch.last_error && (
-                                <div className="text-red-600 dark:text-red-400">{state.syncStatus.current_order_batch.last_error}</div>
+                                <div className="text-danger">{state.syncStatus.current_order_batch.last_error}</div>
                             )}
                             {['queued', 'running'].includes(state.syncStatus.current_order_batch.status) && orderBatchAgeMs > 15000 && (
-                                <div className="text-amber-700 dark:text-amber-300">
+                                <div className="text-warning">
                                     Order sync is queued. Make sure <code className="font-mono">php artisan queue:work</code> is running.
                                 </div>
                             )}
@@ -228,7 +228,7 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                         <ActionButton label="Archive imported products" variant="warning" icon={Archive} onClick={() => setModal('archive')} />
                         <Link
                             href={`/dashboard/products?connection_id=${state.connection.id}&has_listing=1`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10"
                         >
                             <ExternalLink className="w-3.5 h-3.5" /> Open product cleanup
                         </Link>
@@ -245,7 +245,7 @@ export default function ConnectionProfile({ connection, store, auth, syncStatus 
                     <button
                         type="button"
                         onClick={() => setModal('disconnect')}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-danger text-white hover:brightness-90"
                     >
                         <Unlink className="w-4 h-4" /> Disconnect connection
                     </button>
@@ -321,8 +321,8 @@ function Row({ label, value }) {
 }
 
 const CAPABILITY_STYLES = {
-    ok: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-    error: 'bg-red-500/15 text-red-700 dark:text-red-300',
+    ok: 'bg-success-soft text-success',
+    error: 'bg-danger-soft text-danger',
     skipped: 'bg-slate-500/15 text-content-muted',
     unknown: 'bg-slate-500/15 text-content-muted',
 };
@@ -345,10 +345,10 @@ function CapabilityChip({ label, status, message }) {
 
 function SectionCard({ title, icon: Icon, danger = false, children }) {
     return (
-        <div className={`bg-surface-2 border rounded-xl p-4 ${danger ? 'border-red-500/30' : 'border-line'}`}>
+        <div className={`bg-surface-2 border rounded-[var(--radius-card)] p-4 ${danger ? 'border-danger/30' : 'border-line'}`}>
             <div className="flex items-center gap-2 mb-3">
-                <Icon className={`w-4 h-4 ${danger ? 'text-red-600 dark:text-red-400' : 'text-content-muted'}`} />
-                <h3 className={`text-sm font-semibold ${danger ? 'text-red-700 dark:text-red-300' : 'text-content'}`}>{title}</h3>
+                <Icon className={`w-4 h-4 ${danger ? 'text-danger' : 'text-content-muted'}`} />
+                <h3 className={`text-sm font-semibold ${danger ? 'text-danger' : 'text-content'}`}>{title}</h3>
             </div>
             {children}
         </div>
@@ -357,9 +357,9 @@ function SectionCard({ title, icon: Icon, danger = false, children }) {
 
 function ActionButton({ label, icon: Icon, busy, variant = 'primary', onClick }) {
     const styles = {
-        primary: 'bg-indigo-600 text-white hover:bg-indigo-500',
+        primary: 'bg-primary text-primary-contrast hover:bg-primary-strong',
         secondary: 'bg-surface-3 border border-line text-content hover:bg-content/10',
-        warning: 'bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20',
+        warning: 'bg-warning-soft border border-warning/30 text-warning hover:brightness-95',
     };
 
     return (
@@ -367,7 +367,7 @@ function ActionButton({ label, icon: Icon, busy, variant = 'primary', onClick })
             type="button"
             onClick={onClick}
             disabled={busy}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg disabled:opacity-50 ${styles[variant]}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] disabled:opacity-50 ${styles[variant]}`}
         >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : Icon && <Icon className="w-3.5 h-3.5" />}
             {label}
@@ -378,23 +378,23 @@ function ActionButton({ label, icon: Icon, busy, variant = 'primary', onClick })
 function ConfirmModal({ title, warning, confirmLabel, busy, onClose, onConfirm }) {
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-md w-full overflow-hidden text-left">
+            <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] shadow-xl max-w-md w-full overflow-hidden text-left">
                 <div className="p-4 border-b border-line flex justify-between items-center bg-surface">
                     <h3 className="font-semibold text-content">{title}</h3>
                     <button type="button" onClick={onClose} className="text-content-muted hover:text-content"><X className="w-4 h-4" /></button>
                 </div>
                 <div className="p-4 space-y-3">
-                    <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
+                    <p className="text-xs text-warning bg-warning-soft border border-warning/30 rounded-[var(--radius-button)] p-2.5">
                         {warning}
                     </p>
                 </div>
                 <div className="p-4 border-t border-line flex items-center justify-end gap-2 bg-surface">
-                    <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">Cancel</button>
+                    <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">Cancel</button>
                     <button
                         type="button"
                         onClick={onConfirm}
                         disabled={busy}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50"
                     >
                         {busy && <Loader2 className="w-4 h-4 animate-spin" />} {confirmLabel}
                     </button>
@@ -409,13 +409,13 @@ function DisconnectModal({ busy, onClose, onConfirm }) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-md w-full overflow-hidden text-left">
-                <div className="p-4 border-b border-line flex justify-between items-center bg-red-500/10">
+            <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] shadow-xl max-w-md w-full overflow-hidden text-left">
+                <div className="p-4 border-b border-line flex justify-between items-center bg-danger-soft">
                     <h3 className="font-semibold text-content">Disconnect connection</h3>
                     <button type="button" onClick={onClose} className="text-content-muted hover:text-content"><X className="w-4 h-4" /></button>
                 </div>
                 <div className="p-4 space-y-3">
-                    <p className="text-xs text-red-700 dark:text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg p-2.5 flex items-start gap-2">
+                    <p className="text-xs text-danger bg-danger-soft border border-danger/30 rounded-[var(--radius-button)] p-2.5 flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         This removes the saved credentials for this connection and marks it disconnected. This is different from a reset — mappings, products, and orders are kept, but you will need to reconnect (re-enter credentials) before syncing again.
                     </p>
@@ -425,18 +425,18 @@ function DisconnectModal({ busy, onClose, onConfirm }) {
                             type="text"
                             value={confirmText}
                             onChange={(e) => setConfirmText(e.target.value)}
-                            className="mt-1 w-full px-3 py-2 text-sm rounded-lg bg-surface border border-line text-content font-mono"
+                            className="mt-1 w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface border border-line text-content font-mono"
                             placeholder="DISCONNECT"
                         />
                     </label>
                 </div>
                 <div className="p-4 border-t border-line flex items-center justify-end gap-2 bg-surface">
-                    <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10">Cancel</button>
+                    <button type="button" onClick={onClose} className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">Cancel</button>
                     <button
                         type="button"
                         onClick={onConfirm}
                         disabled={busy || confirmText !== 'DISCONNECT'}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-danger text-white hover:brightness-90 disabled:opacity-50"
                     >
                         {busy && <Loader2 className="w-4 h-4 animate-spin" />} Disconnect
                     </button>

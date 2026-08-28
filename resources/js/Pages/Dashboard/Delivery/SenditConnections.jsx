@@ -94,21 +94,21 @@ export default function SenditConnections({
                 { label: 'Sendit' },
             ],
             actions: (
-                <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
+                <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
                     <ArrowLeft className="w-4 h-4" /> Back to Integrations
                 </Link>
             ),
         }}>
             {feedback && (
-                <div className={`mb-4 px-4 py-2.5 rounded-lg border text-sm ${feedback.tone === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'}`}>
+                <div className={`mb-4 px-4 py-2.5 rounded-[var(--radius-button)] border text-sm ${feedback.tone === 'success'
+                    ? 'bg-success-soft border-success/30 text-success'
+                    : 'bg-danger-soft border-danger/30 text-danger'}`}>
                     {feedback.message}
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <div className="bg-surface-2 border border-line rounded-xl p-6 space-y-5">
+                <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-5">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-content">Sendit</h2>
                         <div className="flex items-center gap-1.5">
@@ -118,10 +118,10 @@ export default function SenditConnections({
                     </div>
 
                     {connection?.last_error && (
-                        <p className="text-xs text-red-600 dark:text-red-400">Connection: {connection.last_error}</p>
+                        <p className="text-xs text-danger">Connection: {connection.last_error}</p>
                     )}
                     {connection?.last_city_sync_error && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">{connection.last_city_sync_error}</p>
+                        <p className="text-xs text-warning">{connection.last_city_sync_error}</p>
                     )}
 
                     <form onSubmit={submit} className="space-y-4">
@@ -146,7 +146,7 @@ export default function SenditConnections({
                         </div>
                         <Field label="Default comment" value={data.default_comment} onChange={(v) => setData('default_comment', v)} />
 
-                        <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                        <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                             {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> {connection ? 'Update credentials' : 'Connect'}</>}
                         </button>
                     </form>
@@ -155,12 +155,12 @@ export default function SenditConnections({
                         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-line">
                             <button type="button" disabled={busy !== null}
                                 onClick={() => run('test', '/dashboard/delivery-connections/sendit/test')}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                                 {busy === 'test' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Test connection
                             </button>
                             <button type="button" disabled={busy !== null}
                                 onClick={() => run('sync-districts', '/dashboard/delivery-connections/sendit/sync-districts')}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                                 {busy === 'sync-districts' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Sync districts
                             </button>
                             {connection.status !== 'disabled' && (
@@ -169,7 +169,7 @@ export default function SenditConnections({
                                         if (!confirm('Disconnect Sendit? Orders can\'t be sent to it until you test the connection again.')) return;
                                         run('disconnect', '/dashboard/delivery-connections/sendit/disconnect');
                                     }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-danger/40 text-danger hover:bg-danger-soft disabled:opacity-50">
                                     {busy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PowerOff className="w-3.5 h-3.5" />} Disconnect
                                 </button>
                             )}
@@ -212,14 +212,14 @@ function LabelsCard({ busy, codes, onCodes, onFetch, fileUrl }) {
             <p className="text-xs text-content-muted">Print labels for one or more delivery codes, comma-separated.</p>
             <div className="flex gap-2">
                 <input value={codes} onChange={(e) => onCodes(e.target.value)} placeholder="CODE1, CODE2…"
-                    className="flex-1 px-3 py-2 text-sm rounded-lg bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    className="flex-1 px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary" />
                 <button type="button" disabled={busy !== null || !codes.trim()} onClick={onFetch}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                     {busy === 'labels' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Tag className="w-3.5 h-3.5" />} Get labels
                 </button>
             </div>
             {fileUrl && (
-                <a href={fileUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                <a href={fileUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                     Open label file <ExternalLink className="w-3 h-3" />
                 </a>
             )}
@@ -235,7 +235,7 @@ function WebhookCard({ webhookUrl }) {
                 <h3 className="text-sm font-semibold text-content">Webhook setup</h3>
             </div>
             <p className="text-xs text-content-muted">Paste this URL into your Sendit dashboard for the <code className="font-mono">delivery.status.update</code> event:</p>
-            <code className="block px-3 py-2 rounded-lg bg-surface-3 border border-line text-xs font-mono text-content break-all">{webhookUrl}</code>
+            <code className="block px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-xs font-mono text-content break-all">{webhookUrl}</code>
             <p className="text-xs text-content-muted">
                 Sendit signs each webhook with <code className="font-mono">X-Sendit-Signature</code> — an HMAC-SHA256 of the raw request body, keyed with this connection&apos;s secret key. Requests with a missing or invalid signature are rejected before any data is read.
             </p>
@@ -318,7 +318,7 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
     const noDistrictsSynced = (senditDistricts ?? []).length === 0;
 
     return (
-        <div className="bg-surface-2 border border-line rounded-xl p-6 space-y-4">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2">
@@ -352,11 +352,11 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
             )}
 
             {missingMajorCities?.length > 0 && (
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-[var(--radius-button)] bg-warning-soft border border-warning/30 text-warning text-xs">
                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
                         <p>Some cities may be missing. Re-sync all districts.</p>
-                        <p className="mt-0.5 text-amber-700/90 dark:text-amber-300/80">Not found in the synced districts: {missingMajorCities.join(', ')}.</p>
+                        <p className="mt-0.5 text-warning/80">Not found in the synced districts: {missingMajorCities.join(', ')}.</p>
                     </div>
                 </div>
             )}
@@ -364,12 +364,12 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
             <div className="flex items-center gap-2">
                 <button type="button" disabled={rowBusy !== null}
                     onClick={mapAllSuggested}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                     <Wand2 className="w-3.5 h-3.5" /> Map all suggested
                 </button>
                 <button type="button" disabled={rowBusy !== null}
                     onClick={refreshSuggestions}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                     <RefreshCw className="w-3.5 h-3.5" /> Refresh suggestions
                 </button>
             </div>
@@ -387,7 +387,7 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
                             <span className="text-sm text-content w-28 truncate shrink-0" title={row.cityName}>{row.cityName}</span>
 
                             <select
-                                className="flex-1 min-w-[8rem] px-2 py-1.5 text-sm rounded-lg bg-surface-3 border border-line text-content"
+                                className="flex-1 min-w-[8rem] px-2 py-1.5 text-sm rounded-[var(--radius-button)] bg-surface-3 border border-line text-content"
                                 value={valueFor(row)}
                                 onChange={(e) => setSelection((s) => ({ ...s, [row.cityId]: e.target.value }))}
                             >
@@ -407,7 +407,7 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
 
                             <button type="button" disabled={rowBusy === row.cityId || !valueFor(row)}
                                 onClick={() => mapRow(row)}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                                 {rowBusy === row.cityId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Map'}
                             </button>
 
@@ -415,7 +415,7 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
                                 <button type="button" disabled={rowBusy === row.cityId}
                                     onClick={() => clearRow(row)}
                                     aria-label={`Clear mapping for ${row.cityName}`}
-                                    className="p-1.5 rounded-lg text-content-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                                    className="p-1.5 rounded-[var(--radius-button)] text-content-muted hover:text-danger hover:bg-danger-soft disabled:opacity-50">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
@@ -430,11 +430,11 @@ function DistrictMapping({ connection, mappedCities, senditDistricts, suggestion
 function Field({ label, type = 'text', value, onChange, error, required, placeholder, hint }) {
     return (
         <div>
-            <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-red-600 dark:text-red-400">*</span>}</label>
+            <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-danger">*</span>}</label>
             <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary`} />
             {hint && !error && <p className="mt-1 text-xs text-content-muted">{hint}</p>}
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -444,11 +444,11 @@ function Select({ label, value, onChange, error, options, hint }) {
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">{label}</label>
             <select value={value} onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500`}>
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary`}>
                 {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {hint && !error && <p className="mt-1 text-xs text-content-muted">{hint}</p>}
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

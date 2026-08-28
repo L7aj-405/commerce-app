@@ -96,7 +96,7 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
             <button
                 type="button"
                 onClick={() => setIsOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition shadow-sm"
             >
                 <RefreshCw className={`w-4 h-4 ${inProgress ? 'animate-spin' : ''}`} />
                 Sync Platforms
@@ -105,7 +105,7 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
             {/* الـ Modal */}
             {isOpen && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-surface-2 border border-line rounded-xl shadow-xl max-w-lg w-full overflow-hidden text-left">
+                    <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] shadow-xl max-w-lg w-full overflow-hidden text-left">
 
                         {/* الـ Header ديال المودال */}
                         <div className="p-4 border-b border-line flex justify-between items-center bg-surface">
@@ -117,14 +117,14 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
                         <div className="p-6 space-y-4">
                             {!inProgress && !done ? (
                                 <>
-                                    <p className="text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-2.5">
+                                    <p className="text-xs text-primary bg-primary-soft border border-primary/30 rounded-[var(--radius-button)] p-2.5">
                                         Sync imports updates <strong>from</strong> the selected platform(s) <strong>into</strong> SaaS, in the background — this queues one job per platform and returns immediately. To send a SaaS product <strong>to</strong> a platform instead, use "Publish" on that product.
                                     </p>
                                     <p className="text-sm text-content-muted">Select connected integrations to pull sync updates:</p>
                                     <div className="space-y-2">
                                         {connections.map(conn => (
                                             // أصلحنا الخطأ هنا: أضفنا الـ key الفريد لكل عنصر ف القائمة
-                                            <div key={conn.id} className="flex items-center justify-between p-3 border border-line bg-surface rounded-lg">
+                                            <div key={conn.id} className="flex items-center justify-between p-3 border border-line bg-surface rounded-[var(--radius-button)]">
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
@@ -134,7 +134,7 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
                                                                 prev.includes(conn.id) ? prev.filter(id => id !== conn.id) : [...prev, conn.id]
                                                             );
                                                         }}
-                                                        className="rounded bg-surface-3 border-line text-indigo-600 focus:ring-indigo-500"
+                                                        className="rounded bg-surface-3 border-line text-primary focus:ring-primary"
                                                     />
                                                     <div>
                                                         <span className="font-medium text-content">{conn.label}</span>
@@ -146,14 +146,14 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
                                     </div>
 
                                     {startError && (
-                                        <p className="text-xs text-red-600 dark:text-red-400">{startError}</p>
+                                        <p className="text-xs text-danger">{startError}</p>
                                     )}
 
                                     <button
                                         type="button"
                                         onClick={startSync}
                                         disabled={starting}
-                                        className="w-full mt-4 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-medium transition disabled:opacity-60"
+                                        className="w-full mt-4 bg-primary hover:bg-primary-strong text-primary-contrast py-2 rounded-[var(--radius-button)] font-medium transition disabled:opacity-60"
                                     >
                                         {starting ? 'Queuing…' : 'Queue Sync'}
                                     </button>
@@ -167,24 +167,24 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
 
                                     <div className="w-full bg-surface-3 rounded-full h-2 overflow-hidden">
                                         <div
-                                            className="bg-indigo-500 h-full transition-all duration-500 rounded-full"
+                                            className="bg-primary h-full transition-all duration-500 rounded-full"
                                             style={{ width: `${progress}%` }}
                                         ></div>
                                     </div>
 
                                     {/* عرض الإحصائيات لكل منصة */}
                                     {batch?.results && batch.results.length > 0 && (
-                                        <div className="mt-4 border border-line rounded-lg divide-y divide-line bg-surface text-sm">
+                                        <div className="mt-4 border border-line rounded-[var(--radius-button)] divide-y divide-line bg-surface text-sm">
                                             {batch.results.map((res) => (
                                                 <div key={res.connection_id} className="p-3 flex justify-between items-center">
                                                     <span className="font-medium text-content-muted">{res.label}</span>
                                                     {res.status === 'failed' ? (
-                                                        <span className="text-red-600 dark:text-red-400 text-xs">{res.message || 'Failed'}</span>
+                                                        <span className="text-danger text-xs">{res.message || 'Failed'}</span>
                                                     ) : res.status === 'succeeded' ? (
                                                         <div className="space-x-2 text-xs flex gap-2">
-                                                            <span className="text-emerald-600 dark:text-emerald-400">🆕 {res.created}</span>
-                                                            <span className="text-indigo-600 dark:text-indigo-400">🔄 {res.updated}</span>
-                                                            {res.failed > 0 && <span className="text-red-600 dark:text-red-400">⚠️ {res.failed}</span>}
+                                                            <span className="text-success">🆕 {res.created}</span>
+                                                            <span className="text-primary">🔄 {res.updated}</span>
+                                                            {res.failed > 0 && <span className="text-danger">⚠️ {res.failed}</span>}
                                                         </div>
                                                     ) : (
                                                         <span className="text-content-muted text-xs capitalize">{res.status}…</span>
@@ -198,7 +198,7 @@ export default function SyncProductsModal({ connections = [], onSyncCompleted, o
                                         <button
                                             type="button"
                                             onClick={closeLog}
-                                            className="w-full mt-4 bg-surface-3 hover:bg-content/10 text-content py-2 rounded-lg font-medium transition"
+                                            className="w-full mt-4 bg-surface-3 hover:bg-content/10 text-content py-2 rounded-[var(--radius-button)] font-medium transition"
                                         >
                                             Close Log
                                         </button>

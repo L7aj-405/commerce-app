@@ -57,11 +57,11 @@ export default function Create({ cities = [] }) {
 
                 <label className="flex items-center gap-2 text-sm text-content-muted cursor-pointer">
                     <input type="checkbox" checked={data.is_default} onChange={(e) => setData('is_default', e.target.checked)}
-                        className="rounded bg-surface-3 border-line text-indigo-600 focus:ring-indigo-500" />
+                        className="rounded bg-surface-3 border-line text-primary focus:ring-primary" />
                     Set as default warehouse
                 </label>
 
-                <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50">
                     {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : <><Save className="w-4 h-4" /> Create warehouse</>}
                 </button>
             </form>
@@ -77,7 +77,7 @@ function Field({ label, type = 'text', value, onChange, error, required, ...rest
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-red-600 dark:text-red-400">*</span>}</label>
             <input type={type} value={value} onChange={(e) => onChange(e.target.value)} {...rest}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
+                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary`} />
             {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
         </div>
     );

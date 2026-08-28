@@ -9,7 +9,7 @@ import StatsCard from '@/Components/StatsCard';
 import EmptyState from '@/Components/EmptyState';
 
 const KIND_BADGE = {
-    warehouse: { label: 'Warehouse', icon: Warehouse, cls: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' },
+    warehouse: { label: 'Warehouse', icon: Warehouse, cls: 'bg-primary-soft text-primary-strong dark:text-primary' },
     team:      { label: 'Team',      icon: Users,     cls: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' },
     external:  { label: 'External',  icon: LogOut,    cls: 'bg-amber-500/15 text-amber-700 dark:text-amber-300' },
 };
@@ -31,7 +31,7 @@ export default function StockTransfers({ transfers, stats }) {
                 actions: (
                     <Link
                         href="/dashboard/stock/transfers/create"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong transition"
                     >
                         <Plus className="w-4 h-4" />
                         New transfer
@@ -170,7 +170,7 @@ function Pagination({ links }) {
                     dangerouslySetInnerHTML={{ __html: l.label }}
                     className={[
                         'min-w-8 px-2.5 py-1 rounded-md text-xs transition',
-                        l.active ? 'bg-indigo-600 text-white' : 'text-content-muted hover:bg-surface-3 bg-surface-2 border border-line',
+                        l.active ? 'bg-primary text-white' : 'text-content-muted hover:bg-surface-3 bg-surface-2 border border-line',
                         l.url ? '' : 'opacity-40 pointer-events-none',
                     ].join(' ')}
                 />

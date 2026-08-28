@@ -48,7 +48,7 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
                             className={[
                                 'px-3 py-1.5 text-sm font-medium rounded-lg transition',
                                 showing === t.value
-                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    ? 'bg-primary text-primary-contrast shadow-sm'
                                     : 'text-content-muted hover:text-content hover:bg-surface-3',
                             ].join(' ')}
                         >
@@ -63,7 +63,7 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search return or order reference…"
-                        className="w-full pl-9 pr-8 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition"
+                        className="w-full pl-9 pr-8 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40 transition"
                     />
                     {search && (
                         <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content">
@@ -74,7 +74,7 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
             </div>
 
             {rows.length === 0 ? (
-                <div className="bg-surface-2 border border-line rounded-xl py-16 text-center">
+                <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] py-16 text-center">
                     <PackageX className="w-10 h-10 mx-auto text-content-muted" strokeWidth={1.5} />
                     <h3 className="mt-3 text-sm font-semibold text-content">Nothing to inspect</h3>
                     <p className="mt-1 text-sm text-content-muted">
@@ -82,7 +82,7 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
                     </p>
                 </div>
             ) : (
-                <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+                <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-surface-2/60 text-xs uppercase tracking-wider text-content-muted border-b border-line">
@@ -115,7 +115,7 @@ export default function ReturnsIndex({ store, returns = [], filters = {}, depart
                                         <td className="px-4 py-3 text-right">
                                             <Link
                                                 href={`/dashboard/orders/returns/${r.id}`}
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition"
                                             >
                                                 <Undo2 className="w-3.5 h-3.5" />
                                                 {r.pending_count > 0 ? 'Inspect' : 'Review'}

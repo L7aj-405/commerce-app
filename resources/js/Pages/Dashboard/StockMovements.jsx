@@ -6,7 +6,7 @@ import DataTable from '@/Components/DataTable';
 const TYPE_STYLES = {
     purchase:   { label: 'Purchase',   bg: 'bg-blue-500/15',    text: 'text-blue-300'    },
     sale:       { label: 'Sale',       bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-300' },
-    adjustment: { label: 'Adjustment', bg: 'bg-indigo-500/15',  text: 'text-indigo-700 dark:text-indigo-300'  },
+    adjustment: { label: 'Adjustment', bg: 'bg-primary-soft',  text: 'text-primary-strong dark:text-primary'  },
     return:     { label: 'Return',     bg: 'bg-amber-500/15',   text: 'text-amber-700 dark:text-amber-300'   },
     damage:     { label: 'Damage',     bg: 'bg-red-500/15',     text: 'text-red-700 dark:text-red-300'     },
     transfer:   { label: 'Transfer',   bg: 'bg-slate-700/40',   text: 'text-content-muted'   },
@@ -27,7 +27,7 @@ export default function StockMovements({ movements }) {
                     <div className="text-content font-medium flex items-center gap-1.5">
                         {m.product?.name ?? '—'}
                         {m.variant && (
-                            <span className="inline-flex px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[11px] font-medium">
+                            <span className="inline-flex px-1.5 py-0.5 rounded bg-primary-soft text-primary-strong dark:text-primary text-[11px] font-medium">
                                 {m.variant.name}
                             </span>
                         )}
@@ -121,7 +121,7 @@ function Pagination({ links }) {
                     dangerouslySetInnerHTML={{ __html: l.label }}
                     className={[
                         'min-w-8 px-2.5 py-1 rounded-md text-xs transition',
-                        l.active ? 'bg-indigo-600 text-white' : 'text-content-muted hover:bg-surface-3',
+                        l.active ? 'bg-primary text-white' : 'text-content-muted hover:bg-surface-3',
                         l.url ? '' : 'opacity-40 pointer-events-none',
                     ].join(' ')}
                 />

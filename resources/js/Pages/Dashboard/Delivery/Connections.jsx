@@ -79,21 +79,21 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
                 { label: 'Ozon Express' },
             ],
             actions: (
-                <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
+                <Link href="/dashboard/integrations?tab=delivery" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
                     <ArrowLeft className="w-4 h-4" /> Back to Integrations
                 </Link>
             ),
         }}>
             {feedback && (
-                <div className={`mb-4 px-4 py-2.5 rounded-lg border text-sm ${feedback.tone === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300'}`}>
+                <div className={`mb-4 px-4 py-2.5 rounded-[var(--radius-button)] border text-sm ${feedback.tone === 'success'
+                    ? 'bg-success-soft border-success/30 text-success'
+                    : 'bg-danger-soft border-danger/30 text-danger'}`}>
                     {feedback.message}
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <div className="bg-surface-2 border border-line rounded-xl p-6 space-y-5">
+                <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-5">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-content">Ozon Express</h2>
                         <div className="flex items-center gap-1.5">
@@ -103,10 +103,10 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
                     </div>
 
                     {connection?.last_error && (
-                        <p className="text-xs text-red-600 dark:text-red-400">Connection: {connection.last_error}</p>
+                        <p className="text-xs text-danger">Connection: {connection.last_error}</p>
                     )}
                     {connection?.last_city_sync_error && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">{connection.last_city_sync_error}</p>
+                        <p className="text-xs text-warning">{connection.last_city_sync_error}</p>
                     )}
 
                     <form onSubmit={submit} className="space-y-4">
@@ -138,7 +138,7 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
                             <Checkbox label="Replaceable" checked={data.default_replace} onChange={(v) => setData('default_replace', v)} />
                         </div>
 
-                        <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                        <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                             {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> {connection ? 'Update credentials' : 'Connect'}</>}
                         </button>
                     </form>
@@ -147,12 +147,12 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
                         <div className="flex items-center gap-2 pt-2 border-t border-line">
                             <button type="button" disabled={busy !== null}
                                 onClick={() => run('test', `/dashboard/delivery-connections/${connection.id}/test`)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                                 {busy === 'test' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Test connection
                             </button>
                             <button type="button" disabled={busy !== null}
                                 onClick={() => run('sync-cities', `/dashboard/delivery-connections/${connection.id}/sync-cities`)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                                 {busy === 'sync-cities' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Sync cities
                             </button>
                             {connection.status !== 'disabled' && (
@@ -161,7 +161,7 @@ export default function Connections({ connection, mapped_cities: mappedCities, o
                                         if (!confirm('Disconnect Ozon Express? Orders can\'t be sent to it until you test the connection again.')) return;
                                         run('disconnect', `/dashboard/delivery-connections/${connection.id}/disconnect`);
                                     }}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-danger/40 text-danger hover:bg-danger-soft disabled:opacity-50">
                                     {busy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PowerOff className="w-3.5 h-3.5" />} Disconnect
                                 </button>
                             )}
@@ -264,7 +264,7 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
     const noOzonCitiesSynced = (ozonCities ?? []).length === 0;
 
     return (
-        <div className="bg-surface-2 border border-line rounded-xl p-6 space-y-4">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <div className="flex items-center gap-2">
@@ -288,12 +288,12 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
             <div className="flex items-center gap-2">
                 <button type="button" disabled={rowBusy !== null}
                     onClick={mapAllSuggested}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                     <Wand2 className="w-3.5 h-3.5" /> Map all suggested
                 </button>
                 <button type="button" disabled={rowBusy !== null}
                     onClick={refreshSuggestions}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50">
                     <RefreshCw className="w-3.5 h-3.5" /> Refresh suggestions
                 </button>
             </div>
@@ -311,7 +311,7 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
                             <span className="text-sm text-content w-28 truncate shrink-0" title={row.cityName}>{row.cityName}</span>
 
                             <select
-                                className="flex-1 min-w-[8rem] px-2 py-1.5 text-sm rounded-lg bg-surface-3 border border-line text-content"
+                                className="flex-1 min-w-[8rem] px-2 py-1.5 text-sm rounded-[var(--radius-button)] bg-surface-3 border border-line text-content"
                                 value={valueFor(row)}
                                 onChange={(e) => setSelection((s) => ({ ...s, [row.cityId]: e.target.value }))}
                             >
@@ -329,7 +329,7 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
 
                             <button type="button" disabled={rowBusy === row.cityId || !valueFor(row)}
                                 onClick={() => mapRow(row)}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50">
+                                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50">
                                 {rowBusy === row.cityId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Map'}
                             </button>
 
@@ -337,7 +337,7 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
                                 <button type="button" disabled={rowBusy === row.cityId}
                                     onClick={() => clearRow(row)}
                                     aria-label={`Clear mapping for ${row.cityName}`}
-                                    className="p-1.5 rounded-lg text-content-muted hover:text-red-600 dark:hover:text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                                    className="p-1.5 rounded-[var(--radius-button)] text-content-muted hover:text-danger hover:bg-danger-soft disabled:opacity-50">
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
@@ -352,11 +352,11 @@ function CityMapping({ connection, mappedCities, ozonCities, suggestions, citySy
 function Field({ label, type = 'text', value, onChange, error, required, placeholder, hint }) {
     return (
         <div>
-            <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-red-600 dark:text-red-400">*</span>}</label>
+            <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-danger">*</span>}</label>
             <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary`} />
             {hint && !error && <p className="mt-1 text-xs text-content-muted">{hint}</p>}
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -366,11 +366,11 @@ function Select({ label, value, onChange, error, options, hint }) {
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">{label}</label>
             <select value={value} onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500`}>
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary`}>
                 {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {hint && !error && <p className="mt-1 text-xs text-content-muted">{hint}</p>}
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

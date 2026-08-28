@@ -38,7 +38,7 @@ export default function Security({ canManageTwoFactor, twoFactorEnabled }) {
 
             {canManageTwoFactor && (
                 <Card title="Two-factor authentication" subtitle="Manage your two-factor authentication settings" className="max-w-2xl mt-6">
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-surface-3 border border-line">
+                    <div className="flex items-start gap-3 p-4 rounded-[var(--radius-button)] bg-surface-3 border border-line">
                         <ShieldOff className="w-5 h-5 text-content-muted flex-shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-medium text-content">Not available yet</p>
@@ -53,7 +53,7 @@ export default function Security({ canManageTwoFactor, twoFactorEnabled }) {
             )}
 
             <Card title="Browser sessions" subtitle="Manage and log out your active sessions on other browsers and devices" className="max-w-2xl mt-6">
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-surface-3 border border-line">
+                <div className="flex items-start gap-3 p-4 rounded-[var(--radius-button)] bg-surface-3 border border-line">
                     <Clock className="w-5 h-5 text-content-muted flex-shrink-0 mt-0.5" />
                     <div>
                         <p className="text-sm font-medium text-content">Not available yet</p>
@@ -69,15 +69,15 @@ function Field({ label, type = 'text', value, onChange, error, required }) {
     return (
         <div>
             <label className="block text-xs font-medium text-content-muted mb-1">
-                {label} {required && <span className="text-red-500">*</span>}
+                {label} {required && <span className="text-danger">*</span>}
             </label>
             <input
                 type={type}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500/60' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40`}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger/60' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary/40`}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

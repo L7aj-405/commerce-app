@@ -53,14 +53,14 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                 actions: (
                     <Link
                         href="/dashboard/roles"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3"
                     >
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
                 ),
             }}>
                 {isLocked && (
-                    <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-sm text-amber-700 dark:text-amber-300">
+                    <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] border border-warning/30 bg-warning-soft text-sm text-warning">
                         <Lock className="w-4 h-4" /> This is a locked system role and cannot be changed.
                     </div>
                 )}
@@ -75,12 +75,12 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                                 onChange={(e) => setData('name', e.target.value)}
                                 disabled={isSystem}
                                 placeholder="e.g. Warehouse Staff"
-                                className={`w-full px-3 py-2.5 rounded-lg bg-surface-2 border ${
-                                    errors.name ? 'border-red-500/60' : 'border-line'
-                                } text-content placeholder:text-content-muted focus:outline-none focus:border-indigo-500 disabled:opacity-60`}
+                                className={`w-full px-3 py-2.5 rounded-[var(--radius-button)] bg-surface-2 border ${
+                                    errors.name ? 'border-danger/60' : 'border-line'
+                                } text-content placeholder:text-content-muted focus:outline-none focus:border-primary disabled:opacity-60`}
                             />
                             {isSystem && <p className="mt-1 text-[11px] text-content-muted">System role names can’t be changed.</p>}
-                            {errors.name && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name}</p>}
+                            {errors.name && <p className="mt-1 text-xs text-danger">{errors.name}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-content-muted mb-1">Description</label>
@@ -89,7 +89,7 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
                                 placeholder="Short summary of this role"
-                                className="w-full px-3 py-2.5 rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-indigo-500"
+                                className="w-full px-3 py-2.5 rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-primary"
                             />
                         </div>
                     </div>
@@ -97,14 +97,14 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2 text-sm font-semibold text-content">
-                                <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Permissions
+                                <ShieldCheck className="w-4 h-4 text-primary" /> Permissions
                                 <span className="text-content-muted font-normal">({data.permissions.length}/{allKeys.length})</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setData('permissions', data.permissions.length === allKeys.length ? [] : allKeys)}
                                 disabled={isLocked}
-                                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300 disabled:opacity-50"
+                                className="text-xs text-primary hover:text-primary-strong disabled:opacity-50"
                             >
                                 {data.permissions.length === allKeys.length ? 'Clear all' : 'Select all'}
                             </button>
@@ -112,7 +112,7 @@ export default function RoleForm({ store, catalog = [], role = null }) {
 
                         <div className="space-y-3">
                             {catalog.map((group) => (
-                                <div key={group.group} className="rounded-xl border border-line bg-surface-2 overflow-hidden">
+                                <div key={group.group} className="rounded-[var(--radius-card)] border border-line bg-surface-2 overflow-hidden">
                                     <label className="flex items-center justify-between px-4 py-3 border-b border-line cursor-pointer">
                                         <span className="text-sm font-medium text-content">{group.label}</span>
                                         <input
@@ -120,7 +120,7 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                                             checked={groupAll(group)}
                                             onChange={() => toggleGroup(group)}
                                             disabled={isLocked}
-                                            className="h-4 w-4 rounded border-slate-600 bg-surface text-indigo-500 focus:ring-indigo-500/40"
+                                            className="h-4 w-4 rounded border-line bg-surface text-primary focus:ring-primary/40"
                                         />
                                     </label>
                                     <div className="divide-y divide-line">
@@ -131,7 +131,7 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                                                     checked={has(perm.key)}
                                                     onChange={() => toggle(perm.key)}
                                                     disabled={isLocked}
-                                                    className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-surface text-indigo-500 focus:ring-indigo-500/40"
+                                                    className="mt-0.5 h-4 w-4 rounded border-line bg-surface text-primary focus:ring-primary/40"
                                                 />
                                                 <div className="min-w-0">
                                                     <div className="text-sm text-content">{perm.label}</div>
@@ -143,14 +143,14 @@ export default function RoleForm({ store, catalog = [], role = null }) {
                                 </div>
                             ))}
                         </div>
-                        {errors.permissions && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.permissions}</p>}
+                        {errors.permissions && <p className="mt-1 text-xs text-danger">{errors.permissions}</p>}
                     </div>
 
                     <div className="flex items-center gap-2">
                         <button
                             type="submit"
                             disabled={processing || isLocked || ! data.name}
-                            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 disabled:cursor-not-allowed transition"
                         >
                             {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> {isEdit ? 'Save changes' : 'Create role'}</>}
                         </button>

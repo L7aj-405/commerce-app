@@ -59,7 +59,7 @@ export default function Index({ tab = 'commerce', can = { commerce: true, delive
                             href={`/dashboard/integrations?tab=${t.key}`}
                             className={`px-3 py-2.5 text-sm font-medium border-b-2 -mb-px transition ${
                                 active
-                                    ? 'border-indigo-600 text-content'
+                                    ? 'border-primary text-content'
                                     : 'border-transparent text-content-muted hover:text-content'
                             }`}
                         >
@@ -91,9 +91,9 @@ function ProviderCard({ card }) {
     const hasSyncStats = card.category === 'commerce' && (card.synced_products_count != null || card.synced_orders_count != null);
 
     return (
-        <div className={`bg-surface-2 border border-line rounded-xl p-5 ${card.coming_soon ? 'opacity-70' : ''}`}>
+        <div className={`bg-surface-2 border border-line rounded-[var(--radius-card)] p-5 ${card.coming_soon ? 'opacity-70' : ''}`}>
             <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${ico.bg} text-white font-bold flex items-center justify-center text-sm flex-shrink-0`}>
+                <div className={`w-10 h-10 rounded-[var(--radius-button)] bg-gradient-to-br ${ico.bg} text-white font-bold flex items-center justify-center text-sm flex-shrink-0`}>
                     {ico.letter}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -140,7 +140,7 @@ function ProviderCard({ card }) {
 function CardActions({ card }) {
     if (card.coming_soon) {
         return (
-            <button type="button" disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-surface-3 border border-line text-content-muted cursor-not-allowed">
+            <button type="button" disabled className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-surface-3 border border-line text-content-muted cursor-not-allowed">
                 Coming soon
             </button>
         );
@@ -148,7 +148,7 @@ function CardActions({ card }) {
 
     if (card.category === 'delivery') {
         return (
-            <Link href={card.manage_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">
+            <Link href={card.manage_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition">
                 {card.is_connected ? <>Manage <ArrowRight className="w-3.5 h-3.5" /></> : <><ExternalLink className="w-3.5 h-3.5" /> Connect</>}
             </Link>
         );
@@ -157,11 +157,11 @@ function CardActions({ card }) {
     if (card.is_connected) {
         return (
             <>
-                <Link href={card.connect_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 transition">
+                <Link href={card.connect_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 transition">
                     <Plug className="w-3.5 h-3.5" /> Configure
                 </Link>
                 {card.manage_url && card.manage_url !== card.connect_url && (
-                    <Link href={card.manage_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">
+                    <Link href={card.manage_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition">
                         Connection profile
                     </Link>
                 )}
@@ -170,7 +170,7 @@ function CardActions({ card }) {
     }
 
     return (
-        <Link href={card.connect_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">
+        <Link href={card.connect_url} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition">
             <ExternalLink className="w-3.5 h-3.5" /> Connect
         </Link>
     );

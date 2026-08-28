@@ -116,22 +116,22 @@ function Hero({ userName, storeName, range, onRangeChange, canPos, canViewOrders
     return (
         <section className="flex flex-col gap-5 px-1 py-2 sm:flex-row sm:items-end sm:justify-between sm:px-2">
             <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#92978f]">{storeName}</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-[-0.045em] text-[#202420] sm:text-[2.65rem]">
-                    Welcome back, <span className="font-normal text-[#626862]">{firstName}</span>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-content-muted">{storeName}</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-[-0.045em] text-content sm:text-[2.65rem]">
+                    Welcome back, <span className="font-normal text-content-muted">{firstName}</span>
                 </h1>
-                <p className="mt-2 text-sm text-[#888e87]">Your live commerce and fulfillment overview.</p>
+                <p className="mt-2 text-sm text-content-muted">Your live commerce and fulfillment overview.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-                <label className="relative inline-flex items-center gap-2 rounded-full border border-white/90 bg-white px-4 py-2.5 shadow-[0_12px_35px_-26px_rgba(42,56,46,.42)]">
-                    <CalendarDays className="h-4 w-4 text-[#697069]" strokeWidth={1.8} />
+                <label className="relative inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 shadow-premium">
+                    <CalendarDays className="h-4 w-4 text-content-muted" strokeWidth={1.8} />
                     <span className="sr-only">Dashboard date range</span>
-                    <select value={range} onChange={(event) => onRangeChange(event.target.value)} className="appearance-none bg-transparent pr-5 text-xs font-semibold text-[#363b36] focus:outline-none">
+                    <select value={range} onChange={(event) => onRangeChange(event.target.value)} className="appearance-none bg-transparent pr-5 text-xs font-semibold text-content focus:outline-none">
                         <option value="today">Today · {formatDay(new Date())}</option>
                         <option value="month">This month · {formatMonth(new Date())}</option>
                     </select>
-                    <span className="pointer-events-none absolute right-3 text-[10px] text-[#8d938c]">⌄</span>
+                    <span className="pointer-events-none absolute right-3 text-[10px] text-content-muted">⌄</span>
                 </label>
 
                 {canPos ? (
@@ -149,21 +149,21 @@ function RevenueSummary({ currency, monthRevenue, unpaidInvoices, canPos, canVie
         <SoftCard className="flex min-h-[348px] flex-col overflow-hidden p-6">
             <header className="flex items-start justify-between gap-3">
                 <div>
-                    <h2 className="text-sm font-semibold text-[#252925]">Revenue summary</h2>
-                    <p className="mt-0.5 text-xs text-[#92978f]">Current month</p>
+                    <h2 className="text-sm font-semibold text-content">Revenue summary</h2>
+                    <p className="mt-0.5 text-xs text-content-muted">Current month</p>
                 </div>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f4f0] text-[#737a72]"><ReceiptText className="h-4 w-4" /></span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-soft text-content-muted"><ReceiptText className="h-4 w-4" /></span>
             </header>
 
-            <p className="mt-8 text-xs font-medium text-[#92978f]">Total revenue</p>
-            <p className="mt-1 text-[2rem] font-semibold tracking-[-0.045em] text-[#202420] tabular-nums">{formatMoney(monthRevenue, currency)}</p>
+            <p className="mt-8 text-xs font-medium text-content-muted">Total revenue</p>
+            <p className="mt-1 text-[2rem] font-semibold tracking-[-0.045em] text-content tabular-nums">{formatMoney(monthRevenue, currency)}</p>
 
-            <div className="mt-5 rounded-[22px] bg-[#f5f7f3] p-4">
+            <div className="mt-5 rounded-[22px] bg-surface-soft p-4">
                 <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs text-[#858b84]">Unpaid invoices</span>
-                    <span className="text-sm font-semibold text-[#2c312c] tabular-nums">{formatMoney(unpaidInvoices, currency)}</span>
+                    <span className="text-xs text-content-muted">Unpaid invoices</span>
+                    <span className="text-sm font-semibold text-content tabular-nums">{formatMoney(unpaidInvoices, currency)}</span>
                 </div>
-                <div className="mt-4 flex h-16 items-center justify-center rounded-2xl border border-dashed border-[#dfe4dc] text-center text-[11px] text-[#969c95]">
+                <div className="mt-4 flex h-16 items-center justify-center rounded-2xl border border-dashed border-border text-center text-[11px] text-content-muted">
                     No revenue trend series is exposed yet
                 </div>
             </div>
@@ -181,24 +181,24 @@ function InventoryHealth({ totalProducts, lowStockCount, products }) {
         <SoftCard className="p-5">
             <header className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#edf6f0] text-[#118858]"><Layers className="h-5 w-5" /></span>
-                    <div><h2 className="text-sm font-semibold text-[#252925]">Inventory health</h2><p className="mt-0.5 text-xs text-[#92978f]">{Number(totalProducts).toLocaleString()} products</p></div>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-soft text-primary"><Layers className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-content">Inventory health</h2><p className="mt-0.5 text-xs text-content-muted">{Number(totalProducts).toLocaleString()} products</p></div>
                 </div>
-                <Link href="/dashboard/stock" className="text-[#118858]" aria-label="Open stock"><ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/dashboard/stock" className="text-primary" aria-label="Open stock"><ArrowRight className="h-4 w-4" /></Link>
             </header>
 
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#f6f7f4] px-4 py-3">
-                <span className="text-xs text-[#858b84]">Low stock</span>
-                <span className={`text-lg font-semibold tabular-nums ${Number(lowStockCount) > 0 ? 'text-amber-600' : 'text-[#118858]'}`}>{Number(lowStockCount).toLocaleString()}</span>
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-surface-soft px-4 py-3">
+                <span className="text-xs text-content-muted">Low stock</span>
+                <span className={`text-lg font-semibold tabular-nums ${Number(lowStockCount) > 0 ? 'text-warning' : 'text-primary'}`}>{Number(lowStockCount).toLocaleString()}</span>
             </div>
 
             {products.length > 0 && (
                 <div className="mt-3 space-y-2">
                     {products.slice(0, 2).map((product) => (
                         <div key={product.id} className="flex items-center gap-2.5 text-xs">
-                            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#f1f3ef] text-[#737a72]"><Package className="h-3.5 w-3.5" /></span>
-                            <span className="min-w-0 flex-1 truncate text-[#676e67]">{product.name}</span>
-                            <span className="font-semibold tabular-nums text-amber-600">{product.stock}</span>
+                            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-surface-soft text-content-muted"><Package className="h-3.5 w-3.5" /></span>
+                            <span className="min-w-0 flex-1 truncate text-content-muted">{product.name}</span>
+                            <span className="font-semibold tabular-nums text-warning">{product.stock}</span>
                         </div>
                     ))}
                 </div>
@@ -212,19 +212,19 @@ function DeliveryQueue({ pendingCount, pendingBons }) {
         <SoftCard className="p-5">
             <header className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eff5f4] text-[#32756b]"><Truck className="h-5 w-5" /></span>
-                    <div><h2 className="text-sm font-semibold text-[#252925]">Delivery queue</h2><p className="mt-0.5 text-xs text-[#92978f]">{Number(pendingCount).toLocaleString()} pending</p></div>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-soft text-primary"><Truck className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-content">Delivery queue</h2><p className="mt-0.5 text-xs text-content-muted">{Number(pendingCount).toLocaleString()} pending</p></div>
                 </div>
-                <Link href="/dashboard/bon-de-livraison" className="text-[#118858]" aria-label="Open deliveries"><ArrowRight className="h-4 w-4" /></Link>
+                <Link href="/dashboard/bon-de-livraison" className="text-primary" aria-label="Open deliveries"><ArrowRight className="h-4 w-4" /></Link>
             </header>
 
             {pendingBons.length === 0 ? (
-                <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[#edf6f0] px-4 py-3 text-xs font-medium text-[#118858]"><CheckCircle2 className="h-4 w-4" /> No pending delivery notes</div>
+                <div className="mt-4 flex items-center gap-2 rounded-2xl bg-primary-soft px-4 py-3 text-xs font-medium text-primary"><CheckCircle2 className="h-4 w-4" /> No pending delivery notes</div>
             ) : (
                 <div className="mt-4 space-y-2.5">
                     {pendingBons.slice(0, 2).map((bon) => (
                         <div key={bon.id} className="flex items-center justify-between gap-3">
-                            <div className="min-w-0"><p className="truncate font-mono text-[11px] text-[#686f68]">{bon.bon_number}</p><p className="mt-0.5 truncate text-[10px] text-[#9aa098]">{bon.customer_name || 'No customer name'}</p></div>
+                            <div className="min-w-0"><p className="truncate font-mono text-[11px] text-content-muted">{bon.bon_number}</p><p className="mt-0.5 truncate text-[10px] text-content-muted">{bon.customer_name || 'No customer name'}</p></div>
                             <StatusPill status={bon.status} />
                         </div>
                     ))}
@@ -239,13 +239,13 @@ function PosSession({ session, currency, canPos }) {
         <SoftCard className="p-5">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${session ? 'bg-[#e8f5ed] text-[#118858]' : 'bg-[#f1f3ef] text-[#7c837b]'}`}><Clock3 className="h-5 w-5" /></span>
-                    <div><h2 className="text-sm font-semibold text-[#252925]">POS session</h2><p className="mt-0.5 text-xs text-[#92978f]">{session ? `Opened ${session.opened_at}` : 'No active session'}</p></div>
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${session ? 'bg-primary-soft text-primary' : 'bg-surface-soft text-content-muted'}`}><Clock3 className="h-5 w-5" /></span>
+                    <div><h2 className="text-sm font-semibold text-content">POS session</h2><p className="mt-0.5 text-xs text-content-muted">{session ? `Opened ${session.opened_at}` : 'No active session'}</p></div>
                 </div>
-                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${session ? 'bg-emerald-500' : 'bg-[#c8ccc6]'}`} />
+                <span className={`mt-1 h-2.5 w-2.5 rounded-full ${session ? 'bg-success' : 'bg-content-muted/30'}`} />
             </div>
-            {session && <p className="mt-4 text-lg font-semibold text-[#252925] tabular-nums">{formatMoney(session.total_sales, currency)}</p>}
-            {canPos && <Link href="/pos" className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#118858]">{session ? 'Continue selling' : 'Open terminal'} <ArrowRight className="h-3.5 w-3.5" /></Link>}
+            {session && <p className="mt-4 text-lg font-semibold text-content tabular-nums">{formatMoney(session.total_sales, currency)}</p>}
+            {canPos && <Link href="/pos" className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">{session ? 'Continue selling' : 'Open terminal'} <ArrowRight className="h-3.5 w-3.5" /></Link>}
         </SoftCard>
     );
 }
