@@ -6,9 +6,11 @@ namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
+use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\User;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Inventory\WarehouseAllocationService;
 use App\Support\OrderLineItems;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +30,7 @@ class OrderWorkflowService
         private readonly StockMovementWriter $stock,
         private readonly ReturnInspectionService $returns,
         private readonly WarehouseAllocationService $allocations,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     /**
@@ -84,8 +87,66 @@ class OrderWorkflowService
                 ])
                 ->log("Order moved to {$finalTarget->label()}");
 
+            // Agent activity ledger — confirmation/fulfillment only (delivery
+            // outcomes are recorded by DispatchService, which has the
+            // OrderShipment context this method doesn't). Never fired when
+            // there is no human actor (e.g. the WhatsApp reply path), which
+            // is what keeps this "agent activity" rather than "every status
+            // change." Purely additive: never throws, never changes the
+            // transition's outcome.
+            if ($actor !== null) {
+                $this->recordActivity($order, $current, $target, $finalTarget, $actor, $reason);
+            }
+
             return $order->refresh();
         });
+    }
+
+    private function recordActivity(
+        Order|PosOrder $order,
+        FulfillmentStatus $current,
+        FulfillmentStatus $target,
+        FulfillmentStatus $finalTarget,
+        User $actor,
+        ?string $reason,
+    ): void {
+        $store = $order->store;
+
+        if ($store === null) {
+            return;
+        }
+
+        [$eventType, $sourceModule] = match (true) {
+            $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed
+                => [AgentActivityEvent::CONFIRMATION_CONFIRMED, 'confirmation'],
+            $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Cancelled
+                => [AgentActivityEvent::CONFIRMATION_CANCELLED, 'confirmation'],
+            $current === FulfillmentStatus::Picking && $finalTarget === FulfillmentStatus::Packing
+                => [AgentActivityEvent::FULFILLMENT_PICKED, 'fulfillment'],
+            in_array($current, [FulfillmentStatus::Packing, FulfillmentStatus::InProgress], true) && $finalTarget === FulfillmentStatus::ReadyForDelivery
+                => [AgentActivityEvent::FULFILLMENT_PACKED, 'fulfillment'],
+            default => [null, null],
+        };
+
+        if ($eventType === null) {
+            return;
+        }
+
+        $metadata = ['from' => $current->value, 'to' => $finalTarget->value];
+
+        if (in_array($eventType, [AgentActivityEvent::FULFILLMENT_PICKED, AgentActivityEvent::FULFILLMENT_PACKED], true)) {
+            $metadata['units'] = collect(OrderLineItems::for($order))->sum('quantity');
+        }
+
+        if ($reason !== null) {
+            $metadata['reason'] = $reason;
+        }
+
+        $this->activity->record($actor, $store, $eventType, $sourceModule, [
+            'subject' => $order,
+            'order_id' => $order->getKey(),
+            'metadata' => $metadata,
+        ]);
     }
 
     /** Legal moves out of the order's current state, for building UI actions. */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Inventory;
 
+use App\Models\AgentActivityEvent;
 use App\Models\InventoryItem;
 use App\Models\InventoryReservation;
 use App\Models\InventoryTransfer;
@@ -11,6 +12,7 @@ use App\Models\InventoryTransferItem;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Activity\AgentActivityRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +22,7 @@ class InventoryTransferService
     public function __construct(
         private readonly InventoryEngine $inventory,
         private readonly AllocationCompletionService $completion,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     /** @param array<int,array{inventory_item_id:string,quantity:int,allocation_id?:?string}> $items */
@@ -86,7 +89,7 @@ class InventoryTransferService
     public function receive(InventoryTransfer $transfer, ?User $actor=null): InventoryTransfer
     {
         abort_unless($transfer->status===InventoryTransfer::IN_TRANSIT,422,'Only in-transit stock can be received.');
-        return DB::transaction(function () use ($transfer,$actor): InventoryTransfer {
+        $received = DB::transaction(function () use ($transfer,$actor): InventoryTransfer {
             $transfer->load(['items.inventoryItem','destinationWarehouse']);
             foreach ($transfer->items as $line) {
                 $this->inventory->receiveTransfer($line->inventoryItem,$transfer->destinationWarehouse,$line->quantity,$transfer,$actor);
@@ -95,6 +98,20 @@ class InventoryTransferService
             }
             $transfer->update(['status'=>InventoryTransfer::RECEIVED,'received_at'=>now()]); return $transfer->refresh();
         });
+
+        // Activity ledger — best-effort store resolution from the actor's own
+        // active store (a transfer is organization/warehouse-scoped, not
+        // store-scoped, so there is no other reliable store to attribute
+        // this to). No actor, or no resolvable store, simply skips logging.
+        $store = $actor?->getActiveStore();
+        if ($actor !== null && $store !== null) {
+            $this->activity->record($actor, $store, AgentActivityEvent::STOCK_TRANSFER_RECEIVED, 'inventory', [
+                'subject' => $transfer,
+                'metadata' => ['items' => $transfer->items->count(), 'reference' => $transfer->reference ?? null],
+            ]);
+        }
+
+        return $received;
     }
 
     private function topUpAllocation(InventoryTransferItem $line, ?User $actor): void

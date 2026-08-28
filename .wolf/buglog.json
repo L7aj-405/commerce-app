@@ -11211,6 +11211,278 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-08-28T09:03:58.420Z"
+    },
+    {
+      "id": "bug-682",
+      "timestamp": "2026-08-28T10:06:53.435Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/OrderWorkflowService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T10:06:53.435Z"
+    },
+    {
+      "id": "bug-683",
+      "timestamp": "2026-08-28T10:07:23.761Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Orders/OrderAssignmentService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 62→94 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T10:07:23.761Z"
+    },
+    {
+      "id": "bug-684",
+      "timestamp": "2026-08-28T10:08:42.684Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Orders/ReturnInspectionService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T10:08:42.684Z"
+    },
+    {
+      "id": "bug-685",
+      "timestamp": "2026-08-28T10:09:37.385Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Inventory/InventoryTransferService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T10:09:37.385Z"
+    },
+    {
+      "id": "bug-686",
+      "timestamp": "2026-08-28T10:11:54.969Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/OrderController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T10:11:54.969Z"
+    },
+    {
+      "id": "bug-687",
+      "timestamp": "2026-08-28T10:53:53.867Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Metrics/AgentDashboardMetricsService.php",
+      "root_cause": "Was returning: array{from: Carbon, to: Carbon} */",
+      "fix": "Now returns: array{from: CarbonInterface, to: CarbonInterface} ",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-28T10:56:51.972Z"
+    },
+    {
+      "id": "bug-688",
+      "timestamp": "2026-08-28T11:26:09.402Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Support/OrderPresenter.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T11:26:09.402Z"
+    },
+    {
+      "id": "bug-689",
+      "timestamp": "2026-08-28T11:29:42.693Z",
+      "error_message": "CSS fix: preserveState",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "preserveState: true,   // keep filters + drawer open → true,",
+      "fix": "Changed preserveState: true,   // keep filters + drawer open → true,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T11:29:42.693Z"
+    },
+    {
+      "id": "bug-690",
+      "timestamp": "2026-08-28T11:30:00.066Z",
+      "error_message": "Wrong reference: busyKey should be onClaim",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "Used \"busyKey\" instead of \"onClaim\"",
+      "fix": "Changed busyKey → onClaim",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T11:30:00.066Z"
+    },
+    {
+      "id": "bug-691",
+      "timestamp": "2026-08-28T11:30:28.831Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 43→74 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T11:30:28.831Z"
+    },
+    {
+      "id": "bug-692",
+      "timestamp": "2026-08-28T11:31:17.043Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T11:31:17.043Z"
+    },
+    {
+      "id": "bug-693",
+      "timestamp": "2026-08-28T11:36:44.032Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/InertiaForbiddenActionTest.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→7 lines (3 removed) | Also: $this->withHeaders(['X-Inertia' => 'true']); ->actingAs($manager)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-28T11:36:58.804Z"
+    },
+    {
+      "id": "bug-694",
+      "timestamp": "2026-08-28T14:58:23.022Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Connectors/ShopifyConnector.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T14:58:23.022Z"
+    },
+    {
+      "id": "bug-695",
+      "timestamp": "2026-08-28T14:59:57.659Z",
+      "error_message": "Missing error handling in syncShopifyWebhooksIfApplicable",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T14:59:57.659Z"
+    },
+    {
+      "id": "bug-696",
+      "timestamp": "2026-08-28T15:00:27.692Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T15:00:27.692Z"
+    },
+    {
+      "id": "bug-697",
+      "timestamp": "2026-08-28T15:05:18.739Z",
+      "error_message": "Wrong reference: swstWorkspace should be swstBase",
+      "file": "tests/Feature/Foundation/ShopifyWebhookSignatureTest.php",
+      "root_cause": "Used \"swstWorkspace\" instead of \"swstBase\"",
+      "fix": "Changed swstWorkspace → swstBase",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-28T15:05:25.197Z"
+    },
+    {
+      "id": "bug-698",
+      "timestamp": "2026-08-28T15:09:03.090Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 20→44 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-28T15:09:03.090Z"
     }
   ]
 }

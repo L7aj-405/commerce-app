@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
+use App\Models\AgentActivityEvent;
 use App\Models\InventoryAllocation;
 use App\Models\Order;
 use App\Models\OrderReturn;
@@ -13,6 +14,7 @@ use App\Models\PosOrder;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Inventory\CatalogInventoryService;
 use App\Services\Inventory\InventoryEngine;
 use App\Support\OrderLineItems;
@@ -42,6 +44,7 @@ class ReturnInspectionService
         private readonly StockMovementWriter $stock,
         private readonly CatalogInventoryService $catalog,
         private readonly InventoryEngine $inventory,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     /**
@@ -131,7 +134,9 @@ class ReturnInspectionService
 
         $this->startInspection($return, $actor);
 
-        DB::transaction(function () use ($return, $lines, $actor) {
+        $dispositioned = ['resellable' => 0, 'damaged' => 0, 'missing' => 0];
+
+        DB::transaction(function () use ($return, $lines, $actor, &$dispositioned) {
             $store = $return->store;
 
             foreach ($lines as $line) {
@@ -217,8 +222,22 @@ class ReturnInspectionService
                         : 0.0, 2),
                     'dispositioned_at'         => now(),
                 ]);
+
+                if (isset($dispositioned[$condition])) {
+                    $dispositioned[$condition]++;
+                }
             }
         });
+
+        $totalDispositioned = array_sum($dispositioned);
+
+        if ($totalDispositioned > 0 && $return->store !== null) {
+            $this->activity->record($actor, $return->store, AgentActivityEvent::RETURN_INSPECTED, 'returns', [
+                'subject' => $return,
+                'order_id' => $return->returnable_id,
+                'metadata' => $dispositioned,
+            ]);
+        }
 
         return $return->refresh()->load('items');
     }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T09:04:01.245Z
-> Files: 476 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-28T15:09:44.966Z
+> Files: 520 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -11,7 +11,7 @@
 
 ## ../../../../.claude/plans/
 
-- `cryptic-mixing-puzzle.md` — Appearance/Brand Settings + UI De-duplication (Orders first) (~5079 tok)
+- `cryptic-mixing-puzzle.md` — Role-Based Dashboards + Agent Activity Metrics Foundation (~4889 tok)
 - `parallel-prancing-flame.md` — Delivery Provider Foundation + Ozon Express Integration (~4721 tok)
 - `tidy-frolicking-moler.md` — Phase CV1 — Canonical Product Options and Variant Wizard Persistence (~3384 tok)
 
@@ -62,7 +62,7 @@
 
 ## app/Connectors/
 
-- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~12456 tok)
+- `ShopifyConnector.php` — Shopify Admin REST API connector (version 2024-01). (~13048 tok)
 - `WooCommerceConnector.php` — Parse WooCommerce product to normalized format (~9504 tok)
 
 ## app/Connectors/Delivery/
@@ -107,7 +107,7 @@
 ## app/Http/Controllers/Api/
 
 - `SenditWebhookController.php` — Receives Sendit's delivery-status-update webhook. Guest route (see (~587 tok)
-- `ShopifyWebhookController.php` — Single endpoint for every Shopify webhook topic — the event is read (~1745 tok)
+- `ShopifyWebhookController.php` — Single endpoint for every Shopify webhook topic — the event is read (~2348 tok)
 - `WooCommerceWebhookController.php` — Single endpoint for every WooCommerce order webhook topic — mirrors (~1653 tok)
 
 ## app/Http/Controllers/Auth/
@@ -115,22 +115,22 @@
 
 ## app/Http/Controllers/Dashboard/
 
-- `ConnectionProfileController.php` — A per-connection "control panel" — the single place to check auth status, (~8641 tok)
-- `DashboardController.php` — index (~1906 tok)
+- `ConnectionProfileController.php` — A per-connection "control panel" — the single place to check auth status, (~9979 tok)
+- `DashboardController.php` — /dashboard renders a DIFFERENT dashboard depending on the viewer's role — (~3031 tok)
 - `DeliveryConnectionController.php` — Delivery provider connection settings — Ozon Express first. (~2962 tok)
 - `DeliveryNoteController.php` — create, addShipments, save (~707 tok)
 - `DeliveryShipmentController.php` — Sending a packed order to an external delivery provider, and refreshing its tracking. (~1966 tok)
-- `DepartmentController.php` — Focused work queues, one per operational department. (~5955 tok)
+- `DepartmentController.php` — Focused work queues, one per operational department. (~5985 tok)
 - `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~6435 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~1642 tok)
-- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~5525 tok)
+- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~5887 tok)
 - `OrderNotificationController.php` — Lightweight polling endpoint for order badges/toasts — no websockets/ (~1054 tok)
 - `ProductCleanupController.php` — Safe bulk cleanup for imported products — archive, unlink a platform (~1768 tok)
-- `ProductController.php` — index, syncFromPlatform, create, store (~10438 tok)
+- `ProductController.php` — index, syncFromPlatform, create, store (~10548 tok)
 - `ProductSyncController.php` — كيجيب الـ Connections المتاحة بحال لي كان ف دالة render() (~1324 tok)
 - `SenditConnectionController.php` — Sendit connection settings, district sync, and district mapping — the (~3771 tok)
 - `SettingsController.php` — Store-level brand appearance (primary/accent color, font, radius) — (~868 tok)
-- `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~9786 tok)
+- `StockController.php` — id => name for the active store's sellable warehouses (set per request). (~9900 tok)
 - `StockTransferController.php` — index, create, store, slip (~2839 tok)
 - `StoreController.php` — Add Store is Organization-first: it never invents a workspace. It shows (~2348 tok)
 - `WarehouseController.php` — index, create, store, edit, update (~1879 tok)
@@ -152,7 +152,7 @@
 
 ## app/Http/Middleware/
 
-- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~1455 tok)
+- `HandleInertiaRequests.php` — HandleInertiaRequests: version, share (~1474 tok)
 
 ## app/Http/Requests/Auth/
 
@@ -164,6 +164,7 @@
 - `ProductPublishJob.php` — Publishes one canonical Product to one PlatformConnection and records the (~1147 tok)
 - `ProductSyncJob.php` — Imports one PlatformConnection's catalog into the store and records the (~960 tok)
 - `RecheckWaitingStockOrdersJob.php` — Dispatched by InventoryEngine whenever available stock increases at a (~474 tok)
+- `ShopifyOrderWebhookJob.php` — Processes one verified Shopify orders/create|updated webhook off the (~893 tok)
 - `TrackActiveShipmentsJob.php` — Scheduled poll of every non-terminal shipment (any provider), grouped by connection for bulk trackin (~469 tok)
 
 ## app/Jobs/Pos/
@@ -205,6 +206,8 @@
 
 ## app/Models/
 
+- `AgentActivityEvent.php` — Append-only agent/operational activity ledger. See the creating migration (~763 tok)
+- `AgentScoreRule.php` — Configurable points-per-event-type rule — points/bonus system FOUNDATION (~437 tok)
 - `CityDeliveryProviderMapping.php` — Links an internal City to one provider's city (e.g. Ozon). (~198 tok)
 - `DeliveryConnection.php` — A store's credentials + settings for one delivery provider (e.g. Ozon (~1287 tok)
 - `DeliveryNote.php` — A carrier handover batch (provider-side BL), distinct from the internal MAN- manifest system. (~317 tok)
@@ -216,7 +219,7 @@
 - `OrderNotification.php` — Per-user "new order" notification row — one per (user, order, type), see the migration's own doc com (~364 tok)
 - `OrderSyncBatch.php` — Mirrors ProductSyncBatch — one row per queued "Sync orders now"/"Full order resync" action, summed f (~735 tok)
 - `OrderSyncResult.php` — One row per (order sync batch, platform connection) — mirrors ProductSyncResult. (~390 tok)
-- `PlatformConnection.php` — Model — 20 fields, 5 rels (~982 tok)
+- `PlatformConnection.php` — The secret Shopify's HMAC signature must be verified against, no (~1351 tok)
 - `PosOrderItem.php` — Model — 13 fields, 3 rels (~369 tok)
 - `Product.php` — Platform-specific identities for this canonical catalog product. (~1797 tok)
 - `ProductAttribute.php` — Model — 4 fields, 2 rels (~315 tok)
@@ -255,6 +258,10 @@
 ## app/Services/
 
 
+## app/Services/Activity/
+
+- `AgentActivityRecorder.php` — The single write path for the agent/operational activity ledger (~524 tok)
+
 ## app/Services/Agency/
 
 - `AgencyWorkspaceService.php` — AgencyWorkspaceService: createClient, createAgencyWarehouse, assignWarehouse, assignService (~1276 tok)
@@ -286,7 +293,7 @@
 - `AllocationCompletionService.php` — The single place that decides "this allocation's shortages are all (~558 tok)
 - `CatalogInventoryService.php` — CatalogInventoryService: forCatalog, resolve (~1580 tok)
 - `InventoryEngine.php` — InventoryEngine: setOnHand, adjustOnHand, reserve, release + 6 more (~3809 tok)
-- `InventoryTransferService.php` — InventoryTransferService: request, approve, cancel, ship + 1 more (~1916 tok)
+- `InventoryTransferService.php` — InventoryTransferService: request, approve, cancel, ship + 1 more (~2147 tok)
 - `OrderLineInventoryResolution.php` — The outcome of resolving one online order line to a local catalog (~441 tok)
 - `OrderLineInventoryResolver.php` — The single, platform-agnostic resolver for "what local catalog record — (~4312 tok)
 - `WaitingStockReallocationService.php` — Waiting Stock Reallocation — recovers orders stuck in WaitingForStock once (~1427 tok)
@@ -298,6 +305,13 @@
 ## app/Services/Meta/
 
 
+## app/Services/Metrics/
+
+- `AgentDashboardMetricsService.php` — Read-only metrics for a single agent's own confirmation/fulfillment/ (~1856 tok)
+- `AgentScorePreviewService.php` — "Performance points preview" — POINTS FOUNDATION ONLY, per the brief. Reads (~543 tok)
+- `OwnerDashboardMetricsService.php` — The store owner/admin business-overview dashboard. `today_sales`, (~3390 tok)
+- `SupervisorDashboardMetricsService.php` — Operations-control metrics: queue sizes, waiting-stock/delayed-order (~1032 tok)
+
 ## app/Services/Onboarding/
 
 - `AgencyOnboardingService.php` — Backs the agency onboarding wizard (Step 8 / A1-A10). Reuses (~1765 tok)
@@ -305,9 +319,11 @@
 
 ## app/Services/Orders/
 
+- `DispatchService.php` — Handing a packed order to whoever carries it, and recording the outcome. (~4768 tok)
 - `OperationsQueueService.php` — Cross-store operational queues, scoped by warehouse OPERATOR rather than the (~8097 tok)
-- `OrderWorkflowService.php` — Every fulfillment status change goes through here — the board, the WhatsApp (~3103 tok)
-- `ReturnInspectionService.php` — Reverse logistics: receiving returned goods and routing each line to active or (~3691 tok)
+- `OrderAssignmentService.php` — Who is working which order. (~1642 tok)
+- `OrderWorkflowService.php` — Every fulfillment status change goes through here — the board, the WhatsApp (~3807 tok)
+- `ReturnInspectionService.php` — Reverse logistics: receiving returned goods and routing each line to active or (~3895 tok)
 - `StockMovementWriter.php` — The single place stock quantities are mutated by the order lifecycle. (~1156 tok)
 
 ## app/Services/Pos/
@@ -336,6 +352,7 @@
 - `ShopifyCapabilityDiagnosticsService.php` — Real-API-truth diagnostics for a Shopify admin_client_credentials (~2599 tok)
 - `ShopifyOrderMapper.php` — Map a Shopify orders/create|updated webhook payload onto the canonical (~271 tok)
 - `ShopifyProductMapper.php` — Map a Shopify products/create|update webhook payload onto the canonical (~241 tok)
+- `ShopifyWebhookRegistrationService.php` — Ensures a Shopify connection's order webhooks (orders/create, (~934 tok)
 - `ShopifyWebhookVerifier.php` — Verify a Shopify webhook's X-Shopify-Hmac-Sha256 header against the raw (~203 tok)
 
 ## app/Services/Stocks/
@@ -360,10 +377,11 @@
 ## app/Support/
 
 - `BrandAppearance.php` — Single source of truth for store-level brand appearance (primary/accent (~639 tok)
+- `InertiaErrorResponder.php` — Central place deciding how an uncaught exception becomes an HTTP response (~1006 tok)
 - `OnboardingOptions.php` — Static option lists shared by every onboarding controller/page — kept in (~1309 tok)
 - `OrderAddressSummary.php` — The customer's ORIGINAL shipping/delivery address, as the platform sent (~1958 tok)
 - `OrderLineItems.php` — One line-item shape for both order models, for code that has to touch stock. (~1754 tok)
-- `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~3496 tok)
+- `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~4026 tok)
 - `OrderSourceSummary.php` — Phase OST — single source of truth for "where did this order come from", (~1428 tok)
 - `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~3544 tok)
 - `WaitingStockState.php` — Single source of truth for "what should a waiting-stock order's badge say" (~979 tok)
@@ -377,6 +395,7 @@
 
 ## bootstrap/
 
+- `app.php` (~749 tok)
 
 ## bootstrap/cache/
 
@@ -420,6 +439,8 @@
 - `2026_08_26_000002_add_generic_location_fields_to_delivery_provider_cities_table.php` — Generic (provider-agnostic) location fields, first needed by Sendit's (~509 tok)
 - `2026_08_27_000001_add_district_name_fields_to_delivery_provider_cities_table.php` — Sendit's /districts rows carry TWO distinct name fields — `ville` (the (~405 tok)
 - `2026_08_27_000002_add_pagination_diagnostics_to_delivery_connections_table.php` — Diagnostics for a district/city sync, alongside the existing (~433 tok)
+- `2026_08_28_000001_create_agent_activity_events_table.php` — Append-only agent/operational activity ledger — the foundation for (~665 tok)
+- `2026_08_28_000002_create_agent_score_rules_table.php` — Configurable points-per-event-type rules — the foundation for a future (~840 tok)
 
 ## database/seeders/
 
@@ -450,13 +471,23 @@
 - `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
 - `SyncProductsModal.jsx` — DONE_STATUSES (~3480 tok)
 - `ThemeToggle.jsx` — Clean icon toggle that flips between light and dark. (~284 tok)
-- `ToastNotification.jsx` — `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each (~1074 tok)
+- `ToastNotification.jsx` — `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each (~1122 tok)
 - `TypeBadge.jsx` — Same tinted-pill language as StatusBadge, for the two "what kind of thing (~353 tok)
 - `UserDropdown.jsx` — UserDropdown (~1095 tok)
 
 ## resources/js/Components/Dashboard/
 
 - `AdjustStockModal.jsx` — TABS (~9761 tok)
+
+## resources/js/Components/Dashboard/Roles/
+
+- `ConfirmationAgentDashboard.jsx` — ConfirmationAgentDashboard (~1187 tok)
+- `DeliveryAgentDashboard.jsx` — DeliveryAgentDashboard (~1034 tok)
+- `FulfillmentAgentDashboard.jsx` — FulfillmentAgentDashboard (~1070 tok)
+- `InventoryDashboard.jsx` — InventoryDashboard (~521 tok)
+- `OwnerDashboard.jsx` — The business-overview dashboard — byte-for-byte the same content that used (~4058 tok)
+- `PointsPreviewCard.jsx` — "Performance points preview" — foundation only, per the brief. Never (~539 tok)
+- `SupervisorDashboard.jsx` — QUEUE_META — renders table (~1469 tok)
 
 ## resources/js/Components/Departments/
 
@@ -521,6 +552,7 @@
 
 ## resources/js/Pages/
 
+- `Error.jsx` — Branded replacement for Laravel's bare framework error views — rendered (~951 tok)
 
 ## resources/js/Pages/Admin/
 
@@ -544,7 +576,7 @@
 
 - `AddMember.jsx` — AddMember — renders form (~2597 tok)
 - `EditMember.jsx` — EditMember — renders form (~3496 tok)
-- `Index.jsx` — Index (~4036 tok)
+- `Index.jsx` — /dashboard renders a different dashboard per role — see (~389 tok)
 - `InviteMember.jsx` — InviteMember — renders form (~1850 tok)
 - `Stock.jsx` — Stock (~7110 tok)
 - `StockMovements.jsx` — TYPE_STYLES — renders table (~1675 tok)
@@ -559,7 +591,7 @@
 
 ## resources/js/Pages/Dashboard/Departments/
 
-- `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5812 tok)
+- `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5826 tok)
 - `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~13678 tok)
 - `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~5668 tok)
 
@@ -587,7 +619,7 @@
 
 - `Index.jsx` — STATUS_OPTIONS — renders table (~2556 tok)
 - `Index.jsx` — Unified POS+online orders list; Source/Status filters, origin badges, view/receipt actions (~1600 tok)
-- `Manage.jsx` — COLUMNS (~13566 tok)
+- `Manage.jsx` — COLUMNS (~15167 tok)
 - `Manage.jsx` — Multi-channel fulfillment board (Kanban+table); dept/source tabs, drawer transitions (~7000 tok)
 - `Show.jsx` — Show — renders table (~3496 tok)
 - `ShowOnline.jsx` — Pre-send visibility into how "Send to Ozon" would resolve this order's city — helps debug "not mappe (~4544 tok)
@@ -656,6 +688,7 @@
 - `applyBrandTokens.js` — Curated, system-safe font stacks (Settings -> Appearance -> Font family). (~554 tok)
 - `color.js` — Small, dependency-free color helpers for the brand appearance settings — (~276 tok)
 - `contextualNav.js` — Contextual topbar tabs, keyed by the current URL's prefix. Replaces the old (~1984 tok)
+- `formatDuration.js` — Formats a duration in seconds as a short human string — "45s", "3m 20s", "1h 12m". (~173 tok)
 - `roleShortcuts.js` — Curates the compact icon rail's contents per role, on top of the existing (~1037 tok)
 
 ## resources/views/
@@ -736,7 +769,7 @@
 - `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~339 tok)
-- `dashboard.php` (~7828 tok)
+- `dashboard.php` (~7950 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -837,15 +870,21 @@
 - `AgencyNavigationSeparationTest.php` — Declares agencyNavWorkspace (~767 tok)
 - `AgencyOperationsNavigationTest.php` — Agency Operations Navigation — an agency admin operating a shared (~1926 tok)
 - `AgencyOrderSourceScopeTest.php` — Phase OST6 — an agency admin filtering by source (platform/connection) (~1809 tok)
+- `AgentActivityEventTest.php` — The agent_activity_events ledger is written additively, after a workflow (~1727 tok)
+- `AgentDashboardMetricsTest.php` — Every number AgentDashboardMetricsService reports is derived straight from (~1587 tok)
+- `AgentPointsPreviewTest.php` — "Performance points preview" — a foundation-only, read-only projection over (~1106 tok)
 - `AppearanceSettingsTest.php` — apstWorkspace: apstCashier, apstPageSource (~826 tok)
 - `AppShellNavigationTest.php` — asntWorkspace: asntRailSource, asntDrawerSource, asntTopbarSource, asntSaasLayoutSource (~1026 tok)
 - `BrandAppearancePersistenceTest.php` — Declares bapWorkspace (~1284 tok)
+- `BrandedErrorPageTest.php` — A full-page GET request that hits 403/404/419/500 renders the branded (~830 tok)
 - `ChannelFrontendCoverageTest.php` — Declares channelCoverageWorkspace (~1285 tok)
 - `CityWarehouseAllocationShortageTest.php` — City-to-warehouse allocation, including the "no mapping found" fallback (~2635 tok)
 - `ComponentThemeConsistencyTest.php` — Declares ctcRead (~567 tok)
 - `ConfirmationAddressPrefillTest.php` — Confirmation Desk address prefill — the customer's original (~2861 tok)
+- `ConfirmationAgentDashboardTest.php` — cadWorkspace: cadAgent (~703 tok)
 - `ConfirmationCityWarehouseSelectionTest.php` — Confirmation Desk city selection — the city dropdown is preselected from (~2636 tok)
 - `ConfirmationDeskClaimTest.php` — Confirmation Desk claim-gated actions — an order must be claimed by the (~3527 tok)
+- `ConfirmationOrderCardActionTest.php` — The Orders board / Confirmation Desk cards must never show an enabled (~2142 tok)
 - `ConnectionAuthClarityTest.php` — cacWorkspace: cacWoo (~2054 tok)
 - `ConnectionOrderSyncBatchTest.php` — cosbWorkspace: cosbWoo (~1775 tok)
 - `ConnectionProductArchiveTest.php` — cpaWorkspace: cpaWoo, cpaShopify, cpaProduct (~1526 tok)
@@ -854,7 +893,10 @@
 - `ConnectionSyncResetTest.php` — csrWorkspace: csrWoo, csrShopify (~2982 tok)
 - `ContextualTopbarTest.php` — ctntWorkspace: ctntConfigSource, ctntHrefs (~633 tok)
 - `DashboardNavigationVisibilityTest.php` — navWorkspace: navMemberWithRole (~1588 tok)
+- `DeliveryAgentDashboardTest.php` — dadWorkspace: dadDispatcher (~854 tok)
 - `ExternalStockPushJobTest.php` — Phase S6 — ExternalStockPushJob is the optional async wrapper around (~2166 tok)
+- `FulfillmentAgentDashboardTest.php` — fadWorkspace: fadAgent (~879 tok)
+- `InertiaForbiddenActionTest.php` — App\Support\InertiaErrorResponder: a genuine Inertia SPA action (the (~1443 tok)
 - `IntegrationNavigationTest.php` — inOwnerWorkspace: inManager, inSidebarSource, isNavItemActive (~1734 tok)
 - `IntegrationsCenterTest.php` — Declares icOwnerWorkspace (~1336 tok)
 - `IntegrationsTabsTest.php` — itOwnerWorkspace: itManager, itViewer (~986 tok)
@@ -863,6 +905,7 @@
 - `OnlineOrderLineInventoryResolverTest.php` — OrderLineInventoryResolver — the single, platform-agnostic resolver for (~2807 tok)
 - `OnlineOrderReservationPolicyTest.php` — Phase O2 — online order reservation policy. Default: a pending (~2205 tok)
 - `OperationsNavigationTest.php` — opsNavWorkspace: opsNavMember (~1082 tok)
+- `OrderActionAuthorizationUxTest.php` — Backend authorization for order actions stays strict no matter what the (~1426 tok)
 - `OrderExternalStockSyncTest.php` — Phase O6 — every order/POS/return event that changes SELLABLE available (~2380 tok)
 - `OrderInventoryConsistencyTest.php` — Phase O1/O8 — end-to-end online-order inventory lifecycle consistency: (~2220 tok)
 - `OrderLineInventoryMappingTest.php` — Phase O4 — order line inventory resolution: ProductVariantChannelListing (~2411 tok)
@@ -874,6 +917,7 @@
 - `OrderSyncIncrementalTest.php` — WooCommerceConnector::getOrders() sends `after` as a GET query param, not a form/JSON body — Http::R (~2197 tok)
 - `OrderSyncQueueTest.php` — osqWorkspace: osqWooConnection (~1662 tok)
 - `OrderWebhookIdempotencyTest.php` — Declares owiWorkspace (~1517 tok)
+- `OwnerDashboardMetricsTest.php` — The owner dashboard must show a WHOLE-BUSINESS view — POS + online (~2299 tok)
 - `PermissionAwareAppearanceTest.php` — paaOwnerWorkspace: paaManager (~789 tok)
 - `PermissionAwareNavigationTest.php` — pantOwnerWorkspace: pantMember, pantRoleShortcutsSource (~1274 tok)
 - `PosInventoryWorkflowTest.php` — Phase O3 — POS stock semantics via InventoryEngine (organization-backed (~2750 tok)
@@ -904,17 +948,22 @@
 - `ProductWizardVariantPersistenceTest.php` — Declares wizardPersistenceWorkspace (~2330 tok)
 - `ProductWizardVariantSkuGenerationTest.php` — skuGenWorkspace: skuGenProduct (~1836 tok)
 - `ReturnInventoryEngineTest.php` — Phase O5 — return inspection through InventoryEngine (organization-backed (~2675 tok)
+- `RoleBasedDashboardTest.php` — /dashboard renders a different page per role — see (~1089 tok)
 - `SettingsPageMigrationTest.php` (~381 tok)
+- `ShopifyAutomaticOrderImportTest.php` — The full acceptance scenario from the brief: a new Shopify order arrives (~1856 tok)
 - `ShopifyCanonicalPublishMapperTest.php` — shopifyMapperWorkspace: shopifyMapperProduct (~2150 tok)
 - `ShopifyCapabilityDiagnosticsTest.php` — cdWorkspace: cdConnection, cdTokenFake (~2992 tok)
 - `ShopifyClientCredentialsAuthTest.php` — sccWorkspace: sccConnection, sccFakeTokenResponse (~2800 tok)
 - `ShopifyConnectionAuthStatusTest.php` — Root cause: ShopifyAuthService::testConnection() hard-gated on the (~2233 tok)
 - `ShopifyConnectionWorkflowTest.php` — Declares scwWorkspace (~1993 tok)
 - `ShopifyInventorySyncTest.php` — Shopify quantity is never set via a product/variant update payload — it (~3870 tok)
+- `ShopifyManualSyncStillWorksTest.php` — Manual sync ("Sync" button on the Shopify connection profile) must keep (~1092 tok)
+- `ShopifyOrderImportIdempotencyTest.php` — Shopify orders are unique by (platform_connection_id, platform_order_id) — (~1555 tok)
 - `ShopifyOrderLineInventoryMappingTest.php` — Shopify order line -> local product/variant/InventoryItem mapping, via the (~2493 tok)
 - `ShopifyOrderWebhookImportTest.php` — sowiWorkspace: sowiHeaders (~1927 tok)
 - `ShopifyPublishMirrorsSaasProductTest.php` — The SaaS Product is the source of truth: publishing must mirror its (~2184 tok)
 - `ShopifyPublishMirrorsSaasProductTest.php` — The SaaS Product is the source of truth: publishing must mirror its (~2161 tok)
+- `ShopifyScheduledOrderImportTest.php` — routes/console.php's every-minute Schedule::call() is already (~1291 tok)
 - `ShopifySimpleDefaultVariantStrategyTest.php` — Phase S4 — consolidating regression test for the simple/variable Shopify (~2593 tok)
 - `ShopifySimpleProductReadinessTest.php` — A product previously tested as variable in SaaS/Shopify, whose (~2596 tok)
 - `ShopifySimpleSkuPublishTest.php` — Shopify SKU belongs to the variant, never the product parent — even a (~3015 tok)
@@ -923,8 +972,12 @@
 - `ShopifyStockAdjustmentPushTest.php` — POST /dashboard/products/{product}/stock is the inventory-safe adjustment (~3193 tok)
 - `ShopifyVariantInventorySyncTest.php` — A Shopify variant's stock lives on InventoryLevel (inventory_item_id + (~2927 tok)
 - `ShopifyVariantSkuPublishTest.php` — For a variable product, SKU lives on each Shopify variant — publishing (~1461 tok)
+- `ShopifyWebhookConnectionResolutionTest.php` — The webhook URL is per-connection (/api/webhooks/shopify/{connection}), (~1351 tok)
+- `ShopifyWebhookOrderImportTest.php` — ShopifyWebhookController must return quickly: verify HMAC → resolve (~2037 tok)
+- `ShopifyWebhookSignatureTest.php` — The root-cause fix: a Shopify connection using admin_client_credentials (~1582 tok)
 - `ShopifyWebhookTest.php` — shopifyWebhookWorkspace: shopifyWebhookHeaders, shopifyProductPayload, shopifyOrderPayload (~2169 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
+- `SupervisorDashboardMetricsTest.php` — supervisorDashboardMetricsWorkspace: supervisorDashboardMetricsMember (~1996 tok)
 - `ThemeModeTest.php` — themeAppCss: themeShellSource, themeTopbarSource (~718 tok)
 - `ThemeTokenTest.php` — Declares ttAppCss (~590 tok)
 - `WaitingStockMappingRepairTest.php` — Waiting Stock mapping repair — a shortage line that was dropped entirely (~2364 tok)

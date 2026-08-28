@@ -8,9 +8,11 @@ use App\Enums\FulfillmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\DeliveryConnection;
+use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\User;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Delivery\DeliveryCityMappingResolver;
 use App\Services\Orders\OrderWorkflowService;
 use App\Services\Pos\DocumentGenerationService;
@@ -176,11 +178,13 @@ class OrderController extends Controller
             $posModels->pluck('assigned_to')->merge($onlineModels->pluck('assigned_to'))->filter()->unique(),
         )->pluck('name', 'id');
 
-        $decorate = function (array $row, $model) use ($assignees): array {
+        $viewer = $request->user();
+
+        $decorate = function (array $row, $model) use ($assignees, $viewer): array {
             $row['assigned_to']   = $model->assigned_to;
             $row['assignee_name'] = $model->assigned_to ? ($assignees[$model->assigned_to] ?? null) : null;
 
-            return $row;
+            return [...$row, ...OrderPresenter::claimState($model, $viewer, $row['assignee_name'])];
         };
 
         $pos = $posModels->map(fn (PosOrder $o) => $decorate(OrderPresenter::pos($o), $o));
@@ -210,6 +214,7 @@ class OrderController extends Controller
         string $type,
         string $id,
         OrderWorkflowService $workflow,
+        AgentActivityRecorder $activity,
     ): RedirectResponse {
         $user  = $request->user();
         $store = $user->getActiveStore();
@@ -259,8 +264,12 @@ class OrderController extends Controller
         );
 
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($model, $target, $user, $validated, $workflow): void {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($model, $target, $user, $validated, $workflow, $activity, $store): void {
+                $addressChanged = false;
+
                 if ($target === FulfillmentStatus::Confirmed) {
+                    $priorCityId = $model->shipping_city_id;
+                    $priorAddress = $model instanceof Order ? $model->confirmed_shipping_address : $model->delivery_address;
                     // The platform reported a city, but it doesn't match any
                     // known city (city_recognized: false on the presenter) —
                     // confirming without picking one would allocate against
@@ -293,9 +302,23 @@ class OrderController extends Controller
                             'customer_phone' => $validated['customer_phone'] ?? $model->customer_phone,
                         ]);
                     }
+
+                    $newAddress = $model instanceof Order ? $model->confirmed_shipping_address : $model->delivery_address;
+                    $addressChanged = $model->shipping_city_id !== $priorCityId || $newAddress !== $priorAddress;
                 }
 
                 $workflow->transition($model->refresh(), $target, $user, $validated['reason'] ?? null);
+
+                // Agent activity ledger — a real, agent-entered correction to
+                // the shipping city/address made while confirming, distinct
+                // from the confirmation.confirmed event itself. Additive
+                // observation only; never affects the transition above.
+                if ($addressChanged && $store !== null) {
+                    $activity->record($user, $store, AgentActivityEvent::CONFIRMATION_ADDRESS_UPDATED, 'confirmation', [
+                        'subject' => $model,
+                        'order_id' => $model->getKey(),
+                    ]);
+                }
             });
         } catch (ValidationException $e) {
             if ($request->expectsJson()) {

@@ -211,6 +211,63 @@ class ShopifyConnector extends BaseConnector
         return $this->normalizeOrder($this->parseOrder($raw));
     }
 
+    /** @return array<int, array{id: int, topic: string, address: string}> */
+    public function listWebhooks(): array
+    {
+        $response = $this->guard($this->client()->get('/webhooks.json'));
+        $response->throw();
+
+        return array_map(
+            fn (array $w) => ['id' => (int) $w['id'], 'topic' => (string) $w['topic'], 'address' => (string) $w['address']],
+            $response->json('webhooks') ?? [],
+        );
+    }
+
+    /**
+     * Register one webhook subscription via the Admin REST API. Idempotent
+     * from the caller's point of view: Shopify returns 422 "Address for
+     * this topic has already been taken" when one already exists for the
+     * same topic+address, which is treated as success here rather than an
+     * error — registering twice must never be destructive or noisy.
+     *
+     * @return array{success: bool, already_exists: bool, id: ?int, message: string}
+     */
+    public function registerWebhook(string $topic, string $address): array
+    {
+        $response = $this->client()->post('/webhooks.json', [
+            'webhook' => ['topic' => $topic, 'address' => $address, 'format' => 'json'],
+        ]);
+
+        if ($response->status() === 422) {
+            return ['success' => true, 'already_exists' => true, 'id' => null, 'message' => 'Webhook already registered.'];
+        }
+
+        if ($response->status() === 401 || $response->status() === 403) {
+            return [
+                'success' => false,
+                'already_exists' => false,
+                'id' => null,
+                'message' => 'Shopify rejected the webhook registration — the app may be missing the write_webhooks scope.',
+            ];
+        }
+
+        if (! $response->successful()) {
+            return [
+                'success' => false,
+                'already_exists' => false,
+                'id' => null,
+                'message' => $this->responseErrorMessage($response) ?: "Shopify returned HTTP {$response->status()}.",
+            ];
+        }
+
+        return [
+            'success' => true,
+            'already_exists' => false,
+            'id' => $response->json('webhook.id'),
+            'message' => 'Webhook registered.',
+        ];
+    }
+
     protected function parseOrder(array $order): array
     {
         $customer     = $order['customer'] ?? [];

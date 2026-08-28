@@ -236,7 +236,7 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
                                         )}
 
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            {! o.assigned_to && (
+                                            {! o.assigned_to && o.can_claim && (
                                                 <button
                                                     disabled={busy}
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/claim`)}
@@ -258,17 +258,17 @@ export default function Confirmation({ store, orders = [], agents = [], stats = 
 
                                             <div className="ml-auto flex items-center gap-2">
                                                 <button
-                                                    disabled={busy || ! mine}
+                                                    disabled={busy || ! o.can_cancel}
                                                     onClick={() => setCancelling(o)}
-                                                    title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before cancelling it') : undefined}
+                                                    title={! o.can_cancel ? (taken ? 'Claimed by another agent' : 'Claim this order before cancelling it') : undefined}
                                                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-danger/40 text-danger hover:bg-danger-soft disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
                                                     <XCircle className="w-4 h-4" /> Cancel order
                                                 </button>
                                                 <button
-                                                    disabled={busy || ! mine}
+                                                    disabled={busy || ! o.can_confirm}
                                                     onClick={() => move(o, 'confirmed')}
-                                                    title={! mine ? (taken ? 'Claimed by another agent' : 'Claim this order before confirming it') : undefined}
+                                                    title={! o.can_confirm ? (taken ? 'Claimed by another agent' : 'Claim this order before confirming it') : undefined}
                                                     className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-success text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                 >
                                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}

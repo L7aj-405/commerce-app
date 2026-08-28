@@ -51,7 +51,7 @@ class DepartmentController extends Controller
             return $this->empty('Confirmation');
         }
 
-        $orders = $this->queueFor($store, 'confirmation');
+        $orders = $this->queueFor($store, 'confirmation', $user);
 
         return Inertia::render('Dashboard/Departments/Confirmation', [
             ...$this->shared($store, $user, 'confirmation'),
@@ -76,7 +76,7 @@ class DepartmentController extends Controller
             return $this->empty('Packing');
         }
 
-        $orders = $this->queueFor($store, 'fulfillment');
+        $orders = $this->queueFor($store, 'fulfillment', $user);
 
         return Inertia::render('Dashboard/Departments/Packing', [
             ...$this->shared($store, $user, 'fulfillment'),
@@ -105,7 +105,7 @@ class DepartmentController extends Controller
             return $this->empty('Dispatch');
         }
 
-        $orders = $this->queueFor($store, 'delivery');
+        $orders = $this->queueFor($store, 'delivery', $user);
 
         // Index shipments by order so each queue row carries its own tracking.
         $shipments = OrderShipment::query()
@@ -372,7 +372,7 @@ class DepartmentController extends Controller
      *
      * @return array<int, array<string, mixed>>
      */
-    private function queueFor(Store $store, string $phase): array
+    private function queueFor(Store $store, string $phase, User $user): array
     {
         $statuses = array_map(
             fn (FulfillmentStatus $s) => $s->value,
@@ -381,12 +381,12 @@ class DepartmentController extends Controller
 
         $assignees = [];
 
-        $decorate = function (array $row, $model) use (&$assignees): array {
+        $decorate = function (array $row, $model) use (&$assignees, $user): array {
             $row['assigned_to']   = $model->assigned_to;
             $row['assigned_at']   = $model->assigned_at?->toIso8601String();
             $row['assignee_name'] = $model->assigned_to ? ($assignees[$model->assigned_to] ?? null) : null;
 
-            return $row;
+            return [...$row, ...OrderPresenter::claimState($model, $user, $row['assignee_name'])];
         };
 
         $pos = PosOrder::query()

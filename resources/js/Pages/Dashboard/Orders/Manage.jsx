@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
     ShoppingCart, Monitor, Globe, Truck, LayoutGrid, Table2, X,
     Eye, Printer, User, Phone, Mail, CreditCard, Clock, Package, Loader2,
-    Undo2, AlertTriangle, MapPin, UserCircle2,
+    Undo2, AlertTriangle, MapPin, UserCircle2, Hand,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
@@ -133,6 +133,19 @@ export default function Manage({ store, orders = [], cities = [] }) {
         });
     };
 
+    /* Claiming is the confirmation-desk gate itself (see OrderPresenter::claimState
+       and OrderController::updateStatus's claim check) — an unclaimed order's
+       Confirm/Cancel actions stay disabled here until this succeeds. */
+    const claimOrder = (order) => {
+        const key = `${order.type}:${order.id}`;
+        setBusy(key);
+        router.post(`/dashboard/departments/${order.type}/${order.id}/claim`, {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => setBusy(null),
+        });
+    };
+
     /* Cancelling and flagging a return destroy or divert value, so the server
        rejects them without a reason. Collect it first rather than letting the
        request bounce. */
@@ -234,6 +247,7 @@ export default function Manage({ store, orders = [], cities = [] }) {
                     currency={currency}
                     onOpen={(o) => setKey(`${o.type}:${o.id}`)}
                     onAction={updateStatus}
+                    onClaim={claimOrder}
                     busyKey={busy}
                 />
             ) : (
@@ -251,6 +265,7 @@ export default function Manage({ store, orders = [], cities = [] }) {
                 can={can}
                 onClose={() => setKey(null)}
                 onUpdateStatus={updateStatus}
+                onClaim={claimOrder}
             />
 
             <ConfirmationModal
@@ -285,7 +300,7 @@ const GRID_COLS = {
     4: 'xl:grid-cols-4', 5: 'xl:grid-cols-5', 6: 'xl:grid-cols-6',
 };
 
-function BoardView({ columns, orders, currency, onOpen, onAction, busyKey }) {
+function BoardView({ columns, orders, currency, onOpen, onAction, onClaim, busyKey }) {
     return (
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-5'} gap-4`}>
             {columns.map((col) => {
@@ -312,6 +327,7 @@ function BoardView({ columns, orders, currency, onOpen, onAction, busyKey }) {
                                         currency={currency}
                                         onClick={() => onOpen(o)}
                                         onAction={onAction}
+                                        onClaim={onClaim}
                                         busy={busyKey === `${o.type}:${o.id}`}
                                     />
                                 ))
@@ -324,8 +340,13 @@ function BoardView({ columns, orders, currency, onOpen, onAction, busyKey }) {
     );
 }
 
-function OrderCard({ order, currency, onClick, onAction, busy }) {
+function OrderCard({ order, currency, onClick, onAction, onClaim, busy }) {
     const primaryTransition = (order.transitions ?? [])[0];
+    // Pending orders (confirmation phase) are claim-gated — see
+    // OrderPresenter::claimState(). Every other phase's primary action is
+    // permission-only, exactly as before this fix.
+    const isConfirmationPhase = order.phase === 'confirmation';
+    const claimedByOther = Boolean(order.assigned_to) && ! order.claimed_by_current_user;
 
     return (
         <div className="w-full text-left bg-surface border border-line rounded-[var(--radius-card)] p-3 hover:border-primary/50 hover:shadow-sm transition group">
@@ -341,8 +362,11 @@ function OrderCard({ order, currency, onClick, onAction, busy }) {
                     {order.shipping_city_name && (
                         <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {order.shipping_city_name}</span>
                     )}
-                    {order.assignee_name && (
-                        <span className="inline-flex items-center gap-1"><UserCircle2 className="w-3 h-3" /> {order.assignee_name}</span>
+                    {order.assigned_to && (
+                        <span className={`inline-flex items-center gap-1 ${order.claimed_by_current_user ? 'text-primary' : ''}`}>
+                            <UserCircle2 className="w-3 h-3" />
+                            {order.claimed_by_current_user ? 'Claimed by you' : `Claimed by ${order.assignee_name ?? order.assigned_user_name ?? 'another agent'}`}
+                        </span>
                     )}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
@@ -353,7 +377,30 @@ function OrderCard({ order, currency, onClick, onAction, busy }) {
                 </div>
             </button>
 
-            {primaryTransition && (
+            {isConfirmationPhase && order.can_claim && (
+                <button
+                    type="button"
+                    disabled={busy}
+                    onClick={(e) => { e.stopPropagation(); onClaim(order); }}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-surface-2 border border-line px-2.5 py-1.5 text-xs font-semibold text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Hand className="w-3.5 h-3.5" />}
+                    Claim order
+                </button>
+            )}
+
+            {isConfirmationPhase && ! order.can_claim && ! order.can_confirm && primaryTransition && (
+                <button
+                    type="button"
+                    disabled
+                    title={claimedByOther ? `Claimed by ${order.assignee_name ?? order.assigned_user_name ?? 'another agent'}` : 'Claim this order before confirming.'}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-content-muted opacity-50 cursor-not-allowed transition"
+                >
+                    {primaryTransition.action}
+                </button>
+            )}
+
+            {(! isConfirmationPhase || order.can_confirm) && primaryTransition && (
                 <button
                     type="button"
                     disabled={busy}
@@ -425,7 +472,7 @@ function TableView({ orders, currency, onOpen }) {
 /* Slide-over drawer — details + status actions                           */
 /* ----------------------------------------------------------------------- */
 
-function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
+function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus, onClaim }) {
     const open = Boolean(order);
 
     // Close on Escape.
@@ -477,7 +524,13 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                 {order.customer_email && <InfoRow icon={Mail}  label="Email" value={order.customer_email} />}
                                 <InfoRow icon={Truck} label="Fulfillment" value={order.fulfillment_label ?? order.source_label} />
                                 {order.shipping_city_name && <InfoRow icon={MapPin} label="City" value={order.shipping_city_name} />}
-                                {order.assignee_name && <InfoRow icon={UserCircle2} label="Assigned to" value={order.assignee_name} />}
+                                {order.assigned_to && (
+                                    <InfoRow
+                                        icon={UserCircle2}
+                                        label="Claimed by"
+                                        value={order.claimed_by_current_user ? 'You' : (order.assignee_name ?? order.assigned_user_name ?? 'Another agent')}
+                                    />
+                                )}
                                 {order.payment_method && (
                                     <InfoRow icon={CreditCard} label="Payment" value={<span className="uppercase text-xs tracking-wider">{order.payment_method}</span>} />
                                 )}
@@ -531,6 +584,19 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                             <p className="text-xs text-content-muted mb-2.5">
                                 {order.transitions?.length ? 'Move this order to:' : 'This order has reached a final state.'}
                             </p>
+
+                            {order.phase === 'confirmation' && order.can_claim && (
+                                <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() => onClaim(order)}
+                                    className="mb-2 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                                >
+                                    {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hand className="w-4 h-4" />}
+                                    Claim order
+                                </button>
+                            )}
+
                             <div className="flex flex-wrap gap-2">
                                 {(order.transitions ?? []).map((t) => {
                                     const danger  = t.value === 'cancelled' || t.value === 'returned';
@@ -538,6 +604,27 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                     // just avoids offering a guaranteed 403.
                                     const allowed = can(t.permission) || can('orders.manage');
                                     if (! allowed) return null;
+
+                                    // Pending (confirmation phase) Confirm/Cancel are
+                                    // additionally claim-gated — see
+                                    // OrderPresenter::claimState(). Every other
+                                    // phase's transitions are unaffected.
+                                    const claimGated = order.phase === 'confirmation' && (t.value === 'confirmed' || t.value === 'cancelled');
+                                    if (claimGated && ! order.can_confirm) {
+                                        return (
+                                            <button
+                                                key={t.value}
+                                                type="button"
+                                                disabled
+                                                title={order.assigned_to
+                                                    ? `Claimed by ${order.claimed_by_current_user ? 'you' : (order.assignee_name ?? order.assigned_user_name ?? 'another agent')}`
+                                                    : `Claim this order before ${t.value === 'cancelled' ? 'cancelling' : 'confirming'} it.`}
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-line text-content-muted opacity-50 cursor-not-allowed transition"
+                                            >
+                                                <Package className="w-4 h-4" /> {t.action}
+                                            </button>
+                                        );
+                                    }
 
                                     return (
                                         <button

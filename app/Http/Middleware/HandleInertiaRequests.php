@@ -79,6 +79,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
+                'info' => fn () => $request->session()->get('info'),
                 // Structured detail alongside a "Send to Ozon" city-mapping
                 // error — {raw_city, suggested_city_id, suggested_city_name}
                 // — so the UI can offer an actionable link/hint instead of

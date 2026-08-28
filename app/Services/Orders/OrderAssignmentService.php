@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
+use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\Activity\AgentActivityRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +23,10 @@ use Illuminate\Validation\ValidationException;
  */
 class OrderAssignmentService
 {
+    public function __construct(
+        private readonly AgentActivityRecorder $activity,
+    ) {}
+
     /**
      * Claim the longest-waiting unassigned order in a phase. Null when the
      * queue is empty.
@@ -32,7 +38,7 @@ class OrderAssignmentService
             array_filter(FulfillmentStatus::cases(), fn ($s) => $s->phase() === $phase),
         );
 
-        return DB::transaction(function () use ($store, $actor, $statuses) {
+        $order = DB::transaction(function () use ($store, $actor, $statuses) {
             foreach ([Order::class, PosOrder::class] as $model) {
                 $order = $model::query()
                     ->where('store_id', $store->id)
@@ -52,6 +58,12 @@ class OrderAssignmentService
 
             return null;
         });
+
+        if ($order !== null && $phase === 'confirmation') {
+            $this->recordClaim($order, $store, $actor);
+        }
+
+        return $order;
     }
 
     /**
@@ -61,7 +73,7 @@ class OrderAssignmentService
      */
     public function claim(Order|PosOrder $order, User $actor): Order|PosOrder
     {
-        return DB::transaction(function () use ($order, $actor) {
+        $fresh = DB::transaction(function () use ($order, $actor) {
             $fresh = $order->newQuery()->lockForUpdate()->findOrFail($order->getKey());
 
             if (($fresh->fulfillment_status ?? null) === FulfillmentStatus::WaitingForStock) {
@@ -76,10 +88,32 @@ class OrderAssignmentService
                 ]);
             }
 
+            $wasUnclaimed = $fresh->assigned_to === null;
+
             $fresh->update(['assigned_to' => $actor->id, 'assigned_at' => now()]);
 
-            return $fresh;
+            return [$fresh, $wasUnclaimed];
         });
+
+        [$fresh, $wasUnclaimed] = $fresh;
+
+        // Only a genuine new claim counts as activity — an agent re-claiming
+        // their own already-held order (idempotent re-submit) must not log
+        // twice.
+        $store = $fresh->store;
+        if ($wasUnclaimed && $store !== null && ($fresh->fulfillment_status ?? FulfillmentStatus::Pending)->phase() === 'confirmation') {
+            $this->recordClaim($fresh, $store, $actor);
+        }
+
+        return $fresh;
+    }
+
+    private function recordClaim(Order|PosOrder $order, Store $store, User $actor): void
+    {
+        $this->activity->record($actor, $store, AgentActivityEvent::CONFIRMATION_CLAIMED, 'confirmation', [
+            'subject' => $order,
+            'order_id' => $order->getKey(),
+        ]);
     }
 
     /** Put an order back in the shared queue. */

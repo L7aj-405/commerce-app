@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import { CheckCircle2, XCircle, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const TONES = {
     success: { ring: 'border-success/30 bg-success-soft text-content', icon: CheckCircle2,  iconClass: 'text-success' },
     error:   { ring: 'border-danger/30 bg-danger-soft text-content',   icon: XCircle,       iconClass: 'text-danger'  },
     warning: { ring: 'border-warning/30 bg-warning-soft text-content', icon: AlertTriangle, iconClass: 'text-warning' },
+    info:    { ring: 'border-primary/30 bg-primary-soft text-content', icon: Info,          iconClass: 'text-primary' },
 };
 
 const DURATION_MS = 4000;
@@ -33,6 +34,7 @@ export default function ToastNotification({ polled = [] }) {
         ingest('success', flash?.success);
         ingest('error',   flash?.error);
         ingest('warning', flash?.warning);
+        ingest('info',    flash?.info);
     }, [flash]);
 
     useEffect(() => {

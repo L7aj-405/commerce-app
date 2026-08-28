@@ -20,6 +20,7 @@ use App\Models\ProductVariantChannelListing;
 use App\Models\Store;
 use App\Services\Catalog\ProductCleanupService;
 use App\Services\Shopify\ShopifyCapabilityDiagnosticsService;
+use App\Services\Shopify\ShopifyWebhookRegistrationService;
 use App\Services\Sync\ProductSyncService;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -90,9 +91,18 @@ class ConnectionProfileController extends Controller
             ],
             'store' => ['id' => $store->id, 'name' => $store->name],
             'auth' => $this->authStatus($connection),
+            'webhooks' => $connection->platform === PlatformConnection::PLATFORM_SHOPIFY
+                ? $this->shopifyWebhookStatus($connection)
+                : null,
             'syncStatus' => [
                 'last_product_sync_at' => $productSync['last_synced_at'] ?? null,
                 'last_order_sync_at' => $orderSync['last_synced_at'] ?? null,
+                // Distinct from the manual cursor above: this is the shared
+                // `last_synced_at` column ONLY the every-minute scheduler
+                // (routes/console.php) writes, i.e. truly automatic import
+                // with no page ever opened.
+                'last_automatic_sync_at' => $connection->last_synced_at?->toIso8601String(),
+                'last_manual_sync_at' => $orderSync['last_synced_at'] ?? null,
                 'product_mappings_count' => $productMappingsCount,
                 'variant_mappings_count' => $variantMappingsCount,
                 'imported_orders_count' => $importedOrdersCount,
@@ -120,6 +130,40 @@ class ConnectionProfileController extends Controller
                 ] : null,
             ],
         ]);
+    }
+
+    /**
+     * Webhook status for the connection profile: per-topic active/failed/
+     * missing/unknown, when the last webhook was actually received (never
+     * assumed), the last import result, and — for the credential-less
+     * webhook-only connection method — whether the required scopes/secret
+     * are even usable. Never silently reports "working" without evidence.
+     *
+     * @return array<string, mixed>
+     */
+    private function shopifyWebhookStatus(PlatformConnection $connection): array
+    {
+        $stored = $connection->metadata['webhooks'] ?? null;
+        $lastLog = $connection->syncLogs()
+            ->where('type', 'like', 'webhook:%')
+            ->latest('started_at')
+            ->first();
+
+        $eligible = $connection->effectiveWebhookSecret() !== null;
+
+        return [
+            'eligible' => $eligible,
+            'ineligible_reason' => $eligible ? null : 'No webhook signing secret is configured for this connection yet.',
+            'topics' => is_array($stored['topics'] ?? null)
+                ? $stored['topics']
+                : array_fill_keys(ShopifyWebhookRegistrationService::TOPICS, 'unknown'),
+            'checked_at' => $stored['checked_at'] ?? null,
+            'registration_error' => $stored['error'] ?? null,
+            'last_webhook_at' => $connection->last_webhook_at?->toIso8601String(),
+            'last_webhook_status' => $connection->webhook_status,
+            'last_webhook_import_result' => $lastLog?->status,
+            'last_webhook_import_error' => $lastLog?->error_message,
+        ];
     }
 
     /**
@@ -168,6 +212,16 @@ class ConnectionProfileController extends Controller
             ]),
         ]);
 
+        // A verified Shopify connection is exactly the moment automatic
+        // order import can start working with zero further clicks — so a
+        // successful "Test connection" also (best-effort, never blocking
+        // or failing this response) registers the order webhooks. Never
+        // for the dedicated CONNECTION_METHOD_WEBHOOK setup: that method
+        // has no API credentials to register anything with, by design.
+        if (($result['ok'] ?? false) === true) {
+            $this->syncShopifyWebhooksIfApplicable($connection);
+        }
+
         activity('platform_connection')
             ->performedOn($connection)
             ->causedBy($request->user())
@@ -176,6 +230,63 @@ class ConnectionProfileController extends Controller
             ->log('Tested connection');
 
         return response()->json($result);
+    }
+
+    private function syncShopifyWebhooksIfApplicable(PlatformConnection $connection): void
+    {
+        if ($connection->platform !== PlatformConnection::PLATFORM_SHOPIFY) {
+            return;
+        }
+
+        if (! in_array($connection->connection_method, [
+            PlatformConnection::CONNECTION_METHOD_ADMIN_CLIENT_CREDENTIALS,
+            PlatformConnection::CONNECTION_METHOD_ADMIN_TOKEN,
+        ], true)) {
+            return;
+        }
+
+        try {
+            app(ShopifyWebhookRegistrationService::class)->sync($connection);
+        } catch (Throwable $e) {
+            Log::warning('Shopify webhook auto-registration after test connection failed', [
+                'connection' => $connection->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Explicit repair/backfill action — (re-)registers Shopify's order
+     * webhooks and refreshes their stored status, without requiring a full
+     * "Test connection" run. A no-op (200, unchanged) for every other
+     * platform/connection method.
+     */
+    public function syncWebhooks(Request $request, PlatformConnection $connection): JsonResponse
+    {
+        $this->requireConnection($request, $connection);
+
+        if ($connection->platform !== PlatformConnection::PLATFORM_SHOPIFY
+            || ! in_array($connection->connection_method, [
+                PlatformConnection::CONNECTION_METHOD_ADMIN_CLIENT_CREDENTIALS,
+                PlatformConnection::CONNECTION_METHOD_ADMIN_TOKEN,
+            ], true)
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Webhook registration only applies to a Shopify connection using an Admin API token or client credentials.',
+            ], 422);
+        }
+
+        $result = app(ShopifyWebhookRegistrationService::class)->sync($connection);
+
+        activity('platform_connection')
+            ->performedOn($connection)
+            ->causedBy($request->user())
+            ->event('sync_webhooks')
+            ->withProperties($result)
+            ->log('Synced Shopify webhooks');
+
+        return response()->json(['ok' => $result['error'] === null] + $result);
     }
 
     /** @return array{ok:bool,message:string} */

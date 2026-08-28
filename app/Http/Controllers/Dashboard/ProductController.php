@@ -11,9 +11,11 @@ use App\Models\Product;
 use App\Models\ProductPublishBatch;
 use App\Models\ProductPublishResult;
 use Illuminate\Support\Str;
+use App\Models\AgentActivityEvent;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\Warehouse;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Catalog\ProductStockSnapshotService;
 use App\Services\Catalog\ProductVariantWizardService;
 use App\Services\Inventory\CatalogInventoryService;
@@ -772,6 +774,7 @@ class ProductController extends Controller
         CatalogInventoryService $catalog,
         InventoryEngine $engine,
         ProductPushService $pushService,
+        AgentActivityRecorder $activity,
     ): RedirectResponse {
         $store = $request->user()->getActiveStore();
         abort_if($store === null || $product->store_id !== $store->id, 403);
@@ -813,6 +816,11 @@ class ProductController extends Controller
                 'increase'    => $engine->adjustOnHand($item, $warehouse, $qty, 'adjustment', $product, $actor, $validated['reason']),
                 'decrease'    => $engine->adjustOnHand($item, $warehouse, -$qty, 'adjustment', $product, $actor, $validated['reason']),
             };
+
+            $activity->record($actor, $store, AgentActivityEvent::INVENTORY_ADJUSTED, 'inventory', [
+                'subject' => $product,
+                'metadata' => ['warehouse_id' => $warehouse->id, 'reason' => $validated['reason'], 'type' => $validated['type']],
+            ]);
         } catch (ValidationException $e) {
             // Local inventory is untouched — the engine's own transaction
             // rolled back before anything was written.

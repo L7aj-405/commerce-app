@@ -3791,3 +3791,154 @@
 | 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "bg-surface-2 border borde" → "bg-surface-2 border borde" | ~43 |
 | 10:03 | Edited resources/js/Components/SyncProductsModal.jsx | "bg-indigo-500 h-full tran" → "bg-primary h-full transit" | ~33 |
 | 10:04 | Edited resources/js/Components/SyncProductsModal.jsx | 7→7 lines | ~218 |
+| 11:04 | Created ../../../../.claude/plans/cryptic-mixing-puzzle.md | — | ~5215 |
+| 11:05 | Created database/migrations/2026_08_28_000001_create_agent_activity_events_table.php | — | ~665 |
+| 11:05 | Created database/migrations/2026_08_28_000002_create_agent_score_rules_table.php | — | ~840 |
+| 11:06 | Created app/Models/AgentActivityEvent.php | — | ~763 |
+| 11:06 | Created app/Models/AgentScoreRule.php | — | ~437 |
+| 11:06 | Created app/Services/Activity/AgentActivityRecorder.php | — | ~524 |
+| 11:06 | Edited app/Services/Orders/OrderWorkflowService.php | added 2 import(s) | ~102 |
+| 11:06 | Edited app/Services/Orders/OrderWorkflowService.php | modified __construct() | ~74 |
+| 11:06 | Edited app/Services/Orders/OrderWorkflowService.php | added 5 condition(s) | ~698 |
+| 11:07 | Edited app/Services/Orders/OrderAssignmentService.php | added 2 import(s) | ~77 |
+| 11:07 | Edited app/Services/Orders/OrderAssignmentService.php | added 2 condition(s) | ~900 |
+| 11:07 | Edited app/Services/Orders/DispatchService.php | added 2 import(s) | ~85 |
+| 11:07 | Edited app/Services/Orders/DispatchService.php | modified __construct() | ~42 |
+| 11:07 | Edited app/Services/Orders/DispatchService.php | added 1 condition(s) | ~312 |
+| 11:08 | Edited app/Services/Orders/DispatchService.php | added 1 condition(s) | ~280 |
+| 11:08 | Edited app/Services/Orders/DispatchService.php | added 1 condition(s) | ~272 |
+| 11:08 | Edited app/Services/Orders/ReturnInspectionService.php | added 2 import(s) | ~144 |
+| 11:08 | Edited app/Services/Orders/ReturnInspectionService.php | modified __construct() | ~71 |
+| 11:08 | Edited app/Services/Orders/ReturnInspectionService.php | modified use() | ~78 |
+| 11:08 | Edited app/Services/Orders/ReturnInspectionService.php | added 2 condition(s) | ~183 |
+| 11:09 | Edited app/Services/Inventory/InventoryTransferService.php | added 2 import(s) | ~177 |
+| 11:09 | Edited app/Services/Inventory/InventoryTransferService.php | added nullish coalescing | ~427 |
+| 11:10 | Edited app/Http/Controllers/Dashboard/StockController.php | added 2 import(s) | ~48 |
+| 11:10 | Edited app/Http/Controllers/Dashboard/StockController.php | 4→5 lines | ~64 |
+| 11:10 | Edited app/Http/Controllers/Dashboard/StockController.php | 6→11 lines | ~143 |
+| 11:10 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified adjustStock() | ~78 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/ProductController.php | added 2 import(s) | ~73 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/ProductController.php | inline fix | ~11 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/ProductController.php | modified match() | ~262 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 import(s) | ~68 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified updateStatus() | ~56 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified use() | ~121 |
+| 11:11 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 1 condition(s) | ~421 |
+| 11:13 | Created app/Services/Metrics/AgentDashboardMetricsService.php | — | ~1770 |
+| 11:13 | Created app/Services/Metrics/SupervisorDashboardMetricsService.php | — | ~1023 |
+| 11:13 | Created app/Services/Metrics/AgentScorePreviewService.php | — | ~539 |
+| 11:14 | Created app/Services/Metrics/OwnerDashboardMetricsService.php | — | ~1625 |
+| 11:15 | Created app/Http/Controllers/Dashboard/DashboardController.php | — | ~3031 |
+| 11:16 | Created resources/js/Components/Dashboard/Roles/OwnerDashboard.jsx | — | ~4058 |
+| 11:16 | Created resources/js/Components/Dashboard/Roles/PointsPreviewCard.jsx | — | ~539 |
+| 11:16 | Created resources/js/Components/Dashboard/Roles/ConfirmationAgentDashboard.jsx | — | ~1196 |
+| 11:16 | Edited resources/js/Components/Dashboard/Roles/ConfirmationAgentDashboard.jsx | inline fix | ~22 |
+| 11:17 | Edited resources/js/Components/Dashboard/Roles/ConfirmationAgentDashboard.jsx | inline fix | ~20 |
+| 11:17 | Created resources/js/Support/formatDuration.js | — | ~173 |
+| 11:17 | Created resources/js/Components/Dashboard/Roles/FulfillmentAgentDashboard.jsx | — | ~1070 |
+| 11:17 | Created resources/js/Components/Dashboard/Roles/DeliveryAgentDashboard.jsx | — | ~1034 |
+| 11:17 | Created resources/js/Components/Dashboard/Roles/InventoryDashboard.jsx | — | ~521 |
+| 11:18 | Created resources/js/Components/Dashboard/Roles/SupervisorDashboard.jsx | — | ~1469 |
+| 11:18 | Created resources/js/Pages/Dashboard/Index.jsx | — | ~389 |
+| 11:19 | Created tests/Feature/Foundation/AgentActivityEventTest.php | — | ~1727 |
+
+## Session: 2026-08-28 11:23
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 11:24 | Created tests/Feature/Foundation/RoleBasedDashboardTest.php | — | ~1089 |
+| 11:25 | Created tests/Feature/Foundation/AgentDashboardMetricsTest.php | — | ~1588 |
+| 11:25 | Created tests/Feature/Foundation/SupervisorDashboardMetricsTest.php | — | ~1688 |
+| 11:25 | Created tests/Feature/Foundation/ConfirmationAgentDashboardTest.php | — | ~703 |
+| 11:25 | Created tests/Feature/Foundation/FulfillmentAgentDashboardTest.php | — | ~879 |
+| 11:26 | Created tests/Feature/Foundation/DeliveryAgentDashboardTest.php | — | ~788 |
+| 11:26 | Created tests/Feature/Foundation/AgentPointsPreviewTest.php | — | ~1106 |
+| 11:27 | Wrote 8 Pest test files for Role-Based Dashboards + Agent Activity ledger (RoleBasedDashboardTest, AgentActivityEventTest, AgentDashboardMetricsTest, SupervisorDashboardMetricsTest, ConfirmationAgentDashboardTest, FulfillmentAgentDashboardTest, DeliveryAgentDashboardTest, AgentPointsPreviewTest) | tests/Feature/Foundation/*.php | php -l clean, npm run build clean | ~large |
+| 11:28 | Session end: 7 writes across 7 files (RoleBasedDashboardTest.php, AgentDashboardMetricsTest.php, SupervisorDashboardMetricsTest.php, ConfirmationAgentDashboardTest.php, FulfillmentAgentDashboardTest.php) | 10 reads | ~18393 tok |
+| 11:53 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | 5→5 lines | ~38 |
+| 11:53 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | inline fix | ~19 |
+| 11:53 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | inline fix | ~31 |
+| 11:54 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | inline fix | ~31 |
+| 11:54 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | inline fix | ~30 |
+| 11:54 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | inline fix | ~34 |
+| 11:54 | Edited app/Services/Metrics/AgentScorePreviewService.php | 5→5 lines | ~37 |
+| 11:54 | Edited app/Services/Metrics/AgentScorePreviewService.php | inline fix | ~29 |
+| 11:54 | Edited app/Services/Metrics/SupervisorDashboardMetricsService.php | 2→2 lines | ~20 |
+| 11:54 | Edited app/Services/Metrics/SupervisorDashboardMetricsService.php | inline fix | ~28 |
+| 11:54 | Edited app/Services/Metrics/SupervisorDashboardMetricsService.php | inline fix | ~28 |
+| 11:55 | Edited tests/Feature/Foundation/AgentDashboardMetricsTest.php | inline fix | ~40 |
+| 11:56 | Edited app/Services/Metrics/AgentDashboardMetricsService.php | 1→4 lines | ~90 |
+| 11:57 | Edited tests/Feature/Foundation/DeliveryAgentDashboardTest.php | 5→8 lines | ~124 |
+| 11:58 | Edited tests/Feature/Foundation/SupervisorDashboardMetricsTest.php | 3→6 lines | ~141 |
+| 11:59 | Fixed Carbon vs CarbonImmutable TypeErrors in dashboard metrics services (CarbonInterface param types) + Carbon 3 diffInSeconds sign bug + JSON float/int test assertion | app/Services/Metrics/{AgentDashboardMetricsService,AgentScorePreviewService,SupervisorDashboardMetricsService}.php, tests/Feature/Foundation/{AgentDashboardMetricsTest,DeliveryAgentDashboardTest,SupervisorDashboardMetricsTest}.php | all 5 requested test filters + 2 regression filters pass, npm build clean | ~medium |
+| 12:00 | Session end: 22 writes across 10 files (RoleBasedDashboardTest.php, AgentDashboardMetricsTest.php, SupervisorDashboardMetricsTest.php, ConfirmationAgentDashboardTest.php, FulfillmentAgentDashboardTest.php) | 14 reads | ~24852 tok |
+| 12:08 | Created app/Services/Metrics/OwnerDashboardMetricsService.php | — | ~3264 |
+| 12:10 | Created tests/Feature/Foundation/OwnerDashboardMetricsTest.php | — | ~2299 |
+| 12:11 | Edited app/Services/Metrics/OwnerDashboardMetricsService.php | modified lowStockCount() | ~189 |
+| 12:11 | Edited app/Services/Metrics/OwnerDashboardMetricsService.php | 8→7 lines | ~70 |
+| 12:12 | Edited app/Services/Metrics/OwnerDashboardMetricsService.php | 7→8 lines | ~115 |
+| 12:14 | Hardened OwnerDashboardMetricsService: whole-business (POS+online) revenue metrics, unified pending-delivery statuses, DB-level low-stock filtering | app/Services/Metrics/OwnerDashboardMetricsService.php, tests/Feature/Foundation/OwnerDashboardMetricsTest.php | 10/10 new tests pass, RoleBasedDashboardTest/AgentDashboardMetricsTest/SupervisorDashboardMetricsTest all pass, npm build clean | ~medium |
+| 12:14 | Session end: 27 writes across 12 files (RoleBasedDashboardTest.php, AgentDashboardMetricsTest.php, SupervisorDashboardMetricsTest.php, ConfirmationAgentDashboardTest.php, FulfillmentAgentDashboardTest.php) | 21 reads | ~39316 tok |
+| 12:25 | Edited app/Support/OrderPresenter.php | added 1 import(s) | ~37 |
+| 12:26 | Edited app/Support/OrderPresenter.php | added nullish coalescing | ~555 |
+| 12:26 | Edited app/Http/Controllers/Dashboard/OrderController.php | modified use() | ~159 |
+| 12:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | inline fix | ~18 |
+| 12:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | inline fix | ~18 |
+| 12:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | inline fix | ~17 |
+| 12:26 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified queueFor() | ~195 |
+| 12:27 | Created app/Support/InertiaErrorResponder.php | — | ~1006 |
+| 12:27 | Edited bootstrap/app.php | added 1 import(s) | ~22 |
+| 12:27 | Edited bootstrap/app.php | added 3 import(s) | ~63 |
+| 12:27 | Edited bootstrap/app.php | modified withExceptions() | ~140 |
+| 12:27 | Edited bootstrap/app.php | 3→2 lines | ~20 |
+| 12:28 | Created resources/js/Pages/Error.jsx | — | ~951 |
+| 12:28 | Edited resources/js/Components/ToastNotification.jsx | CSS: info | ~166 |
+| 12:28 | Edited resources/js/Components/ToastNotification.jsx | 3→4 lines | ~48 |
+| 12:28 | Edited app/Http/Middleware/HandleInertiaRequests.php | 1→2 lines | ~39 |
+| 12:29 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | 5→5 lines | ~64 |
+| 12:29 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: OrderPresenter, OrderController | ~287 |
+| 12:29 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | 8→9 lines | ~100 |
+| 12:29 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | 8→9 lines | ~83 |
+| 12:30 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | inline fix | ~25 |
+| 12:30 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | 8→9 lines | ~150 |
+| 12:30 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: OrderPresenter | ~1306 |
+| 12:30 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | inline fix | ~26 |
+| 12:31 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | CSS: OrderPresenter | ~1368 |
+| 12:31 | Edited resources/js/Pages/Dashboard/Orders/Manage.jsx | added nullish coalescing | ~129 |
+| 12:31 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 19→19 lines | ~576 |
+| 12:31 | Edited resources/js/Pages/Dashboard/Departments/Confirmation.jsx | 16→16 lines | ~366 |
+| 12:33 | Created tests/Feature/Foundation/OrderActionAuthorizationUxTest.php | — | ~1387 |
+| 12:33 | Created tests/Feature/Foundation/InertiaForbiddenActionTest.php | — | ~1335 |
+| 12:33 | Created tests/Feature/Foundation/BrandedErrorPageTest.php | — | ~830 |
+| 12:34 | Created tests/Feature/Foundation/ConfirmationOrderCardActionTest.php | — | ~2142 |
+| 12:35 | Edited tests/Feature/Foundation/OrderActionAuthorizationUxTest.php | modified oauxOnlineOrder() | ~110 |
+| 12:35 | Edited tests/Feature/Foundation/OrderActionAuthorizationUxTest.php | 2→3 lines | ~54 |
+| 12:36 | Edited tests/Feature/Foundation/InertiaForbiddenActionTest.php | 5→7 lines | ~111 |
+| 12:36 | Edited tests/Feature/Foundation/InertiaForbiddenActionTest.php | 6→5 lines | ~62 |
+| 12:36 | Edited tests/Feature/Foundation/InertiaForbiddenActionTest.php | modified it() | ~155 |
+| 12:39 | Fixed order-action authorization UX (claim-gated Confirm/Cancel buttons, global Inertia 403 handler, branded Error page, flash.info) | app/Support/{OrderPresenter,InertiaErrorResponder}.php, app/Http/Controllers/Dashboard/{OrderController,DepartmentController}.php, app/Http/Middleware/HandleInertiaRequests.php, bootstrap/app.php, resources/js/Pages/Error.jsx, resources/js/Pages/Dashboard/Orders/Manage.jsx, resources/js/Pages/Dashboard/Departments/Confirmation.jsx, resources/js/Components/ToastNotification.jsx, 4 new test files | all 19 new tests pass, regression suites pass (2 pre-existing unrelated failures found + documented, not caused by this change), npm build clean | ~large |
+| 12:40 | Session end: 64 writes across 26 files (RoleBasedDashboardTest.php, AgentDashboardMetricsTest.php, SupervisorDashboardMetricsTest.php, ConfirmationAgentDashboardTest.php, FulfillmentAgentDashboardTest.php) | 42 reads | ~99998 tok |
+| 15:56 | Edited app/Models/PlatformConnection.php | added 2 condition(s) | ~404 |
+| 15:57 | Created app/Jobs/ShopifyOrderWebhookJob.php | — | ~893 |
+| 15:57 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | 9→9 lines | ~82 |
+| 15:57 | Created app/Http/Controllers/Api/ShopifyWebhookController.php | — | ~2283 |
+| 15:57 | Edited app/Http/Controllers/Api/ShopifyWebhookController.php | 5→8 lines | ~135 |
+| 15:58 | Edited app/Connectors/ShopifyConnector.php | added nullish coalescing | ~672 |
+| 15:58 | Created app/Services/Shopify/ShopifyWebhookRegistrationService.php | — | ~934 |
+| 15:59 | Edited routes/dashboard.php | 1→6 lines | ~159 |
+| 15:59 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added 1 import(s) | ~57 |
+| 15:59 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added error handling | ~917 |
+| 16:00 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | modified shopifyWebhookStatus() | ~266 |
+| 16:00 | Edited app/Http/Controllers/Dashboard/ConnectionProfileController.php | added nullish coalescing | ~444 |
+| 16:04 | Created tests/Feature/Foundation/ShopifyWebhookSignatureTest.php | — | ~1544 |
+| 16:05 | Edited tests/Feature/Foundation/ShopifyWebhookSignatureTest.php | modified swstBase() | ~311 |
+| 16:05 | Edited tests/Feature/Foundation/ShopifyWebhookSignatureTest.php | swstWorkspace() → swstBase() | ~72 |
+| 16:05 | Edited tests/Feature/Foundation/ShopifyWebhookSignatureTest.php | swstWorkspace() → swstBase() | ~70 |
+| 16:06 | Created tests/Feature/Foundation/ShopifyWebhookConnectionResolutionTest.php | — | ~1351 |
+| 16:06 | Created tests/Feature/Foundation/ShopifyOrderImportIdempotencyTest.php | — | ~1555 |
+| 16:07 | Created tests/Feature/Foundation/ShopifyManualSyncStillWorksTest.php | — | ~1020 |
+| 16:07 | Edited tests/Feature/Foundation/ShopifyManualSyncStillWorksTest.php | modified it() | ~172 |
+| 16:08 | Created tests/Feature/Foundation/ShopifyScheduledOrderImportTest.php | — | ~1291 |
+| 16:08 | Created tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php | — | ~1652 |
+| 16:09 | Edited tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php | modified function() | ~677 |
+| 16:09 | Created tests/Feature/Foundation/ShopifyAutomaticOrderImportTest.php | — | ~1856 |

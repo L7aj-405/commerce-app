@@ -8,6 +8,7 @@ use App\Enums\FulfillmentStatus;
 use App\Models\InventoryAllocation;
 use App\Models\Order;
 use App\Models\PosOrder;
+use App\Models\User;
 
 /**
  * Normalizes POS and online orders into one shape for the Order Management view,
@@ -201,6 +202,43 @@ class OrderPresenter
         ];
     }
 
+
+    /**
+     * Claim/action-eligibility flags for the CURRENT viewer — mirrors exactly
+     * the server-side gates OrderController::updateStatus()'s claim check and
+     * DepartmentController::authorizePhase()/claim() enforce, so a button the
+     * frontend shows as enabled can never be rejected by the backend, and the
+     * backend stays the only place that actually decides authorization —
+     * these flags are read-only decoration, never consulted by the real
+     * authorization checks themselves.
+     *
+     * @return array{assigned_to: ?string, assigned_user_name: ?string, claimed_by_current_user: bool, can_claim: bool, can_confirm: bool, can_cancel: bool}
+     */
+    public static function claimState(Order|PosOrder $model, User $user, ?string $assignedUserName = null): array
+    {
+        $status = $model->fulfillment_status ?? FulfillmentStatus::Pending;
+        $mine = $model->assigned_to !== null && $model->assigned_to === $user->id;
+        $isPending = $status === FulfillmentStatus::Pending;
+
+        // Same rule as OrderController::updateStatus()'s claim gate: confirming
+        // or cancelling a still-pending order needs orders.manage OR the claim
+        // (plus the confirmation department permission either way).
+        $canActOnPending = $isPending
+            && $user->can('orders.confirm')
+            && ($user->can('orders.manage') || $mine);
+
+        return [
+            'assigned_to' => $model->assigned_to,
+            'assigned_user_name' => $assignedUserName,
+            'claimed_by_current_user' => $mine,
+            // Same rule DepartmentController::authorizePhase() enforces
+            // before claim() is allowed to run.
+            'can_claim' => $model->assigned_to === null
+                && ($user->can(DepartmentRegistry::permissionFor($status->phase())) || $user->can('orders.manage')),
+            'can_confirm' => $canActOnPending,
+            'can_cancel' => $canActOnPending,
+        ];
+    }
 
     /** @return array<string,mixed>|null */
     private static function allocation(Order|PosOrder $order): ?array

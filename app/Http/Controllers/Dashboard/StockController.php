@@ -18,6 +18,8 @@ use App\Models\Store;
 use App\Models\VariantInventoryLink;
 use App\Models\Warehouse;
 use App\Models\WarehouseInventoryBalance;
+use App\Models\AgentActivityEvent;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Catalog\ProductStockSnapshotService;
 use App\Services\Inventory\CatalogInventoryService;
 use App\Services\Inventory\InventoryEngine;
@@ -48,6 +50,7 @@ class StockController extends Controller
         private readonly ProductStockSnapshotService $snapshots,
         private readonly CatalogInventoryService $catalog,
         private readonly InventoryEngine $engine,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     public function index(Request $request): Response
@@ -262,6 +265,11 @@ class StockController extends Controller
                 'success' => false, 'message' => $message, 'applied_count' => 0,
             ]);
         }
+
+        $this->activity->record($request->user(), $store, AgentActivityEvent::INVENTORY_ADJUSTED, 'inventory', [
+            'subject' => $product,
+            'metadata' => ['warehouse_id' => $warehouse->id, 'reason' => $validated['reason'], 'rows_applied' => $applied],
+        ]);
 
         // Everything below only READS the outcome — the legacy Stock
         // write's InventoryCompatibilityBridge already ran the waiting-stock

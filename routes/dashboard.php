@@ -301,6 +301,11 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     Route::post('/test',                       [ConnectionProfileController::class, 'test'])->name('test');
                     Route::post('/sync-products',               [ConnectionProfileController::class, 'syncProducts'])->name('sync-products');
                     Route::post('/sync-orders',                 [ConnectionProfileController::class, 'syncOrders'])->name('sync-orders');
+                    // Repair/backfill action: (re-)registers Shopify's order
+                    // webhooks and refreshes their status. A no-op for every
+                    // other platform (WooCommerce's webhook is configured by
+                    // the merchant in wp-admin, never registered by this app).
+                    Route::post('/sync-webhooks',               [ConnectionProfileController::class, 'syncWebhooks'])->name('sync-webhooks');
                     Route::post('/sync-products/queue',         [ConnectionProfileController::class, 'queueProductSync'])->name('sync-products.queue');
                     Route::post('/sync-orders/queue',           [ConnectionProfileController::class, 'queueOrderSync'])->name('sync-orders.queue');
                     Route::get('/sync-orders/batches/{batch}',  [ConnectionProfileController::class, 'getOrderSyncBatchStatus'])->name('sync-orders.batch-status');

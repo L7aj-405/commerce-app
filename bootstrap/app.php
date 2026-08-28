@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckUserStatus;
+use App\Support\InertiaErrorResponder;
 use App\Http\Middleware\ConfineDeliveryAgent;
 use App\Http\Middleware\EnsureCanAccessDashboard;
 use App\Http\Middleware\EnsureCanAccessPos;
@@ -15,6 +16,8 @@ use App\Http\Middleware\RedirectIfNotCashier;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -48,5 +51,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // See App\Support\InertiaErrorResponder for the full rationale —
+        // keeps a rejected Inertia action on the current page (flash toast)
+        // while a full-page GET error gets the branded Error page, without
+        // touching the status code either way.
+        $exceptions->respond(
+            fn (Response $response, Throwable $e, Request $request) => InertiaErrorResponder::respond($response, $e, $request),
+        );
     })->create();
