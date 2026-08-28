@@ -1,23 +1,21 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import {
-    ShoppingCart, Monitor, Globe, Truck, LayoutGrid, Table2, Search, X,
+    ShoppingCart, Monitor, Globe, Truck, LayoutGrid, Table2, X,
     Eye, Printer, User, Phone, Mail, CreditCard, Clock, Package, Loader2,
-    ClipboardCheck, PackageCheck, Undo2, Archive, AlertTriangle,
+    Undo2, AlertTriangle, MapPin, UserCircle2, Hand,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
+import SearchFilterBar from '@/Components/SearchFilterBar';
 
 /* Fulfillment workflow — mirrors App\Enums\FulfillmentStatus, including its
-   phase(). The board renders one column per status; the server owns which
-   transitions are legal per order and emits only those. */
+   phase(). Real backend statuses only — nothing here is invented. */
 const COLUMNS = [
     { value: 'pending',            label: 'Pending confirmation', color: 'amber',   phase: 'confirmation' },
     { value: 'confirmed',          label: 'Confirmed',            color: 'blue',    phase: 'fulfillment'  },
     { value: 'in_progress',        label: 'Processing',           color: 'indigo',  phase: 'fulfillment'  },
-    // ready_for_delivery + delivered are the `delivery` phase (matches
-    // App\Enums\FulfillmentStatus::phase); mislabelling them 'fulfillment' here
-    // silently dropped delivery-stage orders from the source/department tallies.
     { value: 'ready_for_delivery', label: 'Ready for delivery',   color: 'cyan',    phase: 'delivery'     },
     { value: 'delivered',          label: 'Delivered',            color: 'teal',    phase: 'delivery'     },
     { value: 'completed',          label: 'Completed',            color: 'emerald', phase: 'closed'       },
@@ -27,20 +25,12 @@ const COLUMNS = [
     { value: 'return_completed',   label: 'Return closed',        color: 'slate',   phase: 'returns'      },
 ];
 
-/* A "department" is a permission plus a filter over phase() — not an entity.
-   Tabs the user has no permission for are hidden entirely.
-
-   "All orders" spans every phase — including `closed` — so instant POS sales
-   (which land straight in Completed) are visible here and the Direct POS source
-   tab actually returns them. Before, `all` omitted `closed`/`delivery`, so the
-   board silently hid every completed sale. */
-const DEPARTMENTS = [
-    { value: 'all',          label: 'All orders',   icon: ShoppingCart,    perm: 'orders.view',    phases: ['confirmation', 'fulfillment', 'delivery', 'returns', 'closed'] },
-    { value: 'confirmation', label: 'Confirmation', icon: ClipboardCheck,  perm: 'orders.confirm', phases: ['confirmation'] },
-    { value: 'fulfillment',  label: 'Fulfillment',  icon: PackageCheck,    perm: 'orders.fulfil',  phases: ['fulfillment', 'delivery'] },
-    { value: 'returns',      label: 'Returns',      icon: Undo2,           perm: 'orders.inspect', phases: ['returns'] },
-    { value: 'closed',       label: 'Closed',       icon: Archive,         perm: 'orders.view',    phases: ['closed'] },
-];
+// The brief's own curated example (Pending confirmation / Confirmed /
+// Processing / Ready for delivery / Delivered / Returned) — the default,
+// decluttered board. Completed/Cancelled/Under inspection/Return closed are
+// still fully real statuses, just reached via the status filter instead of
+// a 7th–10th always-visible lane.
+const PRIMARY_FLOW = ['pending', 'confirmed', 'in_progress', 'ready_for_delivery', 'delivered', 'returned'];
 
 const DOT = {
     amber: 'bg-amber-400', blue: 'bg-blue-400', cyan: 'bg-cyan-400', indigo: 'bg-indigo-400',
@@ -50,9 +40,8 @@ const DOT = {
 /* Source is the sales channel only — POS vs online. Delivery is a fulfillment
    stage, not a channel: it lives in the status columns, never here. */
 const SOURCES = [
-    { value: 'all',    label: 'All orders',   icon: ShoppingCart },
-    { value: 'pos',    label: 'Direct POS',   icon: Monitor      },
-    { value: 'online', label: 'Online store', icon: Globe        },
+    { value: 'pos',    label: 'Direct POS'  },
+    { value: 'online', label: 'Online store' },
 ];
 
 const SOURCE_TONE = {
@@ -63,60 +52,69 @@ const SOURCE_TONE = {
 export default function Manage({ store, orders = [], cities = [] }) {
     const currency = store?.currency ?? 'MAD';
 
+    // Opening the orders board is what "seen" means for the new-order badge
+    // — marks every unseen new_order notification for this user, once.
+    useEffect(() => {
+        axios.post('/dashboard/notifications/mark-seen', { context: 'orders_index' }).catch(() => {});
+    }, []);
+
     const permissions = usePage().props.auth?.permissions ?? [];
     const can = (perm) => ! perm || permissions.includes('*') || permissions.includes(perm);
 
-    const departments = useMemo(() => DEPARTMENTS.filter((d) => can(d.perm)), [permissions]);
+    const [view, setView]           = useState('board');      // 'board' | 'table'
+    const [status, setStatus]       = useState('all');        // 'all' | a real COLUMNS value
+    const [source, setSource]       = useState('');
+    const [assigned, setAssigned]   = useState('');
+    const [search, setSearch]       = useState('');
+    const [dateFrom, setDateFrom]   = useState('');
+    const [dateTo, setDateTo]       = useState('');
+    const [selectedKey, setKey]     = useState(null);         // `${type}:${id}`
+    const [busy, setBusy]           = useState(null);         // key being updated
+    const [reasonFor, setReason]    = useState(null);         // { order, transition }
+    const [confirmFor, setConfirm]  = useState(null);         // confirmation data correction
 
-    const [view, setView]         = useState('board');      // 'board' | 'table'
-    const [department, setDept]   = useState('all');
-    const [source, setSource]     = useState('all');
-    const [search, setSearch]     = useState('');
-    const [selectedKey, setKey]   = useState(null);         // `${type}:${id}`
-    const [busy, setBusy]         = useState(null);         // key being updated
-    const [reasonFor, setReason]  = useState(null);         // { order, transition }
-    const [confirmFor, setConfirm] = useState(null);        // confirmation data correction
+    // One real assignee list, derived from the orders actually loaded — never
+    // an invented roster.
+    const assignees = useMemo(
+        () => [...new Set(orders.map((o) => o.assignee_name).filter(Boolean))].sort(),
+        [orders],
+    );
 
-    // Columns belonging to the active department, so a 10-status workflow never
-    // renders as 10 Kanban lanes at once.
-    const visibleColumns = useMemo(() => {
-        const phases = departments.find((d) => d.value === department)?.phases ?? [];
-        return COLUMNS.filter((c) => phases.includes(c.phase));
-    }, [department, departments]);
+    const counts = useMemo(() => {
+        const bySource = { pos: 0, online: 0 };
+        const byStatus = Object.fromEntries(COLUMNS.map((c) => [c.value, 0]));
+        for (const o of orders) {
+            byStatus[o.status] = (byStatus[o.status] ?? 0) + 1;
+            bySource[o.source] = (bySource[o.source] ?? 0) + 1;
+        }
+        return { bySource, byStatus };
+    }, [orders]);
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
-        const allowed = new Set(visibleColumns.map((c) => c.value));
         return orders.filter((o) => {
-            if (! allowed.has(o.status)) return false;
-            if (source !== 'all' && o.source !== source) return false;
-            if (!q) return true;
-            return [o.reference, o.customer_name, o.customer_email, o.customer_phone]
-                .filter(Boolean)
-                .some((v) => String(v).toLowerCase().includes(q));
-        });
-    }, [orders, source, search, visibleColumns]);
-
-    const counts = useMemo(() => {
-        const bySource = { all: 0, pos: 0, online: 0 };
-        const byStatus = Object.fromEntries(COLUMNS.map((c) => [c.value, 0]));
-        const byDept   = Object.fromEntries(DEPARTMENTS.map((d) => [d.value, 0]));
-
-        for (const o of orders) {
-            byStatus[o.status] = (byStatus[o.status] ?? 0) + 1;
-            for (const d of DEPARTMENTS) {
-                if (d.phases.includes(o.phase)) byDept[d.value] += 1;
+            if (status !== 'all' && o.status !== status) return false;
+            if (source && o.source !== source) return false;
+            if (assigned === '__unassigned__' && o.assignee_name) return false;
+            if (assigned && assigned !== '__unassigned__' && o.assignee_name !== assigned) return false;
+            if (dateFrom && o.created_at < dateFrom) return false;
+            if (dateTo && o.created_at.slice(0, 10) > dateTo) return false;
+            if (q) {
+                const hit = [o.reference, o.customer_name, o.customer_email, o.customer_phone]
+                    .filter(Boolean)
+                    .some((v) => String(v).toLowerCase().includes(q));
+                if (! hit) return false;
             }
-        }
-        // Source counts follow the active department, so the tallies agree.
-        const activePhases = departments.find((d) => d.value === department)?.phases ?? [];
-        for (const o of orders) {
-            if (! activePhases.includes(o.phase)) continue;
-            bySource.all += 1;
-            bySource[o.source] = (bySource[o.source] ?? 0) + 1;
-        }
-        return { bySource, byStatus, byDept };
-    }, [orders, department, departments]);
+            return true;
+        });
+    }, [orders, status, source, assigned, search, dateFrom, dateTo]);
+
+    // Board columns: the curated primary flow by default, or just the one
+    // selected status when the filter narrows to it — never a 7-10 lane wall.
+    const boardColumns = useMemo(() => {
+        if (status !== 'all') return COLUMNS.filter((c) => c.value === status);
+        return COLUMNS.filter((c) => PRIMARY_FLOW.includes(c.value));
+    }, [status]);
 
     // Keep the drawer bound to fresh data after a status update re-renders props.
     const selected = useMemo(
@@ -125,12 +123,25 @@ export default function Manage({ store, orders = [], cities = [] }) {
         [selectedKey, filtered, orders],
     );
 
-    const post = (order, status, reason, extra = {}) => {
+    const post = (order, transitionStatus, reason, extra = {}) => {
         const key = `${order.type}:${order.id}`;
         setBusy(key);
-        router.post(`/dashboard/orders/${order.type}/${order.id}/status`, { status, reason, ...extra }, {
+        router.post(`/dashboard/orders/${order.type}/${order.id}/status`, { status: transitionStatus, reason, ...extra }, {
             preserveScroll: true,
             preserveState: true,   // keep filters + drawer open; props still refresh
+            onFinish: () => setBusy(null),
+        });
+    };
+
+    /* Claiming is the confirmation-desk gate itself (see OrderPresenter::claimState
+       and OrderController::updateStatus's claim check) — an unclaimed order's
+       Confirm/Cancel actions stay disabled here until this succeeds. */
+    const claimOrder = (order) => {
+        const key = `${order.type}:${order.id}`;
+        setBusy(key);
+        router.post(`/dashboard/departments/${order.type}/${order.id}/claim`, {}, {
+            preserveScroll: true,
+            preserveState: true,
             onFinish: () => setBusy(null),
         });
     };
@@ -150,6 +161,8 @@ export default function Manage({ store, orders = [], cities = [] }) {
         post(order, transition.value);
     };
 
+    const statusOptions = COLUMNS.map((c) => ({ value: c.value, label: c.label }));
+
     return (
         <SaasLayout pageHeader={{
             title: 'Order management',
@@ -161,118 +174,81 @@ export default function Manage({ store, orders = [], cities = [] }) {
                     {can('orders.inspect') && (
                         <Link
                             href="/dashboard/orders/returns"
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface border border-line text-content hover:bg-surface-3 transition"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-line text-content hover:bg-surface-3 transition"
                         >
                             <Undo2 className="w-4 h-4" /> Returns
                         </Link>
                     )}
                     <Link
                         href="/pos"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition"
                     >
                         <Monitor className="w-4 h-4" /> Open POS
                     </Link>
                 </div>
             ),
         }}>
-            {/* Department tabs — each is a permission plus a phase filter */}
-            <div className="flex items-center gap-1 p-1 mb-5 rounded-xl bg-surface-2 border border-line overflow-x-auto">
-                {departments.map((d) => {
-                    const Icon = d.icon;
-                    const isActive = department === d.value;
+            {/* Compact summary strip — one slim row, not a card grid. Clicking a
+                status narrows the filter below (click again to clear). */}
+            <div className="mb-5 flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-line bg-surface-2 px-3 py-2.5">
+                {COLUMNS.filter((c) => PRIMARY_FLOW.includes(c.value)).map((c) => {
+                    const active = status === c.value;
                     return (
                         <button
-                            key={d.value}
-                            onClick={() => { setDept(d.value); setSource('all'); }}
-                            className={[
-                                'inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition',
-                                isActive
-                                    ? 'bg-surface text-content shadow-sm border border-line'
-                                    : 'text-content-muted hover:text-content hover:bg-surface-3 border border-transparent',
-                            ].join(' ')}
+                            key={c.value}
+                            type="button"
+                            onClick={() => setStatus(active ? 'all' : c.value)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-medium transition ${
+                                active ? 'bg-primary-soft text-primary' : 'text-content-muted hover:bg-surface-3 hover:text-content'
+                            }`}
                         >
-                            <Icon className="w-4 h-4" />
-                            {d.label}
-                            <span className="ml-0.5 min-w-5 px-1.5 rounded-full bg-surface-2 border border-line text-[11px] tabular-nums text-content-muted">
-                                {counts.byDept[d.value] ?? 0}
-                            </span>
+                            <span className={`h-1.5 w-1.5 rounded-full ${DOT[c.color]}`} />
+                            {c.label}
+                            <span className="tabular-nums font-semibold">{counts.byStatus[c.value] ?? 0}</span>
                         </button>
                     );
                 })}
             </div>
 
-            {/* Status overview tiles for the active department */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                {visibleColumns.map((c) => (
-                    <div key={c.value} className="bg-surface-2 border border-line rounded-xl px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-xs text-content-muted">
-                            <span className={`w-1.5 h-1.5 rounded-full ${DOT[c.color]}`} />
-                            {c.label}
-                        </div>
-                        <div className="mt-1 text-2xl font-bold tabular-nums text-content">
-                            {counts.byStatus[c.value] ?? 0}
-                        </div>
-                    </div>
-                ))}
-            </section>
-
-            {/* Source tabs + search */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line overflow-x-auto">
-                    {SOURCES.map((s) => {
-                        const Icon = s.icon;
-                        const isActive = source === s.value;
-                        return (
-                            <button
-                                key={s.value}
-                                onClick={() => setSource(s.value)}
-                                className={[
-                                    'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition',
-                                    isActive
-                                        ? 'bg-indigo-600 text-white shadow-sm'
-                                        : 'text-content-muted hover:text-content hover:bg-surface-3',
-                                ].join(' ')}
-                            >
-                                <Icon className="w-4 h-4" />
-                                {s.label}
-                                <span className={[
-                                    'ml-0.5 min-w-5 px-1.5 rounded-full text-[11px] tabular-nums',
-                                    isActive ? 'bg-white/20' : 'bg-surface border border-line',
-                                ].join(' ')}>
-                                    {counts.bySource[s.value] ?? 0}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="relative sm:ml-auto sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search reference, customer…"
-                        className="w-full pl-9 pr-8 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition"
-                    />
-                    {search && (
-                        <button
-                            onClick={() => setSearch('')}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
+            {/* One filter bar — search, source, status, assigned, date range. */}
+            <div className="mb-5">
+                <SearchFilterBar
+                    placeholder="Search reference, customer…"
+                    value={search}
+                    onSearch={setSearch}
+                    activeFilters={{ source, status: status === 'all' ? '' : status, assigned }}
+                    onFilterChange={(key, val) => {
+                        if (key === 'source') setSource(val);
+                        if (key === 'status') setStatus(val || 'all');
+                        if (key === 'assigned') setAssigned(val);
+                    }}
+                    filters={[
+                        { key: 'source', label: 'Source', options: SOURCES.map((s) => ({ ...s, label: `${s.label} (${counts.bySource[s.value] ?? 0})` })) },
+                        { key: 'status', label: 'Status', options: statusOptions },
+                        ...(assignees.length > 0 ? [{
+                            key: 'assigned',
+                            label: 'Assigned',
+                            options: [{ value: '__unassigned__', label: 'Unassigned' }, ...assignees.map((name) => ({ value: name, label: name }))],
+                        }] : []),
+                    ]}
+                    dateRange={{ from: dateFrom, to: dateTo, onChange: (which, val) => (which === 'from' ? setDateFrom(val) : setDateTo(val)) }}
+                />
             </div>
+
+            {/* Live search also has an immediate feel — filter as you type,
+                the search box's own submit is just for keyboard Enter. */}
 
             {filtered.length === 0 ? (
                 <EmptyBoard />
             ) : view === 'board' ? (
                 <BoardView
-                    columns={visibleColumns}
+                    columns={boardColumns}
                     orders={filtered}
                     currency={currency}
                     onOpen={(o) => setKey(`${o.type}:${o.id}`)}
+                    onAction={updateStatus}
+                    onClaim={claimOrder}
+                    busyKey={busy}
                 />
             ) : (
                 <TableView
@@ -289,6 +265,7 @@ export default function Manage({ store, orders = [], cities = [] }) {
                 can={can}
                 onClose={() => setKey(null)}
                 onUpdateStatus={updateStatus}
+                onClaim={claimOrder}
             />
 
             <ConfirmationModal
@@ -317,14 +294,13 @@ export default function Manage({ store, orders = [], cities = [] }) {
 /* Board (Kanban) view                                                     */
 /* ----------------------------------------------------------------------- */
 
-/* Tailwind needs whole class names, so the lane count maps to a literal. Wide
-   views ("All orders" can surface up to 10 statuses) wrap at 5 lanes per row. */
+/* Tailwind needs whole class names, so the lane count maps to a literal. */
 const GRID_COLS = {
     1: 'xl:grid-cols-1', 2: 'xl:grid-cols-2', 3: 'xl:grid-cols-3',
-    4: 'xl:grid-cols-4', 5: 'xl:grid-cols-5',
+    4: 'xl:grid-cols-4', 5: 'xl:grid-cols-5', 6: 'xl:grid-cols-6',
 };
 
-function BoardView({ columns, orders, currency, onOpen }) {
+function BoardView({ columns, orders, currency, onOpen, onAction, onClaim, busyKey }) {
     return (
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${GRID_COLS[columns.length] ?? 'xl:grid-cols-5'} gap-4`}>
             {columns.map((col) => {
@@ -340,12 +316,20 @@ function BoardView({ columns, orders, currency, onOpen }) {
                                 {cards.length}
                             </span>
                         </div>
-                        <div className="flex flex-col gap-2.5 rounded-xl bg-surface-2/40 border border-dashed border-line p-2 min-h-24">
+                        <div className="flex flex-col gap-2.5 rounded-[var(--radius-card)] bg-surface-2/40 border border-dashed border-line p-2 min-h-24">
                             {cards.length === 0 ? (
                                 <p className="py-6 text-center text-xs text-content-muted">No orders</p>
                             ) : (
                                 cards.map((o) => (
-                                    <OrderCard key={`${o.type}:${o.id}`} order={o} currency={currency} onClick={() => onOpen(o)} />
+                                    <OrderCard
+                                        key={`${o.type}:${o.id}`}
+                                        order={o}
+                                        currency={currency}
+                                        onClick={() => onOpen(o)}
+                                        onAction={onAction}
+                                        onClaim={onClaim}
+                                        busy={busyKey === `${o.type}:${o.id}`}
+                                    />
                                 ))
                             )}
                         </div>
@@ -356,26 +340,78 @@ function BoardView({ columns, orders, currency, onOpen }) {
     );
 }
 
-function OrderCard({ order, currency, onClick }) {
+function OrderCard({ order, currency, onClick, onAction, onClaim, busy }) {
+    const primaryTransition = (order.transitions ?? [])[0];
+    // Pending orders (confirmation phase) are claim-gated — see
+    // OrderPresenter::claimState(). Every other phase's primary action is
+    // permission-only, exactly as before this fix.
+    const isConfirmationPhase = order.phase === 'confirmation';
+    const claimedByOther = Boolean(order.assigned_to) && ! order.claimed_by_current_user;
+
     return (
-        <button
-            onClick={onClick}
-            className="w-full text-left bg-surface border border-line rounded-lg p-3 hover:border-indigo-500/50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition group"
-        >
-            <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-content-muted truncate">{order.reference}</span>
-                <SourceBadge order={order} />
-            </div>
-            <div className="mt-1.5 text-sm font-medium text-content truncate">
-                {order.customer_name || <span className="text-content-muted">Walk-in</span>}
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-                <span className="text-sm font-semibold tabular-nums text-content">{fmtMoney(order.total, currency)}</span>
-                <span className="inline-flex items-center gap-1 text-[11px] text-content-muted">
-                    <Clock className="w-3 h-3" /> {timeAgo(order.created_at)}
-                </span>
-            </div>
-        </button>
+        <div className="w-full text-left bg-surface border border-line rounded-[var(--radius-card)] p-3 hover:border-primary/50 hover:shadow-sm transition group">
+            <button onClick={onClick} className="w-full text-left focus:outline-none">
+                <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs text-content-muted truncate">{order.reference}</span>
+                    <SourceBadge order={order} />
+                </div>
+                <div className="mt-1.5 text-sm font-medium text-content truncate">
+                    {order.customer_name || <span className="text-content-muted">Walk-in</span>}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-content-muted">
+                    {order.shipping_city_name && (
+                        <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {order.shipping_city_name}</span>
+                    )}
+                    {order.assigned_to && (
+                        <span className={`inline-flex items-center gap-1 ${order.claimed_by_current_user ? 'text-primary' : ''}`}>
+                            <UserCircle2 className="w-3 h-3" />
+                            {order.claimed_by_current_user ? 'Claimed by you' : `Claimed by ${order.assignee_name ?? order.assigned_user_name ?? 'another agent'}`}
+                        </span>
+                    )}
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold tabular-nums text-content">{fmtMoney(order.total, currency)}</span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-content-muted">
+                        <Clock className="w-3 h-3" /> {timeAgo(order.created_at)}
+                    </span>
+                </div>
+            </button>
+
+            {isConfirmationPhase && order.can_claim && (
+                <button
+                    type="button"
+                    disabled={busy}
+                    onClick={(e) => { e.stopPropagation(); onClaim(order); }}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-surface-2 border border-line px-2.5 py-1.5 text-xs font-semibold text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Hand className="w-3.5 h-3.5" />}
+                    Claim order
+                </button>
+            )}
+
+            {isConfirmationPhase && ! order.can_claim && ! order.can_confirm && primaryTransition && (
+                <button
+                    type="button"
+                    disabled
+                    title={claimedByOther ? `Claimed by ${order.assignee_name ?? order.assigned_user_name ?? 'another agent'}` : 'Claim this order before confirming.'}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-content-muted opacity-50 cursor-not-allowed transition"
+                >
+                    {primaryTransition.action}
+                </button>
+            )}
+
+            {(! isConfirmationPhase || order.can_confirm) && primaryTransition && (
+                <button
+                    type="button"
+                    disabled={busy}
+                    onClick={(e) => { e.stopPropagation(); onAction(order, primaryTransition); }}
+                    className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-button)] bg-primary-soft px-2.5 py-1.5 text-xs font-semibold text-primary hover:brightness-95 disabled:opacity-50 transition"
+                >
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {primaryTransition.action}
+                </button>
+            )}
+        </div>
     );
 }
 
@@ -385,36 +421,40 @@ function OrderCard({ order, currency, onClick }) {
 
 function TableView({ orders, currency, onOpen }) {
     return (
-        <div className="bg-surface-2 border border-line rounded-xl overflow-hidden">
+        <div className="table-container">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                    <thead className="bg-surface-2/60 text-xs uppercase tracking-wider text-content-muted border-b border-line">
+                    <thead>
                         <tr>
-                            <th className="px-4 py-3 text-left">Reference</th>
-                            <th className="px-4 py-3 text-left">Source</th>
-                            <th className="px-4 py-3 text-left">Customer</th>
-                            <th className="px-4 py-3 text-right">Total</th>
-                            <th className="px-4 py-3 text-left">Status</th>
-                            <th className="px-4 py-3 text-left">Updated</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
+                            <th className="table-th">Reference</th>
+                            <th className="table-th">Source</th>
+                            <th className="table-th">Customer</th>
+                            <th className="table-th">Status</th>
+                            <th className="table-th">Stage</th>
+                            <th className="table-th text-right">Amount</th>
+                            <th className="table-th">Assigned</th>
+                            <th className="table-th">Created</th>
+                            <th className="table-th text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-line/50">
+                    <tbody>
                         {orders.map((o) => (
-                            <tr key={`${o.type}:${o.id}`} className="hover:bg-surface-3/40 transition">
-                                <td className="px-4 py-3 font-mono text-xs text-content-muted">{o.reference}</td>
-                                <td className="px-4 py-3"><SourceBadge order={o} /></td>
-                                <td className="px-4 py-3">
+                            <tr key={`${o.type}:${o.id}`} className="table-row">
+                                <td className="table-td font-mono text-xs text-content-muted">{o.reference}</td>
+                                <td className="table-td"><SourceBadge order={o} /></td>
+                                <td className="table-td">
                                     <div className="text-content">{o.customer_name || <span className="text-content-muted">Walk-in</span>}</div>
                                     {o.customer_email && <div className="text-xs text-content-muted">{o.customer_email}</div>}
                                 </td>
-                                <td className="px-4 py-3 text-right font-semibold tabular-nums text-content">{fmtMoney(o.total, currency)}</td>
-                                <td className="px-4 py-3"><StatusBadge type="fulfillment" status={o.status} label={o.status_label} /></td>
-                                <td className="px-4 py-3 text-xs text-content-muted">{timeAgo(o.updated_at ?? o.created_at)}</td>
-                                <td className="px-4 py-3 text-right">
+                                <td className="table-td"><StatusBadge type="fulfillment" status={o.status} label={o.status_label} /></td>
+                                <td className="table-td text-xs text-content-muted capitalize">{o.phase}</td>
+                                <td className="table-td text-right font-semibold tabular-nums text-content">{fmtMoney(o.total, currency)}</td>
+                                <td className="table-td text-xs text-content-muted">{o.assignee_name ?? '—'}</td>
+                                <td className="table-td text-xs text-content-muted">{timeAgo(o.created_at)}</td>
+                                <td className="table-td text-right">
                                     <button
                                         onClick={() => onOpen(o)}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface border border-line text-content hover:bg-surface-3 transition"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content hover:bg-surface-3 transition"
                                     >
                                         <Eye className="w-3.5 h-3.5" /> Manage
                                     </button>
@@ -432,7 +472,7 @@ function TableView({ orders, currency, onOpen }) {
 /* Slide-over drawer — details + status actions                           */
 /* ----------------------------------------------------------------------- */
 
-function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
+function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus, onClaim }) {
     const open = Boolean(order);
 
     // Close on Escape.
@@ -469,7 +509,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                             </div>
                             <button
                                 onClick={onClose}
-                                className="shrink-0 p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-surface-2 transition"
+                                className="shrink-0 p-1.5 rounded-[var(--radius-button)] text-content-muted hover:text-content hover:bg-surface-2 transition"
                                 aria-label="Close"
                             >
                                 <X className="w-5 h-5" />
@@ -483,8 +523,23 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                 {order.customer_phone && <InfoRow icon={Phone} label="Phone" value={order.customer_phone} />}
                                 {order.customer_email && <InfoRow icon={Mail}  label="Email" value={order.customer_email} />}
                                 <InfoRow icon={Truck} label="Fulfillment" value={order.fulfillment_label ?? order.source_label} />
+                                {order.shipping_city_name && <InfoRow icon={MapPin} label="City" value={order.shipping_city_name} />}
+                                {order.assigned_to && (
+                                    <InfoRow
+                                        icon={UserCircle2}
+                                        label="Claimed by"
+                                        value={order.claimed_by_current_user ? 'You' : (order.assignee_name ?? order.assigned_user_name ?? 'Another agent')}
+                                    />
+                                )}
                                 {order.payment_method && (
                                     <InfoRow icon={CreditCard} label="Payment" value={<span className="uppercase text-xs tracking-wider">{order.payment_method}</span>} />
+                                )}
+                                {order.source === 'online' && order.connection_label && (
+                                    <InfoRow
+                                        icon={Globe}
+                                        label="Store"
+                                        value={`${order.connection_label}${order.external_order_number ? ` · #${order.external_order_number}` : ''}`}
+                                    />
                                 )}
                             </Section>
 
@@ -529,6 +584,19 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                             <p className="text-xs text-content-muted mb-2.5">
                                 {order.transitions?.length ? 'Move this order to:' : 'This order has reached a final state.'}
                             </p>
+
+                            {order.phase === 'confirmation' && order.can_claim && (
+                                <button
+                                    type="button"
+                                    disabled={isBusy}
+                                    onClick={() => onClaim(order)}
+                                    className="mb-2 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                                >
+                                    {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hand className="w-4 h-4" />}
+                                    Claim order
+                                </button>
+                            )}
+
                             <div className="flex flex-wrap gap-2">
                                 {(order.transitions ?? []).map((t) => {
                                     const danger  = t.value === 'cancelled' || t.value === 'returned';
@@ -537,16 +605,37 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                     const allowed = can(t.permission) || can('orders.manage');
                                     if (! allowed) return null;
 
+                                    // Pending (confirmation phase) Confirm/Cancel are
+                                    // additionally claim-gated — see
+                                    // OrderPresenter::claimState(). Every other
+                                    // phase's transitions are unaffected.
+                                    const claimGated = order.phase === 'confirmation' && (t.value === 'confirmed' || t.value === 'cancelled');
+                                    if (claimGated && ! order.can_confirm) {
+                                        return (
+                                            <button
+                                                key={t.value}
+                                                type="button"
+                                                disabled
+                                                title={order.assigned_to
+                                                    ? `Claimed by ${order.claimed_by_current_user ? 'you' : (order.assignee_name ?? order.assigned_user_name ?? 'another agent')}`
+                                                    : `Claim this order before ${t.value === 'cancelled' ? 'cancelling' : 'confirming'} it.`}
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface border border-line text-content-muted opacity-50 cursor-not-allowed transition"
+                                            >
+                                                <Package className="w-4 h-4" /> {t.action}
+                                            </button>
+                                        );
+                                    }
+
                                     return (
                                         <button
                                             key={t.value}
                                             disabled={isBusy}
                                             onClick={() => onUpdateStatus(order, t)}
                                             className={[
-                                                'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition disabled:opacity-50',
+                                                'inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] transition disabled:opacity-50',
                                                 danger
-                                                    ? 'bg-surface border border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10'
-                                                    : 'bg-indigo-600 text-white hover:bg-indigo-500',
+                                                    ? 'bg-surface border border-danger/40 text-danger hover:bg-danger-soft'
+                                                    : 'bg-primary text-primary-contrast hover:bg-primary-strong',
                                             ].join(' ')}
                                         >
                                             {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
@@ -559,7 +648,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                             {order.phase === 'returns' && (
                                 <Link
                                     href="/dashboard/orders/returns"
-                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
                                 >
                                     <Undo2 className="w-3.5 h-3.5" /> Open inspection worksheet
                                 </Link>
@@ -568,7 +657,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                 <div className="mt-3 flex items-center gap-2">
                                     <Link
                                         href={`/dashboard/orders/${order.reference}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
                                     >
                                         <Eye className="w-3.5 h-3.5" /> Full details
                                     </Link>
@@ -576,7 +665,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                         href={`/dashboard/orders/${order.reference}/receipt`}
                                         target="_blank"
                                         rel="noopener"
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
                                     >
                                         <Printer className="w-3.5 h-3.5" /> Receipt
                                     </a>
@@ -586,7 +675,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                 <div className="mt-3 flex items-center gap-2">
                                     <Link
                                         href={`/dashboard/orders/online/${order.id}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
                                     >
                                         <Eye className="w-3.5 h-3.5" /> Full details
                                     </Link>
@@ -594,7 +683,7 @@ function OrderDrawer({ order, currency, busy, can, onClose, onUpdateStatus }) {
                                         href={`/dashboard/orders/online/${order.id}/receipt`}
                                         target="_blank"
                                         rel="noopener"
-                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
+                                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content-muted hover:text-content hover:bg-surface-3 transition"
                                     >
                                         <Printer className="w-3.5 h-3.5" /> Receipt
                                     </a>
@@ -628,25 +717,25 @@ function ConfirmationModal({ request, cities, onCancel, onConfirm }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={onCancel} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md bg-surface border border-line rounded-2xl shadow-2xl p-5">
+            <div className="relative w-full max-w-md bg-surface border border-line rounded-[var(--radius-card)] shadow-2xl p-5">
                 <h3 className="text-base font-semibold text-content">Confirm order details</h3>
                 <p className="mt-1 text-sm text-content-muted">The selected city is used to choose the warehouse. The original platform address stays untouched.</p>
                 <div className="mt-4 space-y-3">
                     <div>
                         <label className="block text-xs font-medium text-content-muted mb-1.5">City</label>
-                        <select value={cityId} onChange={(e) => setCityId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content">
+                        <select value={cityId} onChange={(e) => setCityId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content">
                             <option value="">Use default warehouse</option>
                             {cities.map((city) => <option key={city.id} value={city.id}>{city.name}{city.region ? ` — ${city.region}` : ''}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-content-muted mb-1.5">Confirmed address</label>
-                        <textarea rows={3} value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content" />
+                        <textarea rows={3} value={address} onChange={(e) => setAddress(e.target.value)} className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content" />
                     </div>
                 </div>
                 <div className="mt-5 flex justify-end gap-2">
-                    <button onClick={onCancel} className="px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content-muted">Cancel</button>
-                    <button onClick={() => onConfirm({ shipping_city_id: cityId || null, shipping_address: address || null })} className="px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">Confirm order</button>
+                    <button onClick={onCancel} className="px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted">Cancel</button>
+                    <button onClick={() => onConfirm({ shipping_city_id: cityId || null, shipping_address: address || null })} className="px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong">Confirm order</button>
                 </div>
             </div>
         </div>
@@ -694,9 +783,9 @@ function ReasonModal({ request, onCancel, onConfirm }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={onCancel} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md bg-surface border border-line rounded-2xl shadow-2xl p-5">
+            <div className="relative w-full max-w-md bg-surface border border-line rounded-[var(--radius-card)] shadow-2xl p-5">
                 <div className="flex items-start gap-3">
-                    <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-500/15 text-red-600 dark:text-red-400">
+                    <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-button)] bg-danger-soft text-danger">
                         <AlertTriangle className="w-5 h-5" />
                     </span>
                     <div className="min-w-0">
@@ -716,7 +805,7 @@ function ReasonModal({ request, onCancel, onConfirm }) {
                             <select
                                 value={preset}
                                 onChange={(e) => setPreset(e.target.value)}
-                                className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary/40"
                             >
                                 {RETURN_REASONS.map((r) => (
                                     <option key={r.value} value={r.value}>{r.label}</option>
@@ -736,7 +825,7 @@ function ReasonModal({ request, onCancel, onConfirm }) {
                                 value={text}
                                 onChange={(e) => setText(e.target.value)}
                                 placeholder="Recorded on the order's audit trail…"
-                                className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
                             />
                         </div>
                     )}
@@ -745,14 +834,14 @@ function ReasonModal({ request, onCancel, onConfirm }) {
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         onClick={onCancel}
-                        className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content transition"
+                        className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content transition"
                     >
                         Never mind
                     </button>
                     <button
                         disabled={! valid}
                         onClick={() => onConfirm(value)}
-                        className="px-3 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        className="px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-danger text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                         {request.transition.action}
                     </button>
@@ -772,7 +861,7 @@ function ViewToggle({ view, onChange }) {
         { value: 'table', icon: Table2,     label: 'Table' },
     ];
     return (
-        <div className="inline-flex items-center p-1 rounded-lg bg-surface-2 border border-line">
+        <div className="inline-flex items-center p-1 rounded-[var(--radius-button)] bg-surface-2 border border-line">
             {opts.map((o) => {
                 const Icon = o.icon;
                 const isActive = view === o.value;
@@ -782,7 +871,7 @@ function ViewToggle({ view, onChange }) {
                         onClick={() => onChange(o.value)}
                         title={o.label}
                         className={[
-                            'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md transition',
+                            'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-[var(--radius-button)] transition',
                             isActive ? 'bg-surface text-content shadow-sm' : 'text-content-muted hover:text-content',
                         ].join(' ')}
                     >
@@ -825,7 +914,7 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 function TotalRow({ label, value, tone }) {
-    const toneClass = tone === 'red' ? 'text-red-600 dark:text-red-400' : 'text-content';
+    const toneClass = tone === 'red' ? 'text-danger' : 'text-content';
     return (
         <div className="flex items-center justify-between text-sm">
             <span className="text-content-muted">{label}</span>
@@ -836,12 +925,12 @@ function TotalRow({ label, value, tone }) {
 
 function EmptyBoard() {
     return (
-        <div className="bg-surface-2 border border-line rounded-xl py-16 flex flex-col items-center text-center">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] py-16 flex flex-col items-center text-center">
             <div className="w-12 h-12 rounded-full bg-surface-3 flex items-center justify-center mb-3">
                 <ShoppingCart className="w-6 h-6 text-content-muted" />
             </div>
             <p className="text-sm font-medium text-content">No orders match this view</p>
-            <p className="text-xs text-content-muted mt-1">Try a different source tab or clear your search.</p>
+            <p className="text-xs text-content-muted mt-1">Try a different filter or clear your search.</p>
         </div>
     );
 }

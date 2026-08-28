@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Printer, CreditCard, User, Calendar, Hash, FileText, FilePlus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Printer, CreditCard, User, Calendar, Hash, FileText, FilePlus, Loader2, Warehouse, AlertTriangle } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
 
-export default function Show({ order, store, invoice = null, canInvoice = false }) {
+export default function Show({ order, store, invoice = null, canInvoice = false, inventory = null }) {
     const currency = store?.currency ?? 'MAD';
     const [generating, setGenerating] = useState(false);
 
@@ -158,6 +158,22 @@ export default function Show({ order, store, invoice = null, canInvoice = false 
                             <Row label="Created"    value={new Date(order.created_at).toLocaleString()} icon={Calendar} />
                         </dl>
                     </Card>
+
+                    {inventory && (inventory.status || inventory.allocation || (inventory.unmapped_lines ?? []).length > 0) && (
+                        <Card>
+                            <CardHeader title="Inventory" />
+                            <dl className="px-5 py-4 space-y-2 text-sm">
+                                {inventory.status && <Row label="Status" value={inventory.status.label} icon={Warehouse} />}
+                                {inventory.allocation?.warehouse_name && <Row label="Warehouse" value={inventory.allocation.warehouse_name} icon={Warehouse} />}
+                                {(inventory.unmapped_lines ?? []).length > 0 && (
+                                    <p className="flex items-start gap-1.5 text-amber-600 dark:text-amber-400 text-xs pt-1">
+                                        <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                        Some lines are not linked to local inventory: {inventory.unmapped_lines.join(', ')}.
+                                    </p>
+                                )}
+                            </dl>
+                        </Card>
+                    )}
                 </div>
             </div>
         </SaasLayout>

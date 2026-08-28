@@ -100,6 +100,20 @@ class CatalogInventoryService
             $link = VariantInventoryLink::withoutOrganizationTenancy(fn () => VariantInventoryLink::query()
                 ->where('product_variant_id', $variantId)->with('inventoryItem')->first());
             if ($link?->inventoryItem) return $link->inventoryItem;
+
+            // A specific variant was identified — resolve/create ITS OWN
+            // inventory item and never fall through to the parent product's
+            // ProductInventoryLink below. That link can be stale (e.g. left
+            // over from before this product had variants, or from an
+            // earlier order line that matched at product level), and
+            // silently reusing it binds this variant's shortage to the
+            // wrong item — one a variant-level stock adjustment can never
+            // top up, which is exactly why a waiting order never released
+            // after the matching variant's stock was set.
+            $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::query()->find($variantId));
+            if ($variant === null) return null;
+            $product = Product::withoutTenancy(fn () => Product::query()->find($variant->product_id));
+            return $product !== null ? $this->forCatalog($product, $variant) : null;
         }
 
         if ($productId === null) return null;
@@ -108,72 +122,6 @@ class CatalogInventoryService
         if ($link?->inventoryItem) return $link->inventoryItem;
 
         $product = Product::withoutTenancy(fn () => Product::query()->find($productId));
-        if ($product === null) return null;
-        $variant = $variantId ? ProductVariant::withoutTenancy(fn () => ProductVariant::query()->find($variantId)) : null;
-        return $this->forCatalog($product, $variant);
-    }
-
-    /**
-     * Resolve the stocked item for an order line using every safe identifier we
-     * may have: local product/variant ids, then canonical SKU inside the order's
-     * organization/store. Real online orders are not guaranteed to carry local
-     * IDs, and tests may run without an active tenant context, so the caller
-     * passes the explicit organization/store boundary.
-     */
-    public function resolveOrderLine(
-        ?string $productId,
-        ?string $variantId,
-        ?string $sku,
-        ?string $organizationId,
-        ?string $storeId,
-    ): ?InventoryItem {
-        $resolved = $this->resolve($productId, $variantId);
-
-        if ($resolved !== null) {
-            return $resolved;
-        }
-
-        $sku = trim((string) $sku);
-        if ($sku === '') {
-            return null;
-        }
-
-        if ($organizationId !== null) {
-            $item = InventoryItem::withoutOrganizationTenancy(fn () => InventoryItem::query()
-                ->where('organization_id', $organizationId)
-                ->where('sku', $sku)
-                ->where('is_active', true)
-                ->first());
-
-            if ($item !== null) {
-                return $item;
-            }
-        }
-
-        if ($storeId === null) {
-            return null;
-        }
-
-        $product = Product::withoutTenancy(fn () => Product::query()
-            ->where('store_id', $storeId)
-            ->where('sku', $sku)
-            ->first());
-
-        if ($product !== null) {
-            return $this->forCatalog($product);
-        }
-
-        $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::query()
-            ->where('sku', $sku)
-            ->whereHas('product', fn ($query) => $query->where('store_id', $storeId))
-            ->first());
-
-        if ($variant === null) {
-            return null;
-        }
-
-        $product = Product::withoutTenancy(fn () => Product::query()->find($variant->product_id));
-
-        return $product !== null ? $this->forCatalog($product, $variant) : null;
+        return $product !== null ? $this->forCatalog($product) : null;
     }
 }

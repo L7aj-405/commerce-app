@@ -45,18 +45,18 @@ export default function Create({ organization, storeTypes = [], industries = [],
             actions: (
                 <Link
                     href="/dashboard/stores"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back
                 </Link>
             ),
         }}>
             {organization && (
-                <div className="max-w-2xl mb-5 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-surface-2 border border-line text-sm">
+                <div className="max-w-2xl mb-5 flex items-center gap-2.5 px-4 py-3 rounded-[var(--radius-card)] bg-surface-2 border border-line text-sm">
                     <Building2 className="w-4 h-4 text-content-muted flex-shrink-0" />
                     <span className="text-content-muted">Adding a store to</span>
                     <span className="font-semibold text-content">{organization.name}</span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-slate-500/15 text-slate-600 dark:text-slate-300">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-surface-3 text-content-muted">
                         {organization.type}
                     </span>
                 </div>
@@ -109,7 +109,7 @@ export default function Create({ organization, storeTypes = [], industries = [],
                 <button
                     type="submit"
                     disabled={processing}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition"
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 transition"
                 >
                     {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create store'}
                 </button>
@@ -128,8 +128,8 @@ function AgencyGuidance({ organization }) {
                 { label: 'Add' },
             ],
         }}>
-            <div className="max-w-2xl bg-surface-2 border border-line rounded-xl p-8 text-center">
-                <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <div className="max-w-2xl bg-surface-2 border border-line rounded-[var(--radius-card)] p-8 text-center">
+                <div className="w-12 h-12 mx-auto rounded-[var(--radius-card)] bg-warning-soft text-warning flex items-center justify-center">
                     <Info className="w-6 h-6" />
                 </div>
                 <h2 className="mt-4 text-base font-semibold text-content">
@@ -141,13 +141,13 @@ function AgencyGuidance({ organization }) {
                 <div className="mt-6 flex items-center justify-center gap-3">
                     <Link
                         href="/agency/clients"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition"
                     >
                         <Users className="w-4 h-4" /> Agency clients
                     </Link>
                     <Link
                         href="/dashboard/stores"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:text-content"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content-muted hover:text-content"
                     >
                         Back to stores
                     </Link>
@@ -161,7 +161,7 @@ function Field({ label, icon: Icon, type = 'text', value, onChange, error, requi
     return (
         <div>
             <label className="block text-xs font-medium text-content-muted mb-1">
-                {label} {required && <span className="text-red-500">*</span>}
+                {label} {required && <span className="text-danger">*</span>}
             </label>
             <div className="relative">
                 {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />}
@@ -169,12 +169,12 @@ function Field({ label, icon: Icon, type = 'text', value, onChange, error, requi
                     type={type}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 rounded-lg bg-surface-2 border ${
-                        error ? 'border-red-500/60' : 'border-line'
-                    } text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40`}
+                    className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 rounded-[var(--radius-button)] bg-surface-2 border ${
+                        error ? 'border-danger/60' : 'border-line'
+                    } text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 />
             </div>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -183,22 +183,22 @@ function Select({ label, icon: Icon, value, onChange, options, error, required, 
     return (
         <div>
             <label className="block text-xs font-medium text-content-muted mb-1">
-                {label} {required && <span className="text-red-500">*</span>}
+                {label} {required && <span className="text-danger">*</span>}
             </label>
             <div className="relative">
                 {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />}
                 <select
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 rounded-lg bg-surface-2 border ${
-                        error ? 'border-red-500/60' : 'border-line'
-                    } text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40`}
+                    className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-3 py-2.5 rounded-[var(--radius-button)] bg-surface-2 border ${
+                        error ? 'border-danger/60' : 'border-line'
+                    } text-content focus:outline-none focus:ring-2 focus:ring-primary/40`}
                 >
                     {placeholder && <option value="">{placeholder}</option>}
                     {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
             </div>
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

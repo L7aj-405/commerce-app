@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\SenditWebhookController;
 use App\Http\Controllers\Api\ShopifyWebhookController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
+use App\Http\Controllers\Api\WooCommerceWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,3 +27,11 @@ Route::prefix('webhooks/whatsapp')->group(function () {
 // Single endpoint per connection — event is read from X-Shopify-Topic, not
 // the URL. No auth/CSRF (api group), HMAC verified inside the controller.
 Route::post('/webhooks/shopify/{connection}', [ShopifyWebhookController::class, 'handle']);
+
+// Same pattern for WooCommerce — topic read from X-WC-Webhook-Topic.
+Route::post('/webhooks/woocommerce/{connection}', [WooCommerceWebhookController::class, 'handle']);
+
+// Sendit delivery-status-update webhook — X-Sendit-Signature verified
+// inside the controller (HMAC-SHA256 over the raw body, connection's
+// secret_key as the key).
+Route::post('/webhooks/sendit/{connection}', [SenditWebhookController::class, 'handle']);

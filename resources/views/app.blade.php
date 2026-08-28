@@ -14,7 +14,7 @@
     <script>
         (function () {
             try {
-                var p = localStorage.getItem('theme') || 'system';
+                var p = localStorage.getItem('theme') || 'light';
                 var dark = p === 'dark' || (p === 'system' &&
                     window.matchMedia('(prefers-color-scheme: dark)').matches);
                 document.documentElement.classList.toggle('dark', dark);

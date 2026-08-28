@@ -9,7 +9,7 @@ export default function Card({ title, subtitle, badges, actions, children, class
     const hasHeader = title || subtitle || badges || actions;
 
     return (
-        <div className={`bg-surface-2 border border-line rounded-xl p-5 ${className}`}>
+        <div className={`bg-surface-2 border border-line rounded-[var(--radius-card)] p-5 ${className}`}>
             {hasHeader && (
                 <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0">

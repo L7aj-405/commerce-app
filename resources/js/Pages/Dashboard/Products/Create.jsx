@@ -143,12 +143,12 @@ export default function Create() {
                 { label: 'Add' },
             ],
             actions: (
-                <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
+                <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 hover:text-content">
                     <ArrowLeft className="w-4 h-4" /> Back
                 </Link>
             ),
         }}>
-            <form onSubmit={submit} className="bg-surface-2 border border-line rounded-xl p-6 max-w-4xl space-y-6">
+            <form onSubmit={submit} className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 max-w-4xl space-y-6">
                 
                 {/* القسم 1: المعلومات الأساسية ونوع المنتج */}
                 <Section title="Basic information">
@@ -165,7 +165,7 @@ export default function Create() {
                         <select 
                             value={data.type} 
                             onChange={(e) => setData('type', e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                         >
                             <option value="simple">Simple Product (منتج عادي)</option>
                             <option value="variable">Variable Product (منتج بخصائص وفاريانتس)</option>
@@ -185,22 +185,22 @@ export default function Create() {
                 {/* القسم 3: إدارة الـ Options والـ Variants (يظهر فقط إذا كان المنتج Variable) */}
                 {data.type === 'variable' && (
                     <Section title="Product options">
-                        <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                        <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
 
                             {/* حقول إضافة الخصائص دغيا دغيا */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                                 <div>
                                     <label className="block text-xs text-content-muted mb-1">Option name</label>
                                     <input type="text" placeholder="e.g., Size" value={currentAttrName} onChange={e => setCurrentAttrName(e.target.value)}
-                                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                        className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-xs text-content-muted mb-1">Values (separate with ",")</label>
                                     <input type="text" placeholder="e.g., S, M, L" value={currentAttrValues} onChange={e => setCurrentAttrValues(e.target.value)}
-                                        className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                        className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                 </div>
                                 <button type="button" onClick={handleAddAttribute}
-                                    className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
+                                    className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
                                     <Plus className="w-3.5 h-3.5" /> Add option
                                 </button>
                             </div>
@@ -221,7 +221,7 @@ export default function Create() {
 
                             {data.options.length > 0 && (
                                 <button type="button" onClick={generateVariantsMatrix}
-                                    className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
+                                    className="w-full bg-primary-soft hover:brightness-95 text-primary border border-primary/30 py-2 rounded-[var(--radius-button)] text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
                                     <Layers className="w-3.5 h-3.5" /> Generate variants
                                 </button>
                             )}
@@ -233,10 +233,10 @@ export default function Create() {
 
                 {data.type === 'variable' && data.variants.length > 0 && (
                     <Section title="Variants">
-                        <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                        <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
                             {/* الجدول الديناميكي لملء قيم كل فاريانت على حدة */}
                             {data.variants.length > 0 && (
-                                <div className="overflow-x-auto border border-line rounded-lg mt-2">
+                                <div className="overflow-x-auto border border-line rounded-[var(--radius-button)] mt-2">
                                     <table className="w-full text-left border-collapse bg-surface text-xs">
                                         <thead className="bg-surface text-content-muted font-medium border-b border-line">
                                             <tr>
@@ -254,15 +254,15 @@ export default function Create() {
                                                     </td>
                                                     <td className="p-2.5">
                                                         <input type="text" value={v.sku} onChange={e => handleVariantChange(index, 'sku', e.target.value)}
-                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-indigo-500" />
+                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-primary" />
                                                     </td>
                                                     <td className="p-2.5">
                                                         <input type="number" step="0.01" value={v.price} onChange={e => handleVariantChange(index, 'price', e.target.value)}
-                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-indigo-500" />
+                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-primary" />
                                                     </td>
                                                     <td className="p-2.5">
                                                         <input type="number" value={v.stock} onChange={e => handleVariantChange(index, 'stock', e.target.value)}
-                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-20 focus:outline-none focus:border-indigo-500" />
+                                                            className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-20 focus:outline-none focus:border-primary" />
                                                     </td>
                                                 </tr>
                                             ))}
@@ -278,7 +278,7 @@ export default function Create() {
                 <Section title="Image">
                     <Field label="Image URL" value={data.featured_image} onChange={(v) => setData('featured_image', v)} error={errors.featured_image} placeholder="https://…" />
                     {data.featured_image && (
-                        <img src={data.featured_image} alt="" className="mt-2 w-32 h-32 rounded-lg object-cover ring-1 ring-line" />
+                        <img src={data.featured_image} alt="" className="mt-2 w-32 h-32 rounded-[var(--radius-button)] object-cover ring-1 ring-line" />
                     )}
                 </Section>
 
@@ -286,7 +286,7 @@ export default function Create() {
                 <button
                     type="submit"
                     disabled={processing}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 transition"
                 >
                     {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving & Syncing…</> : <><Save className="w-4 h-4" /> Create product</>}
                 </button>
@@ -308,7 +308,7 @@ function Field({ label, type = 'text', value, onChange, error, required, ...rest
     return (
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">
-                {label} {required && <span className="text-red-600 dark:text-red-400">*</span>}
+                {label} {required && <span className="text-danger">*</span>}
             </label>
             <input 
                 type={type} 
@@ -316,9 +316,9 @@ function Field({ label, type = 'text', value, onChange, error, required, ...rest
                 //  هنا خاصنا ناخدو e.target.value حيت هادا input عادي ديال الـ HTML
                 onChange={(e) => onChange(e.target.value)} 
                 {...rest}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500`} 
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary`}
             />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -327,8 +327,8 @@ function TextArea({ label, value, onChange, error }) {
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">{label}</label>
             <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary`} />
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

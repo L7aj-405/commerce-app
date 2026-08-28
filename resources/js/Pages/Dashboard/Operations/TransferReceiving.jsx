@@ -31,9 +31,9 @@ export default function TransferReceiving({ transfers = [] }) {
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Transfer receiving',
-            subtitle: 'Inbound inventory transfers waiting to be received into a warehouse',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Transfer receiving' }],
+            title: 'Transfer Receiving',
+            subtitle: 'Receive internal transfers and release waiting orders.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Transfer Receiving' }],
         }}>
             <OperationsNav current="transfers" />
 
@@ -42,7 +42,7 @@ export default function TransferReceiving({ transfers = [] }) {
                     <select
                         value={warehouse}
                         onChange={(e) => setWarehouse(e.target.value)}
-                        className="px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        className="px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary/40"
                     >
                         <option value="">All warehouses</option>
                         {warehouses.map((w) => <option key={w} value={w}>{w}</option>)}
@@ -56,7 +56,7 @@ export default function TransferReceiving({ transfers = [] }) {
                     hint="Transfers appear here once they've shipped from the source warehouse."
                 />
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+                <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-left border-b border-line bg-surface-2 text-content-muted">
@@ -87,7 +87,7 @@ export default function TransferReceiving({ transfers = [] }) {
                                         <button
                                             disabled={busyId === t.id}
                                             onClick={() => receive(t)}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 transition"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 transition"
                                         >
                                             {busyId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
                                             Receive

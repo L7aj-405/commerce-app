@@ -25,9 +25,21 @@ const SOURCE_OPTIONS = [
     { value: 'online', label: 'Online' },
 ];
 
-export default function Index({ store, orders = { data: [], links: [] }, stats = { today: 0, week: 0, month: 0 }, filters = {} }) {
+const PLATFORM_OPTIONS = [
+    { value: 'shopify',     label: 'Shopify' },
+    { value: 'woocommerce', label: 'WooCommerce' },
+    { value: 'youcan',      label: 'YouCan' },
+    { value: 'manual',      label: 'Manual' },
+];
+
+export default function Index({ store, orders = { data: [], links: [] }, stats = { today: 0, week: 0, month: 0 }, filters = {}, connections = [] }) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [active, setActive] = useState({ status: filters.status ?? '', source: filters.source ?? '' });
+    const [active, setActive] = useState({
+        status: filters.status ?? '',
+        source: filters.source ?? '',
+        platform: filters.platform ?? '',
+        connection: filters.connection ?? '',
+    });
 
     const applyFilters = (next = active, nextSearch = search) => {
         const params = { search: nextSearch, ...next };
@@ -42,7 +54,21 @@ export default function Index({ store, orders = { data: [], links: [] }, stats =
 
     const columns = [
         { key: 'reference', label: 'Reference', render: (o) => <span className="font-mono text-xs text-content-muted">{o.reference}</span> },
-        { key: 'origin',    label: 'Origin',    render: (o) => <OriginBadge origin={o.origin} label={o.origin_label} /> },
+        {
+            key: 'origin',
+            label: 'Origin',
+            render: (o) => (
+                <div>
+                    <OriginBadge origin={o.origin} label={o.origin_label} />
+                    {o.origin === 'online' && o.connection_label && (
+                        <div className="mt-1 text-[11px] text-content-muted truncate max-w-[180px]">
+                            {o.connection_label}
+                            {o.external_order_number ? ` · #${o.external_order_number}` : ''}
+                        </div>
+                    )}
+                </div>
+            ),
+        },
         {
             key: 'customer',
             label: 'Customer',
@@ -109,6 +135,10 @@ export default function Index({ store, orders = { data: [], links: [] }, stats =
                     onSearch={onSearch}
                     filters={[
                         { key: 'source', label: 'Source', options: SOURCE_OPTIONS },
+                        { key: 'platform', label: 'Platform', options: PLATFORM_OPTIONS },
+                        ...(connections.length > 1
+                            ? [{ key: 'connection', label: 'Store', options: connections.map((c) => ({ value: c.id, label: c.label })) }]
+                            : []),
                         { key: 'status', label: 'Status', options: STATUS_OPTIONS },
                     ]}
                     activeFilters={active}

@@ -4,7 +4,7 @@ import SaasLayout from '@/Layouts/SaasLayout';
 import DataTable from '@/Components/DataTable';
 
 const RoleBadge = ({ name }) => (
-    <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
+    <span className="inline-flex px-2 py-0.5 rounded-md text-xs font-medium bg-primary-soft text-primary">
         {name ?? '—'}
     </span>
 );
@@ -26,7 +26,7 @@ export default function Team({ store, members, invitations }) {
             label: 'Member',
             render: (m) => (
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-contrast text-xs font-bold flex items-center justify-center">
                         {(m.user?.name ?? '?').split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -59,7 +59,7 @@ export default function Team({ store, members, invitations }) {
                         <button
                             type="button"
                             onClick={() => removeMember(m)}
-                            className="p-1.5 rounded-md text-content-muted hover:bg-red-500/10 hover:text-red-600 dark:text-red-400"
+                            className="p-1.5 rounded-md text-content-muted hover:bg-danger-soft hover:text-danger"
                             aria-label="Remove member"
                         >
                             <Trash2 className="w-4 h-4" />
@@ -95,7 +95,7 @@ export default function Team({ store, members, invitations }) {
                 <button
                     type="button"
                     onClick={() => revokeInvite(i)}
-                    className="px-2 py-1 text-xs font-medium rounded-md bg-surface border border-line text-content-muted hover:bg-red-500/10 hover:text-red-700 dark:text-red-300 hover:border-red-500/30"
+                    className="px-2 py-1 text-xs font-medium rounded-md bg-surface border border-line text-content-muted hover:bg-danger-soft hover:text-danger hover:border-danger/30"
                 >
                     Revoke
                 </button>
@@ -112,13 +112,13 @@ export default function Team({ store, members, invitations }) {
                 <div className="flex items-center gap-2">
                     <Link
                         href="/dashboard/team/invite"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3 transition"
                     >
                         <Mail className="w-4 h-4" /> Invite by email
                     </Link>
                     <Link
                         href="/dashboard/team/add"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition"
                     >
                         <UserPlus className="w-4 h-4" /> Add member
                     </Link>

@@ -11,10 +11,10 @@ import { Monitor, Globe, Truck, Search, X, AlertTriangle, UserPlus, Inbox } from
 /* ------------------------------------------------------------------ */
 
 const TONES = {
-    amber:   'text-amber-600 dark:text-amber-400',
+    amber:   'text-warning',
     blue:    'text-blue-600 dark:text-blue-400',
-    emerald: 'text-emerald-600 dark:text-emerald-400',
-    red:     'text-red-600 dark:text-red-400',
+    emerald: 'text-success',
+    red:     'text-danger',
     indigo:  'text-indigo-600 dark:text-indigo-400',
     slate:   'text-content',
 };
@@ -25,7 +25,7 @@ export function StatTiles({ tiles }) {
             {tiles.map((t) => {
                 const Icon = t.icon;
                 return (
-                    <div key={t.label} className="bg-surface-2 border border-line rounded-xl px-4 py-3.5">
+                    <div key={t.label} className="bg-surface-2 border border-line rounded-[var(--radius-card)] px-4 py-3.5">
                         <div className="flex items-center gap-1.5 text-xs text-content-muted">
                             {Icon && <Icon className="w-3.5 h-3.5" />}
                             {t.label}
@@ -76,15 +76,15 @@ export function QueueToolbar({ scope, onScope, counts, search, onSearch, placeho
 
     return (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line">
+            <div className="flex items-center gap-1 p-1 rounded-[var(--radius-card)] bg-surface-2 border border-line">
                 {pills.map((p) => (
                     <button
                         key={p.value}
                         onClick={() => onScope(p.value)}
                         className={[
-                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition',
+                            'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-[var(--radius-button)] transition',
                             scope === p.value
-                                ? 'bg-indigo-600 text-white shadow-sm'
+                                ? 'bg-primary text-primary-contrast shadow-sm'
                                 : 'text-content-muted hover:text-content hover:bg-surface-3',
                         ].join(' ')}
                     >
@@ -107,7 +107,7 @@ export function QueueToolbar({ scope, onScope, counts, search, onSearch, placeho
                     value={search}
                     onChange={(e) => onSearch(e.target.value)}
                     placeholder={placeholder ?? 'Search reference, customer…'}
-                    className="w-full pl-9 pr-8 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition"
+                    className="w-full pl-9 pr-8 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition"
                 />
                 {search && (
                     <button
@@ -131,7 +131,7 @@ export function AgentWorkload({ agents = [], onTakeNext, taking, available, titl
     const busiest = Math.max(1, ...agents.map((a) => a.assigned));
 
     return (
-        <aside className="bg-surface-2 border border-line rounded-xl p-4">
+        <aside className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-4">
             <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-content">{title}</h2>
                 <span className="text-[11px] text-content-muted">{agents.length} active</span>
@@ -147,7 +147,7 @@ export function AgentWorkload({ agents = [], onTakeNext, taking, available, titl
                                 className={[
                                     'shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-[11px] font-bold',
                                     a.is_you
-                                        ? 'bg-indigo-600 text-white'
+                                        ? 'bg-primary text-primary-contrast'
                                         : 'bg-surface border border-line text-content-muted',
                                 ].join(' ')}
                                 title={a.name}
@@ -164,7 +164,7 @@ export function AgentWorkload({ agents = [], onTakeNext, taking, available, titl
                                 {/* Relative load, so distribution reads at a glance. */}
                                 <div className="mt-1 h-1.5 rounded-full bg-surface overflow-hidden">
                                     <div
-                                        className={`h-full rounded-full ${a.is_you ? 'bg-indigo-500' : 'bg-content-muted/40'}`}
+                                        className={`h-full rounded-full ${a.is_you ? 'bg-primary' : 'bg-content-muted/40'}`}
                                         style={{ width: `${Math.round((a.assigned / busiest) * 100)}%` }}
                                     />
                                 </div>
@@ -178,7 +178,7 @@ export function AgentWorkload({ agents = [], onTakeNext, taking, available, titl
                 <button
                     onClick={onTakeNext}
                     disabled={taking || available === 0}
-                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                     <UserPlus className="w-4 h-4" />
                     {available === 0 ? 'Queue is empty' : 'Take next order'}
@@ -194,7 +194,7 @@ export function AgentWorkload({ agents = [], onTakeNext, taking, available, titl
 
 export function EmptyQueue({ title, hint }) {
     return (
-        <div className="bg-surface-2 border border-line rounded-xl py-16 text-center">
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] py-16 text-center">
             <Inbox className="w-10 h-10 mx-auto text-content-muted" strokeWidth={1.5} />
             <h3 className="mt-3 text-sm font-semibold text-content">{title}</h3>
             {hint && <p className="mt-1 text-sm text-content-muted">{hint}</p>}
@@ -229,9 +229,9 @@ export function ReasonDialog({ open, title, description, confirmLabel, presets, 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div onClick={onCancel} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-surface border border-line rounded-2xl shadow-2xl p-5">
+            <div role="dialog" aria-modal="true" className="relative w-full max-w-md bg-surface border border-line rounded-[var(--radius-card)] shadow-2xl p-5">
                 <div className="flex items-start gap-3">
-                    <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-500/15 text-red-600 dark:text-red-400">
+                    <span className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-button)] bg-danger-soft text-danger">
                         <AlertTriangle className="w-5 h-5" />
                     </span>
                     <div className="min-w-0">
@@ -245,7 +245,7 @@ export function ReasonDialog({ open, title, description, confirmLabel, presets, 
                         <select
                             value={preset}
                             onChange={(e) => setPreset(e.target.value)}
-                            className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                            className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary/40"
                         >
                             {presets.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                         </select>
@@ -258,19 +258,19 @@ export function ReasonDialog({ open, title, description, confirmLabel, presets, 
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             placeholder="Recorded on the order's audit trail…"
-                            className="w-full px-3 py-2 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                            className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
                         />
                     )}
                 </div>
 
                 <div className="mt-5 flex justify-end gap-2">
-                    <button onClick={onCancel} className="px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content transition">
+                    <button onClick={onCancel} className="px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content transition">
                         Never mind
                     </button>
                     <button
                         disabled={! value}
                         onClick={() => onConfirm(value)}
-                        className="px-3 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        className="px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-danger text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                         {confirmLabel}
                     </button>

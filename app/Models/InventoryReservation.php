@@ -16,8 +16,8 @@ class InventoryReservation extends Model
     public const STATUS_CONSUMED='consumed';
     public const STATUS_RELEASED='released';
     public const STATUS_INSUFFICIENT='insufficient';
-    protected $fillable=['organization_id','allocation_id','inventory_item_id','warehouse_id','requested_quantity','reserved_quantity','shortage_quantity','status','inventory_transfer_id','metadata'];
-    protected $casts=['requested_quantity'=>'integer','reserved_quantity'=>'integer','shortage_quantity'=>'integer','metadata'=>'array'];
+    protected $fillable=['organization_id','allocation_id','inventory_item_id','warehouse_id','requested_quantity','reserved_quantity','shortage_quantity','status','inventory_transfer_id','restock_requested_at','resolved_at','notes','metadata'];
+    protected $casts=['requested_quantity'=>'integer','reserved_quantity'=>'integer','shortage_quantity'=>'integer','restock_requested_at'=>'datetime','resolved_at'=>'datetime','metadata'=>'array'];
     public function allocation(): BelongsTo { return $this->belongsTo(InventoryAllocation::class); }
     public function inventoryItem(): BelongsTo { return $this->belongsTo(InventoryItem::class); }
     public function warehouse(): BelongsTo { return $this->belongsTo(Warehouse::class); }

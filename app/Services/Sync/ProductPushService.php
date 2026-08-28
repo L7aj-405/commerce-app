@@ -65,6 +65,15 @@ class ProductPushService
 
                 if (($result['success'] ?? false) && ! empty($result['external_id'])) {
                     $listingId = $this->recordProductListing($product, $connection, (string) $result['external_id'])->id;
+                } elseif ($result['success'] ?? false) {
+                    // The platform answered 2xx but the response carried no
+                    // usable id — treating this as "success" is exactly how a
+                    // product ends up unlinked-but-looks-published, and the
+                    // next sync creates a duplicate because nothing here ever
+                    // recorded a ProductChannelListing to match against.
+                    $result['success'] = false;
+                    $result['error'] = 'missing_external_id';
+                    $result['message'] = 'Platform did not return a product id — nothing was linked.';
                 }
 
                 $this->log(
@@ -415,7 +424,15 @@ class ProductPushService
                             ->value('quantity')
                         : $product->getTotalStock();
 
-                    $result = $connector->pushStock($product, $qty, $productExternalId);
+                    // Shopify quantity is never set on the product/variant
+                    // payload — it lives on InventoryLevel, keyed by
+                    // inventory_item_id + location_id. shopifySimpleStock()
+                    // resolves both (from cached listing metadata first,
+                    // Shopify only if missing) and calls
+                    // inventory_levels/set.json explicitly.
+                    $result = $connector instanceof ShopifyConnector
+                        ? $this->shopifySimpleStock($connector, $product, $connection, $qty, $productExternalId)
+                        : $connector->pushStock($product, $qty, $productExternalId);
                     $this->log($connection, 'stock', $product->id, (bool) ($result['success'] ?? false), $productExternalId, $result['error'] ?? null);
                 }
 
@@ -604,6 +621,14 @@ class ProductPushService
         }
     }
 
+    /**
+     * Shopify quantity is never set via a product/variant update payload —
+     * it lives on InventoryLevel, keyed by inventory_item_id + location_id
+     * (POST /inventory_levels/set.json). This resolves both, preferring
+     * already-known values (ProductVariantChannelListing.external_inventory_item_id,
+     * PlatformConnection.metadata.location_id) over a live Shopify fetch,
+     * and persists whichever it had to fetch so the next push skips it.
+     */
     private function shopifyVariantStock(
         ShopifyConnector $connector,
         ProductVariant $variant,
@@ -612,33 +637,75 @@ class ProductPushService
         string $variantExternalId,
     ): array {
         try {
-            $inventoryItemId = $variant->listingForConnection($connection)?->external_inventory_item_id;
+            $listing = $variant->listingForConnection($connection);
+            $inventoryItemId = $listing?->external_inventory_item_id;
 
             if (empty($inventoryItemId)) {
-                $variantResponse = $connector->client()->get("/variants/{$variantExternalId}.json");
-                $inventoryItemId = $variantResponse->json('variant.inventory_item_id');
+                $inventoryItemId = $connector->getVariantInventoryItemId($variantExternalId);
+
+                if (empty($inventoryItemId)) {
+                    return ['success' => false, 'message' => 'Shopify variant has no inventory_item_id', 'error' => 'missing_inventory_item'];
+                }
+
+                $listing?->update(['external_inventory_item_id' => $inventoryItemId]);
             }
 
-            if (! $inventoryItemId) {
-                return ['success' => false, 'message' => 'Shopify variant has no inventory_item_id', 'error' => 'missing_inventory_item'];
+            $locationId = $connector->resolveLocationId();
+
+            if ($locationId === null) {
+                return ['success' => false, 'message' => 'No Shopify location found for inventory sync.', 'error' => 'missing_location'];
             }
 
-            $locationResponse = $connector->client()->get('/locations.json');
-            $locationId = $locationResponse->json('locations.0.id');
+            // Throws on failure (like updateVariantPayload/updateProductPayload)
+            // rather than returning success:false — caught below.
+            $connector->setInventoryLevel((string) $inventoryItemId, $locationId, $qty);
 
-            if (! $locationId) {
-                return ['success' => false, 'message' => 'No Shopify location found', 'error' => 'missing_location'];
+            return ['success' => true, 'message' => "Shopify variant stock set to {$qty}", 'error' => null];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Simple-product counterpart to shopifyVariantStock() — resolves the
+     * default variant's inventory_item_id from
+     * ProductChannelListing.metadata.default_inventory_item_id first,
+     * fetching and persisting it only when missing.
+     */
+    private function shopifySimpleStock(
+        ShopifyConnector $connector,
+        Product $product,
+        PlatformConnection $connection,
+        int $qty,
+        string $productExternalId,
+    ): array {
+        try {
+            $listing = $product->listingForConnection($connection);
+            $inventoryItemId = $listing !== null ? ($listing->metadata['default_inventory_item_id'] ?? null) : null;
+
+            if (empty($inventoryItemId)) {
+                $inventoryItemId = $connector->getDefaultVariantInventoryItemId($productExternalId);
+
+                if (empty($inventoryItemId)) {
+                    return ['success' => false, 'message' => 'Shopify product has no inventory_item_id', 'error' => 'missing_inventory_item'];
+                }
+
+                if ($listing !== null) {
+                    $metadata = $listing->metadata ?? [];
+                    $metadata['default_inventory_item_id'] = $inventoryItemId;
+                    $listing->update(['metadata' => $metadata]);
+                }
             }
 
-            $response = $connector->client()->post('/inventory_levels/set.json', [
-                'location_id' => $locationId,
-                'inventory_item_id' => $inventoryItemId,
-                'available' => $qty,
-            ]);
+            $locationId = $connector->resolveLocationId();
 
-            return $response->successful()
-                ? ['success' => true, 'message' => "Shopify variant stock set to {$qty}", 'error' => null]
-                : ['success' => false, 'message' => 'Shopify returned ' . $response->status(), 'error' => 'http_error'];
+            if ($locationId === null) {
+                return ['success' => false, 'message' => 'No Shopify location found for inventory sync.', 'error' => 'missing_location'];
+            }
+
+            $connector->setInventoryLevel((string) $inventoryItemId, $locationId, $qty);
+
+            return ['success' => true, 'message' => "Shopify stock set to {$qty}", 'error' => null];
         } catch (\Throwable $e) {
             return ['success' => false, 'message' => $e->getMessage(), 'error' => $e->getMessage()];
         }

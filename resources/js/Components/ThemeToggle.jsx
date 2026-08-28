@@ -16,7 +16,7 @@ export default function ThemeToggle({ className = '' }) {
             aria-checked={isDark}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             title={isDark ? 'Light mode' : 'Dark mode'}
-            className={`inline-flex items-center justify-center w-9 h-9 rounded-lg border border-line bg-surface-2 text-content-muted hover:text-content hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition ${className}`}
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-button)] border border-line bg-surface-2 text-content-muted hover:text-content hover:bg-surface-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary transition ${className}`}
         >
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>

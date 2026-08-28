@@ -48,3 +48,25 @@ function something()
 {
     // ..
 }
+
+/**
+ * add-parcel returning a tracking number is never trusted alone —
+ * OzonExpressConnector::verifyShipment() always calls parcel-info (and, if
+ * that doesn't confirm it, tracking) right after. Any test that expects an
+ * Ozon send to end up VERIFIED (Shipment::STATUS_SENT_TO_CARRIER, a
+ * "success" flash, dispatch->assign() called) must merge this into its
+ * Http::fake([...]) array alongside its add-parcel fake, or the shipment
+ * will end up STATUS_PROVIDER_UNVERIFIED instead (an unfaked parcel-info/
+ * tracking call gets Laravel's default empty response, which this project
+ * treats as "could not confirm").
+ *
+ * @return array<string, \Illuminate\Http\Client\Response>
+ */
+function ozonVerifiedFakes(): array
+{
+    return [
+        'api.ozonexpress.ma/*/parcel-info' => \Illuminate\Support\Facades\Http::response(
+            ['PARCEL-INFO' => ['RESULT' => 'SUCCESS']], 200
+        ),
+    ];
+}

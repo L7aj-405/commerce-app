@@ -4,13 +4,27 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Enums\FulfillmentStatus;
 use App\Http\Controllers\Controller;
+use App\Models\InventoryReservation;
+use App\Models\Order;
+use App\Models\PosOrder;
 use App\Models\Product;
+use App\Models\ProductInventoryLink;
 use App\Models\ProductVariant;
 use App\Models\Stock;
 use App\Models\StockLedger;
 use App\Models\Store;
+use App\Models\VariantInventoryLink;
 use App\Models\Warehouse;
+use App\Models\WarehouseInventoryBalance;
+use App\Models\AgentActivityEvent;
+use App\Services\Activity\AgentActivityRecorder;
+use App\Services\Catalog\ProductStockSnapshotService;
+use App\Services\Inventory\CatalogInventoryService;
+use App\Services\Inventory\InventoryEngine;
+use App\Services\Sync\ProductPushService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -28,6 +42,16 @@ class StockController extends Controller
 
     /** The warehouse the current view is scoped to, or null for "all". */
     private ?string $warehouseFilter = null;
+
+    /** Warehouse ids the operational (on_hand/reserved/available/waiting) numbers are aggregated across for this request. */
+    private array $warehouseScope = [];
+
+    public function __construct(
+        private readonly ProductStockSnapshotService $snapshots,
+        private readonly CatalogInventoryService $catalog,
+        private readonly InventoryEngine $engine,
+        private readonly AgentActivityRecorder $activity,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -58,6 +82,7 @@ class StockController extends Controller
         // Validate the requested warehouse belongs to the store, else "all".
         $warehouseId = $request->input('warehouse');
         $this->warehouseFilter = in_array($warehouseId, $sellableIds, true) ? $warehouseId : null;
+        $this->warehouseScope  = $this->warehouseFilter !== null ? [$this->warehouseFilter] : $sellableIds;
 
         $filters = [
             'search'    => $request->input('search'),
@@ -92,7 +117,23 @@ class StockController extends Controller
         $ids        = collect($paginator->items())->pluck('id')->all();
         $breakdowns = $this->loadBreakdowns($ids, $sellableIds);
 
-        $paginator->through(fn (Product $p) => $this->presentProduct($p, $breakdowns[$p->id] ?? []));
+        // Engine-sourced numbers (on_hand/reserved/available/waiting_demand)
+        // for the same page — relations are eager-loaded above so this reads
+        // already-fetched WarehouseInventoryBalance rows, no per-row queries.
+        // Waiting demand is the one number that genuinely needs its own
+        // query (InventoryReservation isn't reachable through the product
+        // relation graph); batched once for every item id on the page.
+        $itemIds = collect($paginator->items())
+            ->flatMap(fn (Product $p) => $p->isVariable()
+                ? $p->variants->map(fn (ProductVariant $v) => $v->inventoryLink?->inventory_item_id)
+                : [$p->inventoryLink?->inventory_item_id])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $waitingByItemId = $this->snapshots->waitingDemandFor($itemIds, $this->warehouseScope);
+
+        $paginator->through(fn (Product $p) => $this->presentProduct($p, $breakdowns[$p->id] ?? [], $waitingByItemId));
 
         return Inertia::render('Dashboard/Stock', [
             'products'           => $paginator,
@@ -104,7 +145,7 @@ class StockController extends Controller
         ]);
     }
 
-    public function adjustStock(Request $request, Product $product): RedirectResponse
+    public function adjustStock(Request $request, Product $product, ProductPushService $pushService): RedirectResponse|JsonResponse
     {
         // TODO: Gate::authorize('update', $product) once ProductPolicy exists.
         $store = $request->user()->getActiveStore();
@@ -174,6 +215,31 @@ class StockController extends Controller
             }
         }
 
+        // Resolve the InventoryItem for every row up front (creates it if
+        // missing — exactly what the legacy Stock write's
+        // InventoryCompatibilityBridge would do anyway on save) so "before"
+        // balances are well-defined for the operational feedback below.
+        // Never changes what applyAdjustment() itself writes.
+        $variantsById = $isVariable ? $product->variants()->get()->keyBy('id') : collect();
+        $pairs = []; // inventory_item_id => ['item' => InventoryItem, 'variant_id' => ?string]
+
+        foreach ($rows as $row) {
+            $variant = $row['variant_id'] !== null ? $variantsById->get($row['variant_id']) : null;
+            $item    = $this->catalog->forCatalog($product, $variant);
+
+            if ($item !== null && ! isset($pairs[$item->id])) {
+                $pairs[$item->id] = ['item' => $item, 'variant_id' => $row['variant_id']];
+            }
+        }
+
+        $before = [];
+        foreach ($pairs as $itemId => $pair) {
+            $balance = $this->engine->balance($pair['item'], $warehouse);
+            $before[$itemId] = ['reserved' => (int) $balance->reserved];
+        }
+
+        $waitingOrderKeysBefore = $this->waitingOrderKeysFor(array_keys($pairs), $warehouse->id);
+
         $applied = 0;
 
         DB::transaction(function () use ($rows, $product, $store, $warehouse, $validated, $request, $mode, &$applied) {
@@ -193,10 +259,269 @@ class StockController extends Controller
         });
 
         if ($applied === 0) {
-            return back()->with('warning', 'No changes were needed — stock already at those levels.');
+            $message = 'No changes were needed — stock already at those levels.';
+
+            return $this->respondAdjustment($request, back()->with('warning', $message), [
+                'success' => false, 'message' => $message, 'applied_count' => 0,
+            ]);
         }
 
-        return back()->with('success', $applied > 1 ? "Stock updated for {$applied} variants" : 'Stock updated');
+        $this->activity->record($request->user(), $store, AgentActivityEvent::INVENTORY_ADJUSTED, 'inventory', [
+            'subject' => $product,
+            'metadata' => ['warehouse_id' => $warehouse->id, 'reason' => $validated['reason'], 'rows_applied' => $applied],
+        ]);
+
+        // Everything below only READS the outcome — the legacy Stock
+        // write's InventoryCompatibilityBridge already ran the waiting-stock
+        // auto-recheck synchronously (afterCommit, sync queue) by the time
+        // execution reaches here, so nothing here re-triggers a reservation.
+        $waitingUnitsReserved = 0;
+        $results = [];
+
+        foreach ($pairs as $itemId => $pair) {
+            $balance = $this->engine->balance($pair['item'], $warehouse);
+            $waitingUnitsReserved += max(0, $balance->reserved - ($before[$itemId]['reserved'] ?? 0));
+
+            $results[] = [
+                'variant_id' => $pair['variant_id'],
+                'inventory_item_id' => $pair['item']->id,
+                'on_hand'   => $balance->on_hand,
+                'reserved'  => $balance->reserved,
+                'available' => $balance->available(),
+            ];
+        }
+
+        $waitingOrdersReleased  = $this->countReleasedOrders($waitingOrderKeysBefore);
+        $remainingWaitingDemand = array_sum($this->snapshots->waitingDemandFor(array_keys($pairs), [$warehouse->id]));
+        $externalSync           = $this->pushExternalStock($pushService, $product, $pairs, $variantsById);
+
+        $message = $this->composeAdjustmentMessage($applied, $waitingOrdersReleased, $waitingUnitsReserved, $remainingWaitingDemand, $results, $externalSync);
+
+        return $this->respondAdjustment($request, back()->with('success', $message), [
+            'success' => true,
+            'message' => $message,
+            'applied_count' => $applied,
+            'waiting_orders_released' => $waitingOrdersReleased,
+            'waiting_units_reserved' => $waitingUnitsReserved,
+            'external_sync' => $externalSync,
+            'results' => $results,
+            'links' => [
+                'pick_and_pack' => '/dashboard/departments/packing',
+                'waiting_stock' => '/dashboard/operations/waiting-stock',
+            ],
+        ]);
+    }
+
+    /** JSON for an XHR/fetch caller (the Adjust Stock modal), the usual Inertia redirect-back otherwise. */
+    private function respondAdjustment(Request $request, RedirectResponse $fallback, array $payload): RedirectResponse|JsonResponse
+    {
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($payload);
+        }
+
+        return $fallback;
+    }
+
+    /** Distinct "morphClass:id" keys for every order with an open shortage on any of these items at this warehouse, right now. */
+    private function waitingOrderKeysFor(array $inventoryItemIds, string $warehouseId): Collection
+    {
+        if ($inventoryItemIds === []) {
+            return collect();
+        }
+
+        return InventoryReservation::withoutOrganizationTenancy(fn () => InventoryReservation::query()
+            ->whereIn('inventory_item_id', $inventoryItemIds)
+            ->where('warehouse_id', $warehouseId)
+            ->where('shortage_quantity', '>', 0)
+            ->with('allocation:id,source_type,source_id')
+            ->get())
+            ->pluck('allocation')
+            ->filter()
+            ->map(fn ($a) => $a->source_type . ':' . $a->source_id)
+            ->unique()
+            ->values();
+    }
+
+    /** How many of the given "morphClass:id" orders are no longer WaitingForStock. */
+    private function countReleasedOrders(Collection $waitingOrderKeys): int
+    {
+        $posClass = (new PosOrder())->getMorphClass();
+        $released = 0;
+
+        foreach ($waitingOrderKeys as $key) {
+            [$type, $id] = explode(':', $key, 2);
+            $model = $type === $posClass ? PosOrder::find($id) : Order::find($id);
+
+            if ($model !== null && $model->fulfillment_status !== FulfillmentStatus::WaitingForStock) {
+                $released++;
+            }
+        }
+
+        return $released;
+    }
+
+    /**
+     * Pushes the new quantity to WooCommerce/Shopify for every adjusted row —
+     * the same push ProductController::adjustStock already does for a single
+     * variant. The bulk Stock dashboard modal never did this before; adding
+     * it closes an external-sync gap without touching any inventory
+     * semantics (local balances are already committed by this point).
+     *
+     * @param  array<string, array{item: \App\Models\InventoryItem, variant_id: ?string}>  $pairs
+     */
+    private function pushExternalStock(ProductPushService $pushService, Product $product, array $pairs, Collection $variantsById): string
+    {
+        $hasListing = false;
+        $anyFailed  = false;
+        $anySucceeded = false;
+
+        foreach ($pairs as $pair) {
+            $variant = $pair['variant_id'] !== null ? $variantsById->get($pair['variant_id']) : null;
+
+            foreach (['woocommerce', 'shopify'] as $platform) {
+                $result = $variant !== null
+                    ? $pushService->pushVariantStock($variant, $platform)
+                    : $pushService->pushStock($product, $platform);
+
+                if (empty($result)) {
+                    continue; // no listing on this platform for this row
+                }
+
+                $hasListing = true;
+                $succeeded  = collect($result)->every(fn ($r) => $r['success'] ?? false);
+                $anySucceeded = $anySucceeded || $succeeded;
+                $anyFailed    = $anyFailed || ! $succeeded;
+            }
+        }
+
+        if (! $hasListing) {
+            return 'skipped';
+        }
+
+        return match (true) {
+            ! $anyFailed => 'queued',
+            $anySucceeded => 'partial',
+            default => 'failed',
+        };
+    }
+
+    /** @param array<int, array{variant_id: ?string, on_hand: int, reserved: int, available: int}> $results */
+    private function composeAdjustmentMessage(int $applied, int $released, int $reserved, int $remainingWaitingDemand, array $results, string $externalSync): string
+    {
+        $parts = [$applied > 1 ? "Stock updated for {$applied} variants." : 'Stock updated.'];
+
+        if ($released > 0) {
+            $parts[] = $released === 1
+                ? '1 waiting order moved to Pick & Pack.'
+                : "{$released} waiting orders moved to Pick & Pack.";
+        } elseif ($remainingWaitingDemand > 0) {
+            $parts[] = "No waiting orders released; still missing {$remainingWaitingDemand} unit(s).";
+        }
+
+        if ($reserved > 0) {
+            $parts[] = $reserved === 1 ? '1 unit reserved for waiting orders.' : "{$reserved} units reserved for waiting orders.";
+        }
+
+        if (count($results) === 1) {
+            $parts[] = "Available: {$results[0]['available']}.";
+        }
+
+        $parts[] = match ($externalSync) {
+            'queued' => 'External stock sync queued.',
+            'partial' => 'External stock sync partially failed.',
+            'failed' => 'External stock sync failed.',
+            default => null,
+        };
+
+        return implode(' ', array_filter($parts));
+    }
+
+    /**
+     * Read-only preview of what an adjustment WOULD do — never writes
+     * anything. Mirrors the formula InventoryEngine/WaitingStockReallocationService
+     * actually apply (reserve FIFO up to available, never touch on_hand
+     * beyond the requested change) so the modal can show an honest "expected
+     * after save" before the user commits.
+     */
+    public function previewAdjustment(Request $request, Product $product): JsonResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $product->store_id !== $store->id, 403);
+
+        $validated = $request->validate([
+            'warehouse_id' => ['required', 'string'],
+            'variant_id'   => ['nullable', 'string'],
+            'mode'         => ['required', 'in:set,delta,add,remove'],
+            'quantity'     => ['required', 'integer'],
+        ]);
+
+        $warehouse = $store->warehouses()->where('warehouses.id', $validated['warehouse_id'])->first();
+        abort_if($warehouse === null, 422, 'Warehouse not found for this store.');
+
+        $variant = null;
+        if (! empty($validated['variant_id'])) {
+            $variant = $product->variants()->whereKey($validated['variant_id'])->firstOrFail();
+        }
+
+        // Deliberately NOT CatalogInventoryService::resolve()/forCatalog() —
+        // those create an InventoryItem as a side effect when none exists
+        // yet. A preview must never mutate anything.
+        $link = $variant !== null
+            ? VariantInventoryLink::withoutOrganizationTenancy(fn () => VariantInventoryLink::query()
+                ->where('product_variant_id', $variant->id)->with('inventoryItem')->first())
+            : ProductInventoryLink::withoutOrganizationTenancy(fn () => ProductInventoryLink::query()
+                ->where('product_id', $product->id)->with('inventoryItem')->first());
+        $item = $link?->inventoryItem;
+
+        $balance = $item !== null
+            ? WarehouseInventoryBalance::withoutOrganizationTenancy(fn () => WarehouseInventoryBalance::query()
+                ->where('inventory_item_id', $item->id)->where('warehouse_id', $warehouse->id)->first())
+            : null;
+
+        $currentOnHand         = (int) ($balance?->on_hand ?? 0);
+        $currentReserved       = (int) ($balance?->reserved ?? 0);
+        $currentTransferReserved = (int) ($balance?->transfer_reserved ?? 0);
+        $currentAvailable      = max(0, $currentOnHand - $currentReserved - $currentTransferReserved);
+
+        $waitingDemand = 0;
+        $affectedWaitingOrdersCount = 0;
+
+        if ($item !== null) {
+            $openShortages = InventoryReservation::withoutOrganizationTenancy(fn () => InventoryReservation::query()
+                ->where('inventory_item_id', $item->id)
+                ->where('warehouse_id', $warehouse->id)
+                ->where('shortage_quantity', '>', 0)
+                ->get(['allocation_id', 'shortage_quantity']));
+
+            $waitingDemand = (int) $openShortages->sum('shortage_quantity');
+            $affectedWaitingOrdersCount = $openShortages->pluck('allocation_id')->unique()->count();
+        }
+
+        $quantity = (int) $validated['quantity'];
+        $expectedOnHand = max(0, match ($validated['mode']) {
+            'set'    => $quantity,
+            'delta'  => $currentOnHand + $quantity,
+            'add'    => $currentOnHand + max(0, $quantity),
+            'remove' => $currentOnHand - max(0, $quantity),
+        });
+
+        $expectedAvailableBeforeRelease = max(0, $expectedOnHand - $currentReserved - $currentTransferReserved);
+        $releasableWaitingUnits = min($waitingDemand, $expectedAvailableBeforeRelease);
+        $expectedReserved  = $currentReserved + $releasableWaitingUnits;
+        $expectedAvailable = max(0, $expectedOnHand - $expectedReserved - $currentTransferReserved);
+
+        return response()->json([
+            'current_on_hand'   => $currentOnHand,
+            'current_reserved'  => $currentReserved,
+            'current_available' => $currentAvailable,
+            'waiting_demand'    => $waitingDemand,
+            'releasable_waiting_units' => $releasableWaitingUnits,
+            'expected_on_hand'   => $expectedOnHand,
+            'expected_reserved'  => $expectedReserved,
+            'expected_available' => $expectedAvailable,
+            'affected_waiting_orders_count' => $affectedWaitingOrdersCount,
+            'inventory_missing' => $item === null,
+        ]);
     }
 
     /**
@@ -282,15 +607,19 @@ class StockController extends Controller
 
     /**
      * Eager-load each product's variants with the attribute values needed for
-     * display names. Per-warehouse quantities come from loadBreakdowns(), not a
-     * withSum here, so the card, breakdown, and adjust modal all share one source.
+     * display names, PLUS the InventoryEngine chain (inventory link ->
+     * InventoryItem -> WarehouseInventoryBalance) both models need for the
+     * on_hand/reserved/available numbers — one query per relation for the
+     * whole page, never per row. Per-warehouse legacy quantities still come
+     * from loadBreakdowns() (see its own docblock on why it stays separate).
      *
      * @return array<string, mixed>
      */
     private function variantEagerLoads(): array
     {
         return [
-            'variants' => fn ($q) => $q->with('attributeValues.attribute'),
+            'variants' => fn ($q) => $q->with('attributeValues.attribute', 'inventoryLink.inventoryItem.balances'),
+            'inventoryLink.inventoryItem.balances',
         ];
     }
 
@@ -378,9 +707,10 @@ class StockController extends Controller
 
     /**
      * @param  array<string, mixed>  $breakdown
+     * @param  array<string, int>  $waitingByItemId
      * @return array<string, mixed>
      */
-    private function presentProduct(Product $product, array $breakdown): array
+    private function presentProduct(Product $product, array $breakdown, array $waitingByItemId = []): array
     {
         $hasVariants = $product->isVariable() && $product->variants->isNotEmpty();
 
@@ -391,8 +721,9 @@ class StockController extends Controller
         $productWh = $hasVariants ? $variantWh : $simpleWh;
 
         $variants = $hasVariants
-            ? $product->variants->map(function (ProductVariant $v) use ($byVariant) {
+            ? $product->variants->map(function (ProductVariant $v) use ($byVariant, $waitingByItemId) {
                 $vwh = $byVariant[$v->id] ?? [];
+                $engine = $this->snapshots->forVariantAcrossWarehouses($v, $this->warehouseScope, $waitingByItemId);
 
                 return [
                     'id'        => $v->id,
@@ -400,9 +731,23 @@ class StockController extends Controller
                     'sku'       => $v->sku,
                     'stock'     => $this->effectiveTotal($vwh),
                     'breakdown' => $this->breakdownList($vwh),
+                    // Engine-sourced (WarehouseInventoryBalance) — the
+                    // authoritative on_hand/reserved/available numbers.
+                    // `stock` above stays for backward compat but is the
+                    // legacy sellable-projection figure; the UI shows these.
+                    'on_hand'           => $engine['on_hand'],
+                    'reserved'          => $engine['reserved'],
+                    'available'         => $engine['available'],
+                    'waiting_demand'    => $engine['waiting_demand'],
+                    'inventory_item_id' => $engine['inventory_item_id'],
+                    'inventory_missing' => $engine['inventory_missing'],
                 ];
             })->values()->all()
             : [];
+
+        $productEngine = $hasVariants
+            ? $this->sumEngineAcrossVariants($variants)
+            : $this->snapshots->forProductAcrossWarehouses($product, $this->warehouseScope, $waitingByItemId);
 
         return [
             'id'              => $product->id,
@@ -418,6 +763,25 @@ class StockController extends Controller
             'warehouse_count' => count($this->breakdownList($productWh)),
             'breakdown'       => $this->breakdownList($productWh),
             'variants'        => $variants,
+            // Engine-sourced product-level summary — sum of its variants'
+            // engine numbers for a variable product, its own for a simple one.
+            'on_hand'           => $productEngine['on_hand'],
+            'reserved'          => $productEngine['reserved'],
+            'available'         => $productEngine['available'],
+            'waiting_demand'    => $productEngine['waiting_demand'],
+            'inventory_item_id' => $productEngine['inventory_item_id'] ?? null,
+            'inventory_missing' => $productEngine['inventory_missing'] ?? true,
+        ];
+    }
+
+    /** @param array<int, array<string, mixed>> $variants */
+    private function sumEngineAcrossVariants(array $variants): array
+    {
+        return [
+            'on_hand'        => array_sum(array_column($variants, 'on_hand')),
+            'reserved'       => array_sum(array_column($variants, 'reserved')),
+            'available'      => array_sum(array_column($variants, 'available')),
+            'waiting_demand' => array_sum(array_column($variants, 'waiting_demand')),
         ];
     }
 

@@ -22,7 +22,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
         patch(`/dashboard/team/members/${member.id}`);
     };
 
-    const field = 'w-full px-3 py-2.5 rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-indigo-500';
+    const field = 'w-full px-3 py-2.5 rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:border-primary';
 
     return (
         <>
@@ -36,7 +36,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
                     { label: 'Edit member' },
                 ],
                 actions: (
-                    <Link href="/dashboard/team" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:bg-surface-3">
+                    <Link href="/dashboard/team" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:bg-surface-3">
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
                 ),
@@ -48,7 +48,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
                             <label className="block text-xs font-medium text-content-muted mb-1">Full name</label>
                             <input type="text" value={data.name} onChange={(e) => setData('name', e.target.value)}
                                 className={field} />
-                            {errors.name && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name}</p>}
+                            {errors.name && <p className="mt-1 text-xs text-danger">{errors.name}</p>}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-content-muted mb-1">Email</label>
@@ -58,7 +58,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
 
                     {/* Role */}
                     {member.is_owner ? (
-                        <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-sm text-indigo-700 dark:text-indigo-300">
+                        <div className="flex items-center gap-2 px-4 py-3 rounded-[var(--radius-button)] border border-primary/30 bg-primary-soft text-sm text-primary">
                             <ShieldCheck className="w-4 h-4" /> This member is the store owner and always has full access.
                         </div>
                     ) : (
@@ -66,34 +66,34 @@ export default function EditMember({ store, roles = [], member, cashier }) {
                             <fieldset>
                                 <div className="flex items-center justify-between mb-2">
                                     <legend className="block text-xs font-medium text-content-muted">Role</legend>
-                                    <Link href="/dashboard/roles" className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300">Manage roles →</Link>
+                                    <Link href="/dashboard/roles" className="text-xs text-primary hover:text-primary-strong">Manage roles →</Link>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {roles.map((r) => {
                                         const checked = data.store_role_id === r.id;
                                         const Icon = r.pos_only ? Monitor : ShieldCheck;
                                         return (
-                                            <label key={r.id} className={`relative flex flex-col gap-2 p-4 rounded-xl border cursor-pointer transition ${
-                                                checked ? 'border-indigo-500/40 bg-indigo-500/5' : 'border-line bg-surface-2 hover:border-content-muted/40'}`}>
+                                            <label key={r.id} className={`relative flex flex-col gap-2 p-4 rounded-[var(--radius-card)] border cursor-pointer transition ${
+                                                checked ? 'border-primary/40 bg-primary-soft' : 'border-line bg-surface-2 hover:border-content-muted/40'}`}>
                                                 <input type="radio" name="store_role_id" value={r.id} checked={checked}
                                                     onChange={() => setData('store_role_id', r.id)} className="sr-only" />
                                                 <div className="flex items-center justify-between">
-                                                    <div className={`flex items-center gap-2 ${checked ? 'text-white' : 'text-content-muted'}`}>
+                                                    <div className={`flex items-center gap-2 ${checked ? 'text-primary' : 'text-content-muted'}`}>
                                                         <Icon className="w-4 h-4" /><span className="font-semibold">{r.name}</span>
                                                     </div>
-                                                    <span className={`w-4 h-4 rounded-full border-2 ${checked ? 'border-indigo-500 bg-indigo-500' : 'border-slate-600'}`} />
+                                                    <span className={`w-4 h-4 rounded-full border-2 ${checked ? 'border-primary bg-primary' : 'border-line'}`} />
                                                 </div>
                                                 {r.description && <p className="text-xs text-content-muted leading-relaxed">{r.description}</p>}
                                             </label>
                                         );
                                     })}
                                 </div>
-                                {errors.store_role_id && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.store_role_id}</p>}
+                                {errors.store_role_id && <p className="mt-1 text-xs text-danger">{errors.store_role_id}</p>}
                             </fieldset>
 
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" checked={data.is_active} onChange={(e) => setData('is_active', e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-600 bg-surface text-indigo-500 focus:ring-indigo-500/40" />
+                                    className="h-4 w-4 rounded border-line bg-surface text-primary focus:ring-primary/40" />
                                 <span className="text-sm text-content">Active member</span>
                                 <span className="text-xs text-content-muted">— unchecking revokes their access without deleting them.</span>
                             </label>
@@ -102,22 +102,22 @@ export default function EditMember({ store, roles = [], member, cashier }) {
 
                     {/* Cashier / POS */}
                     {posCapable && (
-                        <div className="rounded-xl border border-line bg-surface-2 p-4 space-y-4">
+                        <div className="rounded-[var(--radius-card)] border border-line bg-surface-2 p-4 space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-sm font-semibold text-content">
-                                    <KeyRound className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> POS terminal access
+                                    <KeyRound className="w-4 h-4 text-primary" /> POS terminal access
                                 </div>
                                 {cashier.has_pin ? (
-                                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                    <span className="inline-flex items-center gap-1 text-xs text-success">
                                         <CheckCircle2 className="w-3.5 h-3.5" /> PIN is set
                                     </span>
                                 ) : (
-                                    <span className="text-xs text-amber-600 dark:text-amber-400">No PIN set — they can’t sign in to POS yet</span>
+                                    <span className="text-xs text-warning">No PIN set — they can’t sign in to POS yet</span>
                                 )}
                             </div>
 
                             {cashier.locked && (
-                                <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
+                                <div className="flex items-center gap-2 text-xs text-warning">
                                     <Lock className="w-3.5 h-3.5" /> Account is temporarily locked. Setting a new PIN unlocks it.
                                 </div>
                             )}
@@ -130,8 +130,8 @@ export default function EditMember({ store, roles = [], member, cashier }) {
                                     <input type="text" inputMode="numeric" maxLength={4} value={data.pin_code}
                                         onChange={(e) => setData('pin_code', e.target.value.replace(/\D/g, '').slice(0, 4))}
                                         placeholder={cashier.has_pin ? 'Leave blank to keep current' : '••••'}
-                                        className={`${field} tracking-[0.5em] font-mono ${errors.pin_code ? 'border-red-500/60' : ''}`} />
-                                    {errors.pin_code && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.pin_code}</p>}
+                                        className={`${field} tracking-[0.5em] font-mono ${errors.pin_code ? 'border-danger/60' : ''}`} />
+                                    {errors.pin_code && <p className="mt-1 text-xs text-danger">{errors.pin_code}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-content-muted mb-1">Cashier status</label>
@@ -156,7 +156,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
 
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" checked={data.can_give_discounts} onChange={(e) => setData('can_give_discounts', e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-600 bg-surface text-indigo-500 focus:ring-indigo-500/40" />
+                                    className="h-4 w-4 rounded border-line bg-surface text-primary focus:ring-primary/40" />
                                 <span className="text-sm text-content">Can give discounts at checkout</span>
                             </label>
                         </div>
@@ -164,7 +164,7 @@ export default function EditMember({ store, roles = [], member, cashier }) {
 
                     <div className="flex items-center gap-2">
                         <button type="submit" disabled={processing || ! data.name}
-                            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 transition">
+                            className="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 transition">
                             {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> Save changes</>}
                         </button>
                         <Link href="/dashboard/team" className="px-4 py-2.5 text-sm font-medium text-content-muted hover:text-content">Cancel</Link>

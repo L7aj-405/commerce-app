@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProductSyncJob;
 use App\Models\PlatformConnection;
+use App\Models\ProductSyncBatch;
+use App\Models\ProductSyncResult;
 use App\Models\SyncLog;
-use App\Services\Sync\ProductSyncService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class ProductSyncController extends Controller
 {
@@ -51,120 +50,89 @@ class ProductSyncController extends Controller
     }
 
     /**
-     * كيبدا المزامنة وكيدور على المنصات باستعمال نفس منطق الـ Queue ف الـ Cache
+     * Queues a background import from each selected platform connection and
+     * returns immediately — never blocks the request on the platform's API.
+     * One ProductSyncJob per connection, scoped to this store only.
      */
-    public function startSync(Request $request, ProductSyncService $syncService): JsonResponse
+    public function startSync(Request $request): JsonResponse
     {
         $store = $request->user()->getActiveStore();
         if (!$store) {
             return response()->json(['error' => 'No active store.'], 422);
         }
 
-        $connectionIds = $request->input('connection_ids', []);
-        if (empty($connectionIds)) {
-            return response()->json(['error' => 'Select at least one platform.'], 422);
-        }
-
-        $cacheKey = "sync_store_{$store->id}";
-        
-        // جلب الإعدادات (إذا كنتي باغي تصيفطهم لـ الـ Service مستقبلاً)
-        $options = $request->only(['sync_products', 'sync_variants', 'sync_stock']);
-
-        // إعداد الـ State Machine داخل الكاش
-        $syncState = [
-            'in_progress' => true,
-            'done' => false,
-            'progress' => 5,
-            'status' => 'Starting sync…',
-            'queue' => array_values($connectionIds),
-            'selected_ids' => array_values($connectionIds),
-            'results' => [],
-            'started_at' => microtime(true),
-            'elapsed' => '0s'
-        ];
-
-        Cache::put($cacheKey, $syncState, now()->addMinutes(30));
-
-        // تشغيل الـ Processing Loop (هنا غيدور على الـ Queue كامل)
-        // وباش السيرفر ميموتش، تقدر تخليه يدور ف الباكيند حيت الـ Service ديجا سريعة ف دورة وحدة
-        try {
-            while (!empty($syncState['queue'])) {
-                $connectionId = array_shift($syncState['queue']);
-                $connection = PlatformConnection::find($connectionId);
-
-                if (!$connection) {
-                    continue;
-                }
-
-                $label = $connection->label ?: ucfirst($connection->platform);
-                $syncState['status'] = "Syncing from {$label}…";
-                
-                // تحديث الـ Progress بار ف الكاش وسط المزامنة
-                $total = count($syncState['selected_ids']);
-                $processed = $total - count($syncState['queue']);
-                $syncState['progress'] = (int) max(5, min(90, ($processed / $total) * 90));
-                Cache::put($cacheKey, $syncState, now()->addMinutes(30));
-
-                try {
-                    // استدعاء السيرفيس ديالك القديمة بنفس الطريقة
-                    $result = $syncService->syncFromPlatform($store, $connection->platform);
-
-                    $syncState['results'][$connection->platform] = [
-                        'label'   => $label,
-                        'created' => $result['created'] ?? 0,
-                        'updated' => $result['updated'] ?? 0,
-                        'failed'  => $result['failed']  ?? 0,
-                        'error'   => null,
-                    ];
-                } catch (Throwable $e) {
-                    $syncState['results'][$connection->platform] = [
-                        'label'   => $label,
-                        'created' => 0,
-                        'updated' => 0,
-                        'failed'  => 0,
-                        'error'   => $e->getMessage(),
-                    ];
-                }
-            }
-
-            // إنهاء المزامنة بنجاح نجاح
-            $seconds = (int) round(microtime(true) - $syncState['started_at'], 0);
-            $elapsedStr = $seconds < 60 ? "{$seconds}s" : intdiv($seconds, 60) . ":" . str_pad((string)($seconds % 60), 2, '0', STR_PAD_LEFT);
-
-            $syncState['in_progress'] = false;
-            $syncState['done'] = true;
-            $syncState['progress'] = 100;
-            $syncState['status'] = 'Sync complete!';
-            $syncState['elapsed'] = $elapsedStr;
-
-            Cache::put($cacheKey, $syncState, now()->addMinutes(10));
-            return response()->json(['success' => true]);
-
-        } catch (Throwable $e) {
-            Log::error('Global Product sync failed', ['error' => $e->getMessage()]);
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * هادي الـ API لي كيعيط ليها React كل ثانية باش يجيب التحديثات (Polling)
-     */
-    public function getSyncProgress(Request $request): JsonResponse
-    {
-        $store = $request->user()->getActiveStore();
-        if (!$store) {
-            return response()->json(['error' => 'No active store'], 422);
-        }
-
-        $state = Cache::get("sync_store_{$store->id}", [
-            'in_progress' => false,
-            'done' => false,
-            'progress' => 0,
-            'status' => 'No active sync.',
-            'results' => [],
-            'elapsed' => '0s'
+        $validated = $request->validate([
+            'connection_ids' => ['required', 'array', 'min:1'],
+            'connection_ids.*' => ['string'],
         ]);
 
-        return response()->json($state);
+        $connections = PlatformConnection::query()
+            ->where('store_id', $store->id)
+            ->whereIn('id', $validated['connection_ids'])
+            ->where('status', 'active')
+            ->get();
+
+        if ($connections->isEmpty()) {
+            return response()->json(['error' => 'No matching active connection for this store.'], 422);
+        }
+
+        $batch = ProductSyncBatch::create([
+            'store_id' => $store->id,
+            'organization_id' => $store->organization_id,
+            'user_id' => $request->user()->id,
+            'status' => ProductSyncBatch::STATUS_PENDING,
+            'total_count' => $connections->count(),
+            'payload' => ['connection_ids' => $connections->pluck('id')->all()],
+        ]);
+
+        foreach ($connections as $connection) {
+            $result = ProductSyncResult::create([
+                'batch_id' => $batch->id,
+                'store_id' => $store->id,
+                'platform_connection_id' => $connection->id,
+                'platform' => $connection->platform,
+                'status' => ProductSyncResult::STATUS_QUEUED,
+            ]);
+
+            ProductSyncJob::dispatch($result->id);
+        }
+
+        return response()->json([
+            'status' => 'queued',
+            'batch_id' => $batch->id,
+        ]);
+    }
+
+    /** Poll the outcome of a queued sync batch — scoped to the acting user's active store. */
+    public function getSyncBatchStatus(Request $request, string $batch): JsonResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null, 422, 'No active store.');
+
+        $model = ProductSyncBatch::query()
+            ->where('store_id', $store->id)
+            ->with('results.connection:id,platform,label')
+            ->find($batch);
+
+        abort_if($model === null, 404);
+
+        return response()->json([
+            'batch_id' => $model->id,
+            'status' => $model->status,
+            'total_count' => $model->total_count,
+            'succeeded_count' => $model->succeeded_count,
+            'failed_count' => $model->failed_count,
+            'skipped_count' => $model->skipped_count,
+            'results' => $model->results->map(fn (ProductSyncResult $r) => [
+                'connection_id' => $r->platform_connection_id,
+                'platform' => $r->platform,
+                'label' => $r->connection?->label ?: ucfirst($r->platform),
+                'status' => $r->status,
+                'created' => $r->created_count,
+                'updated' => $r->updated_count,
+                'failed' => $r->failed_item_count,
+                'message' => $r->message,
+            ]),
+        ]);
     }
 }

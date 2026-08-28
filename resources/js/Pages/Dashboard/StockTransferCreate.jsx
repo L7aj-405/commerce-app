@@ -14,7 +14,7 @@ const KINDS = [
 
 const stockKey = (warehouseId, productId, variantId) => `${warehouseId}|${productId}|${variantId ?? ''}`;
 
-const INPUT = 'w-full px-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+const INPUT = 'w-full px-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary';
 
 export default function StockTransferCreate({ warehouses, primaryWarehouseId, products, stock, members, today }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -130,7 +130,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                     {/* Route */}
                     <div className="bg-surface-2 border border-line rounded-xl p-5 space-y-4">
                         <h3 className="text-sm font-semibold text-content flex items-center gap-2">
-                            <ArrowRight className="w-4 h-4 text-indigo-500" /> Route
+                            <ArrowRight className="w-4 h-4 text-primary" /> Route
                         </h3>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -157,7 +157,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                                                 type="button"
                                                 onClick={() => setData('destination_kind', k.key)}
                                                 className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium border transition ${
-                                                    active ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'border-line bg-surface text-content-muted hover:text-content'
+                                                    active ? 'border-primary bg-primary-soft text-primary-strong dark:text-primary' : 'border-line bg-surface text-content-muted hover:text-content'
                                                 }`}
                                             >
                                                 <Icon className="w-3.5 h-3.5" />
@@ -218,7 +218,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                     <div className="bg-surface-2 border border-line rounded-xl p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-semibold text-content flex items-center gap-2">
-                                <Layers className="w-4 h-4 text-indigo-500" /> Items
+                                <Layers className="w-4 h-4 text-primary" /> Items
                             </h3>
                             <span className="text-xs text-content-muted">Available at {warehouseName(data.source_warehouse_id)}</span>
                         </div>
@@ -231,7 +231,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                                 value={query}
                                 onChange={(e) => { setQuery(e.target.value); setExpanded(null); }}
                                 placeholder="Search products by name or SKU to add…"
-                                className="w-full pl-9 pr-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full pl-9 pr-3 py-2 rounded-lg border border-line bg-surface text-content text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             {query.trim() !== '' && (
                                 <div className="absolute z-20 mt-1 w-full rounded-lg border border-line bg-surface-2 shadow-xl max-h-72 overflow-y-auto">
@@ -269,7 +269,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                                             <div className="min-w-0 flex-1">
                                                 <div className="text-sm font-medium text-content truncate">
                                                     {it._name}
-                                                    {it._variant && <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-[10px]">{it._variant}</span>}
+                                                    {it._variant && <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-primary-soft text-primary-strong dark:text-primary text-[10px]">{it._variant}</span>}
                                                 </div>
                                                 <div className="text-[11px] text-content-muted font-mono truncate">{it._sku}</div>
                                                 {rowErr && <div className="text-[11px] text-red-600 dark:text-red-400 mt-0.5">{rowErr}</div>}
@@ -283,7 +283,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                                                 value={it.quantity}
                                                 onChange={(e) => setQty(idx, e.target.value)}
                                                 aria-label={`Quantity for ${it._name}`}
-                                                className={`flex-shrink-0 w-20 px-2 py-1.5 text-sm text-center rounded-lg border bg-surface text-content tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500 ${over ? 'border-red-500' : 'border-line'}`}
+                                                className={`flex-shrink-0 w-20 px-2 py-1.5 text-sm text-center rounded-lg border bg-surface text-content tabular-nums focus:outline-none focus:ring-2 focus:ring-primary ${over ? 'border-red-500' : 'border-line'}`}
                                             />
                                             <button type="button" onClick={() => removeLine(idx)} className="flex-shrink-0 p-1.5 text-content-muted hover:text-red-500 transition" aria-label="Remove item">
                                                 <Trash2 className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function StockTransferCreate({ warehouses, primaryWarehouseId, pr
                         <button
                             type="submit"
                             disabled={processing || ! itemsValid || ! destinationValid}
-                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-strong disabled:opacity-50 disabled:cursor-not-allowed transition"
                         >
                             {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Recording…</> : <><Save className="w-4 h-4" /> Record transfer</>}
                         </button>
@@ -374,7 +374,7 @@ function ProductResult({ product, expanded, onToggle, availableAt, hasLine, onAd
                     <div className="text-[11px] text-content-muted font-mono truncate">{product.sku}</div>
                 </div>
                 <span className="text-xs text-content-muted tabular-nums">{avail} avail</span>
-                {added ? <span className="text-[10px] text-emerald-500">Added</span> : <Plus className="w-4 h-4 text-indigo-500" />}
+                {added ? <span className="text-[10px] text-emerald-500">Added</span> : <Plus className="w-4 h-4 text-primary" />}
             </button>
         );
     }
@@ -385,7 +385,7 @@ function ProductResult({ product, expanded, onToggle, availableAt, hasLine, onAd
                 <div className="min-w-0 flex-1">
                     <div className="text-sm text-content truncate flex items-center gap-1.5">
                         {product.name}
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[10px]">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary-soft text-primary-strong dark:text-primary text-[10px]">
                             <Layers className="w-2.5 h-2.5" />{product.variants.length}
                         </span>
                     </div>
@@ -411,7 +411,7 @@ function ProductResult({ product, expanded, onToggle, availableAt, hasLine, onAd
                                     <div className="text-[11px] text-content-muted font-mono truncate">{v.sku}</div>
                                 </div>
                                 <span className="text-xs text-content-muted tabular-nums">{avail} avail</span>
-                                {added ? <span className="text-[10px] text-emerald-500">Added</span> : <Plus className="w-4 h-4 text-indigo-500" />}
+                                {added ? <span className="text-[10px] text-emerald-500">Added</span> : <Plus className="w-4 h-4 text-primary" />}
                             </button>
                         );
                     })}

@@ -40,6 +40,7 @@ class WooCommerceConnector extends BaseConnector
             (string) $this->connection->consumer_secret,
         )
             ->baseUrl($this->getBaseUrl())
+            ->connectTimeout(10)
             ->timeout(60)
             ->acceptJson();
     }
@@ -243,6 +244,18 @@ class WooCommerceConnector extends BaseConnector
     }
 
     /**
+     * Map a raw WooCommerce webhook order payload (same JSON shape as one
+     * item from GET /orders) to the normalized array OrderSyncService
+     * expects. Widened to public deliberately, mirroring
+     * ShopifyConnector::mapWebhookOrder() — parseOrder() itself stays
+     * protected; only this override is exposed, for the webhook mapper.
+     */
+    public function mapWebhookOrder(array $raw): array
+    {
+        return $this->normalizeOrder($this->parseOrder($raw));
+    }
+
+    /**
      * Parse WooCommerce order
      */
     protected function parseOrder(array $order): array
@@ -251,8 +264,20 @@ class WooCommerceConnector extends BaseConnector
         
         if (isset($order['line_items']) && is_array($order['line_items'])) {
             foreach ($order['line_items'] as $item) {
+                // WooCommerce's own convention: `variation_id` is 0 (never
+                // absent) for a line on a simple product, and the real
+                // variation id for a variable product. Emitting it as
+                // `variant_id` (only when genuinely > 0) is what lets
+                // OrderLineItems/OrderLineInventoryResolver match it to the
+                // matching ProductVariantChannelListing — omitting it here
+                // was the root cause of a variable product's order line
+                // never resolving past the parent product, no matter how
+                // its variant's own stock was adjusted.
+                $variationId = (int) ($item['variation_id'] ?? 0);
+
                 $items[] = [
                     'product_id' => (string) ($item['product_id'] ?? ''),
+                    'variant_id' => $variationId > 0 ? (string) $variationId : '',
                     'sku' => $item['sku'] ?? '',
                     'name' => $item['name'] ?? '',
                     'quantity' => (int) ($item['quantity'] ?? 0),
@@ -295,6 +320,12 @@ class WooCommerceConnector extends BaseConnector
                 'wc_order_id' => $order['id'] ?? null,
                 'wc_status' => $order['status'] ?? null,
             ],
+            // The full raw order — WITHOUT this, `billing`/`shipping` (the only
+            // place the customer's original address survives) was silently
+            // dropped before BaseConnector::normalizeOrder() ever ran, which is
+            // why the Confirmation Desk's address field was always empty for
+            // WooCommerce orders (see OrderAddressSummary).
+            'platform_data' => $order,
         ];
     }
 
@@ -689,6 +720,119 @@ class WooCommerceConnector extends BaseConnector
             throw $e;
         } catch (Exception $e) {
             Log::warning('WooCommerce deleteVariant failed', ['variant' => $variant->id, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a WooCommerce product from an already-built canonical payload
+     * (see WooCommerceProductPayloadMapper). Pure HTTP send + response
+     * parse — no attribute/option business logic lives here.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function sendProductPayload(array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->post('/products', $payload));
+            $response->throw();
+
+            $data = $response->json();
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? ''),
+                'message' => 'Product created on WooCommerce',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('WooCommerce sendProductPayload failed', ['error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing WooCommerce product (parent fields only — variable
+     * product variations are updated separately via updateVariationPayload()).
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateProductPayload(string $externalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/products/{$externalId}", $payload));
+            $response->throw();
+
+            $data = $response->json();
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $externalId),
+                'message' => 'Product updated on WooCommerce',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('WooCommerce updateProductPayload failed', ['external_id' => $externalId, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a new WooCommerce variation from an already-built canonical
+     * variation payload (see WooCommerceProductPayloadMapper::variationPayload()).
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function createVariationPayload(string $parentExternalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->post("/products/{$parentExternalId}/variations", $payload));
+            $response->throw();
+
+            $data = $response->json();
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? ''),
+                'message' => 'Variation created on WooCommerce',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('WooCommerce createVariationPayload failed', ['error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing WooCommerce variation from an already-built
+     * canonical variation payload.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateVariationPayload(string $parentExternalId, string $variationExternalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/products/{$parentExternalId}/variations/{$variationExternalId}", $payload));
+            $response->throw();
+
+            $data = $response->json();
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $variationExternalId),
+                'message' => 'Variation updated on WooCommerce',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('WooCommerce updateVariationPayload failed', ['error' => $e->getMessage()]);
             throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
         }
     }

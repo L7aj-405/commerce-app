@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { User, Settings, Monitor, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, Monitor, LogOut, ChevronDown, ShieldCheck, Palette } from 'lucide-react';
 
-export default function UserDropdown() {
+export default function UserDropdown({ tone = 'indigo' }) {
     const { auth } = usePage().props;
     const user     = auth?.user;
     const permissions = auth?.permissions ?? [];
@@ -35,7 +35,7 @@ export default function UserDropdown() {
                 aria-expanded={open}
                 className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-lg hover:bg-surface-3 transition"
             >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold flex items-center justify-center">
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${tone === 'emerald' ? 'from-emerald-500 to-emerald-700' : 'from-indigo-500 to-indigo-700'} text-white text-xs font-bold flex items-center justify-center`}>
                     {initials}
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-content-muted" />
@@ -52,6 +52,8 @@ export default function UserDropdown() {
                     </header>
 
                     <MenuLink href="/settings/profile" icon={User}>Profile</MenuLink>
+                    <MenuLink href="/settings/security" icon={ShieldCheck}>Security</MenuLink>
+                    <MenuLink href="/settings/appearance" icon={Palette}>Appearance</MenuLink>
                     {can('stores.manage') && (
                         <MenuLink href="/dashboard/stores" icon={Settings}>Store settings</MenuLink>
                     )}

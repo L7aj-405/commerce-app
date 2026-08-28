@@ -12,7 +12,7 @@ export default function OperationsTable({ rows, currency, showClientColumn, rend
     if (rows.length === 0) return null;
 
     return (
-        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+        <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface">
             <table className="w-full text-sm">
                 <thead>
                     <tr className="text-left border-b border-line bg-surface-2 text-content-muted">
@@ -38,6 +38,12 @@ export default function OperationsTable({ rows, currency, showClientColumn, rend
                                 <span className={`mt-1 inline-flex items-center gap-1 text-[11px] ${ageTone(o.created_at)}`}>
                                     <Clock className="w-3 h-3" /> {timeAgo(o.created_at)}
                                 </span>
+                                {o.source === 'online' && o.connection_label && (
+                                    <div className="mt-0.5 text-[11px] text-content-muted truncate max-w-[160px]">
+                                        {o.connection_label}
+                                        {o.external_order_number ? ` · #${o.external_order_number}` : ''}
+                                    </div>
+                                )}
                             </td>
                             <td className="px-3 py-2.5">
                                 <div className="font-medium text-content">{o.customer_name || 'Walk-in customer'}</div>
@@ -52,7 +58,7 @@ export default function OperationsTable({ rows, currency, showClientColumn, rend
                             <td className="px-3 py-2.5">
                                 <StatusBadge status={o.status} type="fulfillment" label={o.status_label} />
                                 {o.allocation?.shortage_quantity > 0 && (
-                                    <div className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                    <div className="mt-1 text-[11px] text-warning">
                                         waiting {o.allocation.shortage_quantity} unit(s)
                                     </div>
                                 )}

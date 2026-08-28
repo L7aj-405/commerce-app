@@ -7,7 +7,7 @@ import StatusBadge from '@/Components/StatusBadge';
 import AdjustStockModal from '@/Components/Products/AdjustStockModal';
 import PublishTargetModal from '@/Components/Products/PublishTargetModal';
 
-export default function Edit({ product, connections = [], warehouses = [] }) {
+export default function Edit({ product, connections = [], warehouses = [], readiness = {} }) {
     const permissions = usePage().props.auth?.permissions ?? [];
     const canAdjustStock = permissions.includes('*') || permissions.includes('stock.adjust');
     const [adjusting, setAdjusting] = useState(null); // null | { variantId, variantName }
@@ -28,16 +28,13 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         .sort()
         .join('|');
 
+    // Stock is intentionally NOT part of the form payload — it's read-only
+    // here and only ever changed through the inventory-safe Adjust Stock
+    // flow (POST .../stock). Keeping it out of `data.variants` means it can
+    // never be sent back on save and never gets reset by generate/save.
     const prepareVariantsFromProduct = (variants) => {
         if (!variants || !Array.isArray(variants)) return [];
         return variants.map(variant => {
-            let stockQty = 0;
-            if (variant.stocks && Array.isArray(variant.stocks)) {
-                stockQty = variant.stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0);
-            } else {
-                stockQty = parseInt(variant.qty) || parseInt(variant.stock) || 0;
-            }
-
             const options = variant.options ?? {};
 
             return {
@@ -47,11 +44,25 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                 sku: variant.sku ?? '',
                 price: variant.price ? String(variant.price) : '',
                 cost: variant.cost ? String(variant.cost) : '',
-                qty: stockQty,
                 selected: true,
                 channel_listings: variant.channel_listings ?? [],
             };
         });
+    };
+
+    // Always reads the live `product` prop — never the form's `data` state —
+    // so a partial Inertia reload after an Adjust Stock action shows the new
+    // number immediately without disturbing any in-progress unsaved edits.
+    // stock_on_hand comes from the inventory engine's source of truth
+    // (InventoryItem -> WarehouseInventoryBalance), computed server-side in
+    // ProductController@edit — never the legacy per-variant `stocks` array,
+    // which can go stale (e.g. a Shopify-synced variant that has never gone
+    // through a local inventory adjustment).
+    const stockForVariant = (variantId) => {
+        if (!variantId) return 0;
+        const pv = (product?.variants ?? []).find((v) => v.id === variantId);
+        if (!pv) return 0;
+        return parseInt(pv.stock_on_hand ?? 0) || 0;
     };
 
     // 3. إعداد الـ Form مع إضافة حقل qty الموحد للـ Simple Product
@@ -69,6 +80,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 
         options: buildOptionsFromProduct(product),
         variants: prepareVariantsFromProduct(product?.variants),
+        regenerate_skus: false,
     });
 
     // ✨ تحديث البيانات تلقائياً أول ما يتشارجا الـ Product
@@ -87,7 +99,8 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                 type: product.type ? String(product.type).toLowerCase().trim() : 'simple',
 
                 options: buildOptionsFromProduct(product),
-                variants: prepareVariantsFromProduct(product.variants)
+                variants: prepareVariantsFromProduct(product.variants),
+                regenerate_skus: false,
             }));
         }
     }, [product?.id]);
@@ -123,24 +136,42 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         const trimmed = newName.trim();
         if (trimmed === '') return;
 
-        const oldName = data.options[index].name;
-        const updated = data.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o));
-        setData('options', updated);
+        setData(prev => {
+            const oldName = prev.options[index]?.name;
+            const nextOptions = prev.options.map((o, i) => (i === index ? { ...o, name: trimmed } : o));
 
-        // Keep already-generated variant rows pointing at the renamed option
-        // instead of orphaning their value under the old name.
-        if (oldName !== trimmed) {
-            setData('variants', data.variants.map((v) => {
-                if (!(oldName in v.options)) return v;
+            if (!oldName || oldName === trimmed) {
+                return { ...prev, options: nextOptions };
+            }
+
+            // Update options + variant maps in one state transaction. Doing two
+            // setData calls here can race and leave the form with renamed
+            // options but variants still carrying the old option key.
+            const nextVariants = (prev.variants ?? []).map((v) => {
+                if (!(oldName in (v.options ?? {}))) return v;
                 const { [oldName]: value, ...rest } = v.options;
                 const options = { ...rest, [trimmed]: value };
                 return { ...v, options, combo_key: comboKeyFor(options) };
-            }));
-        }
+            });
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
     };
 
     const handleRemoveAttribute = (indexToRemove) => {
-        setData('options', data.options.filter((_, index) => index !== indexToRemove));
+        setData(prev => {
+            const removed = prev.options[indexToRemove];
+            const nextOptions = prev.options.filter((_, index) => index !== indexToRemove);
+
+            // A variant containing a removed option is no longer a valid active
+            // combination. Drop it from the active form immediately; the backend
+            // will archive rather than hard-delete if it has listings/inventory.
+            const nextVariants = removed
+                ? (prev.variants ?? []).filter((v) => !(removed.name in (v.options ?? {})))
+                : (prev.variants ?? []);
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
     };
 
     const handleAddOptionValue = (optionIndex, rawValue) => {
@@ -158,17 +189,56 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
     // uses this value — the backend re-checks (channel listings / inventory
     // links) regardless, this is just an honest heads-up before saving.
     const handleRemoveOptionValue = (optionIndex, valueIndex) => {
-        const option = data.options[optionIndex];
-        const value = option.values[valueIndex];
-        const inUse = data.variants.some((v) => v.options[option.name] === value);
+        setData(prev => {
+            const option = prev.options[optionIndex];
+            const value = option?.values?.[valueIndex];
+            if (!option || value === undefined) return prev;
 
-        if (inUse && !confirm(`"${value}" is used by an existing variant. Regenerating will drop that combination (or keep it read-only if it's linked to a platform). Continue?`)) {
-            return;
+            const inUse = (prev.variants ?? []).some((v) => v.options?.[option.name] === value);
+
+            if (inUse && !confirm(`"${value}" is used by an existing variant. Removing it will drop that combination from the active list. Linked variants are archived safely on save. Continue?`)) {
+                return prev;
+            }
+
+            const nextOptions = prev.options.map((o, i) => (
+                i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
+            ));
+
+            // Do not wait for the user to click Generate. Once a value is
+            // removed, every active variant containing it is invalid and should
+            // disappear immediately from the form payload.
+            const nextVariants = (prev.variants ?? []).filter((v) => v.options?.[option.name] !== value);
+
+            return { ...prev, options: nextOptions, variants: nextVariants };
+        });
+    };
+
+    const skuFragment = (value) => {
+        const fragment = String(value ?? '')
+            .trim()
+            .replace(/[^A-Za-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .toUpperCase();
+
+        return fragment || 'X';
+    };
+
+    const generateVariantSku = (options, usedSkus = new Set()) => {
+        const base = skuFragment(data.sku || data.name || product?.id?.slice(0, 8) || 'PRODUCT');
+        const suffix = (data.options ?? [])
+            .map((option) => skuFragment(options?.[option.name]))
+            .join('-');
+        const natural = [base, suffix].filter(Boolean).join('-');
+        let candidate = natural;
+        let suffixNumber = 2;
+
+        while (usedSkus.has(candidate)) {
+            candidate = `${natural}-${suffixNumber}`;
+            suffixNumber += 1;
         }
 
-        setData('options', data.options.map((o, i) => (
-            i === optionIndex ? { ...o, values: o.values.filter((_, vi) => vi !== valueIndex) } : o
-        )));
+        usedSkus.add(candidate);
+        return candidate;
     };
 
     const generateVariantsMatrix = () => {
@@ -184,46 +254,76 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 
         const combinations = cartesian(sets);
 
+        // Reserve non-empty SKUs from the current form, including variants that
+        // may be dropped by this regeneration. The backend is still the final
+        // authority, but this keeps the UI preview close to reality.
+        const usedSkus = new Set((data.variants ?? []).map((v) => v.sku).filter(Boolean));
+
         const generatedVariants = combinations.map(combo => {
             const options = Object.assign({}, ...combo);
             const comboKey = comboKeyFor(options);
-            const skuSuffix = Object.values(options).join('-').toUpperCase();
-            const variantSku = data.sku ? `${data.sku}-${skuSuffix}` : skuSuffix;
 
             // Match by the canonical (sorted) combination — order-independent,
-            // so adding a new option no longer loses previously-entered
-            // price/sku/qty for combinations that still exist.
-            const existingVariant = data.variants.find(v => v.combo_key === comboKey);
+            // so adding/removing options no longer loses rows whose exact
+            // combination still exists.
+            const existingVariant = (data.variants ?? []).find(v => v.combo_key === comboKey);
 
-            return existingVariant ?? {
+            if (existingVariant) {
+                // Shopify imports often have empty variant SKUs. Generate a
+                // visible SKU immediately when the field is empty, but never
+                // overwrite a user/platform SKU here. The Regenerate SKUs action
+                // is the explicit overwrite path.
+                if (!existingVariant.sku) {
+                    return { ...existingVariant, options, combo_key: comboKey, sku: generateVariantSku(options, usedSkus) };
+                }
+
+                usedSkus.add(existingVariant.sku);
+                return { ...existingVariant, options, combo_key: comboKey };
+            }
+
+            return {
                 id: null,
                 combo_key: comboKey,
                 options,
-                sku: variantSku,
+                sku: generateVariantSku(options, usedSkus),
                 price: data.price || '',
                 cost: data.cost || '',
-                qty: 0,
                 selected: true,
                 channel_listings: [],
             };
         });
 
-        setData('variants', generatedVariants);
+        setData(prev => ({ ...prev, variants: generatedVariants }));
     };
 
     const handleVariantChange = (index, field, value) => {
         const updatedVariants = [...data.variants];
-        if (field === 'qty') {
-            updatedVariants[index]['qty'] = parseInt(value) || 0;
-        } else {
-            updatedVariants[index][field] = value;
-        }
+        updatedVariants[index][field] = value;
         setData('variants', updatedVariants);
     };
 
     const submit = (e) => {
         e.preventDefault();
         patch(`/dashboard/products/${product.id}`);
+    };
+
+    // Regenerates every active variant's SKU, overwriting existing ones —
+    // the actual generation (base SKU + normalized option values + uniqueness
+    // suffix) happens server-side in ProductVariantWizardService, this just
+    // flags the same save payload to request it.
+    const handleRegenerateSkus = () => {
+        if (!confirm('Regenerate SKUs for all active variants? This overwrites any SKU already set.')) return;
+
+        const usedSkus = new Set();
+        const regenerated = (data.variants ?? []).map((variant) => ({
+            ...variant,
+            sku: generateVariantSku(variant.options ?? {}, usedSkus),
+        }));
+
+        // Keep the flag for the server-side save. This gives the user instant
+        // feedback in the table, while ProductVariantWizardService still does
+        // the authoritative unique SKU generation during save.
+        setData(prev => ({ ...prev, variants: regenerated, regenerate_skus: true }));
     };
 
     const nextStep = () => step < maxSteps && setStep(step + 1);
@@ -250,12 +350,12 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                         onClick={() => setPublishModalOpen(true)}
                         disabled={connections.length === 0}
                         title={connections.length === 0 ? 'No active platform connections for this store.' : undefined}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                         <Upload className="w-4 h-4" />
                         Publish to platforms
                     </button>
-                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
+                    <Link href="/dashboard/products" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content-muted hover:bg-content/10 hover:text-content transition">
                         <ArrowLeft className="w-4 h-4" /> Back
                     </Link>
                 </div>
@@ -263,9 +363,11 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
         }}>
             
             <div className="max-w-4xl mx-auto space-y-6">
-                
+
+                <PublishReadinessPanel readiness={readiness} />
+
                 {/* --- STEP INDICATOR TRAIL --- */}
-                <div className="bg-surface-2 border border-line py-4 px-6 rounded-xl shadow-sm">
+                <div className="bg-surface-2 border border-line py-4 px-6 rounded-[var(--radius-card)] shadow-sm">
                     <div className="flex items-center justify-between">
                         {stepLabels.map((label, i) => {
                             const num = i + 1;
@@ -278,21 +380,21 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                     >
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
                                             num === step 
-                                                ? 'bg-indigo-600 border-indigo-500 text-white ring-4 ring-indigo-500/10' 
+                                                ? 'bg-primary border-primary text-primary-contrast ring-4 ring-primary/10'
                                                 : num < step 
-                                                ? 'bg-indigo-950 border-indigo-500/50 text-indigo-600 dark:text-indigo-400' 
+                                                ? 'bg-primary-soft border-primary/50 text-primary' 
                                                 : 'bg-surface border-line text-content-muted'
                                         }`}>
                                             {num < step ? <CheckCircle className="w-4 h-4" /> : num}
                                         </div>
                                         <span className={`text-xs font-medium hidden md:inline whitespace-nowrap ${
-                                            num === step ? 'text-white' : 'text-content-muted'
+                                            num === step ? 'text-primary' : 'text-content-muted'
                                         }`}>
                                             {label}
                                         </span>
                                     </button>
                                     {i < stepLabels.length - 1 && (
-                                        <div className={`h-px flex-1 mx-4 ${num < step ? 'bg-indigo-500/50' : 'bg-surface-3'}`} />
+                                        <div className={`h-px flex-1 mx-4 ${num < step ? 'bg-primary-soft' : 'bg-surface-3'}`} />
                                     )}
                                 </div>
                             );
@@ -301,23 +403,23 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                 </div>
 
                 {/* --- MAIN INTERFACE CONTAINER --- */}
-                <form onSubmit={submit} className="bg-surface-2 border border-line rounded-xl p-6 space-y-6 shadow-xl">
+                <form onSubmit={submit} className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-6 space-y-6 shadow-xl">
                     
                     {/* STEP 1: PRODUCT TYPE CONFIGURATION */}
                     {step === 1 && (
                         <div className="space-y-4 animate-fadeIn">
                             <Section title="Product Structural Type">
-                                <p className="text-xs text-content-muted mb-4 font-mono">Current Type In DB: <span className="text-indigo-600 dark:text-indigo-400">{data.type}</span></p>
+                                <p className="text-xs text-content-muted mb-4 font-mono">Current Type In DB: <span className="text-primary">{data.type}</span></p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div 
                                         onClick={() => setData('type', 'simple')}
-                                        className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all flex gap-4 ${
+                                        className={`relative p-5 rounded-[var(--radius-card)] border-2 cursor-pointer transition-all flex gap-4 ${
                                             data.type === 'simple'
-                                                ? 'border-indigo-500 bg-indigo-500/5 text-white'
+                                                ? 'border-primary bg-primary-soft text-primary'
                                                 : 'border-line bg-surface/50 text-content-muted hover:border-line'
                                         }`}
                                     >
-                                        <Package className={`w-8 h-8 flex-shrink-0 ${data.type === 'simple' ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted/60'}`} />
+                                        <Package className={`w-8 h-8 flex-shrink-0 ${data.type === 'simple' ? 'text-primary' : 'text-content-muted/60'}`} />
                                         <div>
                                             <p className="text-sm font-semibold">Simple Product</p>
                                             <p className="text-xs text-content-muted mt-1">منتج عادي برقم SKU واحد وثمن موحد.</p>
@@ -326,13 +428,13 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 
                                     <div 
                                         onClick={() => setData('type', 'variable')}
-                                        className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all flex gap-4 ${
+                                        className={`relative p-5 rounded-[var(--radius-card)] border-2 cursor-pointer transition-all flex gap-4 ${
                                             data.type === 'variable'
-                                                ? 'border-indigo-500 bg-indigo-500/5 text-white'
+                                                ? 'border-primary bg-primary-soft text-primary'
                                                 : 'border-line bg-surface/50 text-content-muted hover:border-line'
                                         }`}
                                     >
-                                        <Settings className={`w-8 h-8 flex-shrink-0 ${data.type === 'variable' ? 'text-indigo-600 dark:text-indigo-400' : 'text-content-muted/60'}`} />
+                                        <Settings className={`w-8 h-8 flex-shrink-0 ${data.type === 'variable' ? 'text-primary' : 'text-content-muted/60'}`} />
                                         <div>
                                             <p className="text-sm font-semibold">Variable Product</p>
                                             <p className="text-xs text-content-muted mt-1">منتج بخصائص متعددة وجدول فاريانتس ديناميكي.</p>
@@ -370,13 +472,15 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                 </div>
 
                                 {/* Read-only — quantity is no longer editable from the product
-                                    form. Use "Adjust stock" so changes go through the inventory
-                                    engine and push to WooCommerce. */}
+                                    form, and saving this form (publish included) never changes
+                                    it. Use "Adjust stock" so changes go through the inventory
+                                    engine and push to WooCommerce/Shopify (Shopify via
+                                    InventoryLevel, never a product/variant update payload). */}
                                 {data.type === 'simple' && (
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 items-end">
                                         <div>
                                             <label className="block text-xs font-medium text-content-muted mb-1">Stock on hand</label>
-                                            <div className="px-3 py-2 rounded-lg bg-surface border border-line text-content text-sm font-semibold tabular-nums">
+                                            <div className="px-3 py-2 rounded-[var(--radius-button)] bg-surface border border-line text-content text-sm font-semibold tabular-nums">
                                                 {product?.total_stock ?? 0}
                                             </div>
                                         </div>
@@ -384,12 +488,12 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setAdjusting({ variantId: null, variantName: null })}
-                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 h-[38px]"
+                                                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 h-[38px]"
                                             >
                                                 <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust stock
                                             </button>
                                         )}
-                                        <p className="md:col-span-3 text-[11px] text-content-muted">Stock is managed through inventory adjustments.</p>
+                                        <p className="md:col-span-3 text-[11px] text-content-muted">Stock quantity is synced through inventory adjustments, not product publish.</p>
                                     </div>
                                 )}
                             </Section>
@@ -397,22 +501,22 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             {/* Options Section */}
                             {data.type === 'variable' && (
                                 <Section title="Product options">
-                                    <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                                    <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
 
                                         {/* Add a new option */}
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                                             <div>
                                                 <label className="block text-xs text-content-muted mb-1">Option name</label>
                                                 <input type="text" placeholder="e.g., Size" value={currentAttrName} onChange={e => setCurrentAttrName(e.target.value)}
-                                                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                                    className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs text-content-muted mb-1">Values (separate with ",")</label>
                                                 <input type="text" placeholder="e.g., S, M, L" value={currentAttrValues} onChange={e => setCurrentAttrValues(e.target.value)}
-                                                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-surface-2 border border-line text-content focus:outline-none" />
+                                                    className="w-full px-3 py-1.5 text-xs rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none" />
                                             </div>
                                             <button type="button" onClick={handleAddAttribute}
-                                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
+                                                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10 flex items-center justify-center gap-1 h-[32px]">
                                                 <Plus className="w-3.5 h-3.5" /> Add option
                                             </button>
                                         </div>
@@ -432,7 +536,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                         </div>
 
                                         <button type="button" onClick={generateVariantsMatrix}
-                                            className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 py-2 rounded-lg text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
+                                            className="w-full bg-primary-soft hover:brightness-95 text-primary border border-primary/30 py-2 rounded-[var(--radius-button)] text-xs font-semibold tracking-wide transition flex items-center justify-center gap-1">
                                             <Layers className="w-3.5 h-3.5" /> Generate variants
                                         </button>
 
@@ -444,9 +548,17 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             {/* Variants Section */}
                             {data.type === 'variable' && (
                                 <Section title="Variants">
-                                    <div className="bg-surface p-4 rounded-xl border border-line space-y-4">
+                                    <div className="bg-surface p-4 rounded-[var(--radius-card)] border border-line space-y-4">
+                                        {data.variants && data.variants.length > 0 && (
+                                            <div className="flex justify-end">
+                                                <button type="button" onClick={handleRegenerateSkus}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-3 border border-line text-content hover:bg-content/10">
+                                                    <Layers className="w-3.5 h-3.5" /> Regenerate SKUs
+                                                </button>
+                                            </div>
+                                        )}
                                         {data.variants && data.variants.length > 0 ? (
-                                            <div className="overflow-x-auto border border-line rounded-lg mt-2">
+                                            <div className="overflow-x-auto border border-line rounded-[var(--radius-button)] mt-2">
                                                 <table className="w-full text-left border-collapse bg-surface text-xs">
                                                     <thead className="bg-surface text-content-muted font-medium border-b border-line">
                                                         <tr>
@@ -463,28 +575,32 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                                                 <td className="p-2.5 font-medium text-content-muted whitespace-nowrap">
                                                                     {/* Display-only string — the real identity is the
                                                                         options map/canonical ids, never this text. */}
-                                                                    {Object.entries(v.options ?? {}).map(([k, val]) => `${k}=${val}`).join(' / ') || '—'}
+                                                                    {Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') || '—'}
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="text" value={v.sku || ''} onChange={e => handleVariantChange(index, 'sku', e.target.value)}
-                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-indigo-500" />
+                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-full focus:outline-none focus:border-primary" />
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <input type="number" step="0.01" value={v.price ?? ''} onChange={e => handleVariantChange(index, 'price', e.target.value)}
-                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-indigo-500" />
+                                                                        className="bg-surface-2 border border-line rounded px-2 py-1 text-xs text-content w-24 focus:outline-none focus:border-primary" />
                                                                 </td>
                                                                 <td className="p-2.5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">{v.qty ?? 0}</span>
-                                                                        {canAdjustStock && v.id && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => setAdjusting({ variantId: v.id, variantName: Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') })}
-                                                                                className="text-content-muted hover:text-content"
-                                                                                title="Adjust stock"
-                                                                            >
-                                                                                <SlidersHorizontal className="w-3.5 h-3.5" />
-                                                                            </button>
+                                                                        <span className="text-success font-bold tabular-nums">{stockForVariant(v.id)}</span>
+                                                                        {canAdjustStock && (
+                                                                            v.id ? (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setAdjusting({ variantId: v.id, variantName: Object.entries(v.options ?? {}).map(([k, val]) => `${k}: ${val}`).join(' / ') })}
+                                                                                    className="text-content-muted hover:text-content"
+                                                                                    title="Adjust stock"
+                                                                                >
+                                                                                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                            ) : (
+                                                                                <span className="text-[10px] text-content-muted italic">Save product first to adjust stock.</span>
+                                                                            )
                                                                         )}
                                                                     </div>
                                                                 </td>
@@ -507,7 +623,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                                 </table>
                                             </div>
                                         ) : (
-                                            <p className="text-xs text-amber-600 dark:text-amber-400/80 p-2 text-center bg-amber-500/5 rounded border border-amber-500/10">No variant items linked inside database array node yet.</p>
+                                            <p className="text-xs text-warning p-2 text-center bg-warning-soft rounded border border-warning/20">No variant items linked inside database array node yet.</p>
                                         )}
                                     </div>
                                 </Section>
@@ -524,7 +640,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                         <label className="block text-sm font-medium text-content-muted mb-1">Status</label>
                                         <select
                                             value={data.status} onChange={(e) => setData('status', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-lg bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                                         >
                                             <option value="active">Active</option>
                                             <option value="draft">Draft</option>
@@ -548,7 +664,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                                         ) : (
                                             <div className="flex flex-wrap gap-2">
                                                 {product.channel_listings.map((listing) => (
-                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-3 border border-line text-xs">
+                                                    <div key={listing.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-[var(--radius-button)] bg-surface-3 border border-line text-xs">
                                                         <span className="font-medium text-content">{listing.connection?.label ?? listing.connection?.platform}</span>
                                                         <span className="text-content-muted font-mono">#{listing.external_product_id}</span>
                                                         <StatusBadge type="sync" status={listing.sync_status} />
@@ -580,7 +696,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             type="button" 
                             onClick={prevStep} 
                             disabled={step === 1}
-                            className={`px-4 py-2 text-xs font-medium text-content-muted bg-surface-3 rounded-lg hover:bg-content/10 transition ${
+                            className={`px-4 py-2 text-xs font-medium text-content-muted bg-surface-3 rounded-[var(--radius-button)] hover:bg-content/10 transition ${
                                 step === 1 ? 'opacity-30 cursor-not-allowed' : ''
                             }`}
                         >
@@ -591,7 +707,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             <button 
                                 type="button" 
                                 onClick={nextStep} 
-                                className="px-4 py-2 text-xs font-semibold text-content bg-indigo-600 rounded-lg hover:bg-indigo-500 transition"
+                                className="px-4 py-2 text-xs font-semibold text-content bg-primary rounded-[var(--radius-button)] hover:bg-primary-strong transition"
                             >
                                 Next Step
                             </button>
@@ -599,7 +715,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                             <button 
                                 type="submit" 
                                 disabled={processing} 
-                                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 transition shadow-md"
+                                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-50 transition shadow-md"
                             >
                                 {processing ? (
                                     <>
@@ -624,6 +740,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                     variantName={adjusting.variantName}
                     warehouses={warehouses}
                     onClose={() => setAdjusting(null)}
+                    onAdjusted={() => router.reload({ only: ['product'] })}
                 />
             )}
 
@@ -632,6 +749,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
                     mode="single"
                     product={product}
                     connections={connections}
+                    readiness={readiness}
                     onClose={() => setPublishModalOpen(false)}
                     onPublished={() => router.reload({ only: ['product'] })}
                 />
@@ -643,7 +761,7 @@ export default function Edit({ product, connections = [], warehouses = [] }) {
 function Section({ title, children }) {
     return (
         <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 border-b border-line/60 pb-1.5">{title}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-primary border-b border-line/60 pb-1.5">{title}</h3>
             {children}
         </div>
     );
@@ -652,10 +770,10 @@ function Section({ title, children }) {
 function Field({ label, type = 'text', value, onChange, error, required, ...rest }) {
     return (
         <div className="w-full">
-            <label className="block text-xs font-medium text-content-muted mb-1">{label} {required && <span className="text-red-600 dark:text-red-400">*</span>}</label>
+            <label className="block text-xs font-medium text-content-muted mb-1">{label} {required && <span className="text-danger">*</span>}</label>
             <input type={type} value={value} onChange={(e) => onChange(e.target.value)} {...rest}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-primary`} />
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -665,8 +783,8 @@ function TextArea({ label, value, onChange, error }) {
         <div className="w-full">
             <label className="block text-xs font-medium text-content-muted mb-1">{label}</label>
             <textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500`} />
-            {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content text-xs focus:outline-none focus:ring-2 focus:ring-primary`} />
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }
@@ -684,7 +802,7 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
     };
 
     return (
-        <div className="bg-surface-2 px-3 py-2 rounded-lg border border-line space-y-2">
+        <div className="bg-surface-2 px-3 py-2 rounded-[var(--radius-button)] border border-line space-y-2">
             <div className="flex items-center justify-between gap-2">
                 {editingName ? (
                     <input
@@ -693,14 +811,14 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                         onChange={(e) => setNameDraft(e.target.value)}
                         onBlur={commitName}
                         onKeyDown={(e) => e.key === 'Enter' && commitName()}
-                        className="text-xs font-semibold uppercase bg-surface border border-indigo-500/40 rounded px-1.5 py-0.5 text-content focus:outline-none"
+                        className="text-xs font-semibold uppercase bg-surface border border-primary/40 rounded px-1.5 py-0.5 text-content focus:outline-none"
                     />
                 ) : (
-                    <button type="button" onClick={() => setEditingName(true)} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase hover:underline">
+                    <button type="button" onClick={() => setEditingName(true)} className="text-xs font-semibold text-primary uppercase hover:underline">
                         {option.name}:
                     </button>
                 )}
-                <button type="button" onClick={onRemoveOption} className="text-content-muted hover:text-red-600 dark:text-red-400 transition">
+                <button type="button" onClick={onRemoveOption} className="text-content-muted hover:text-danger transition">
                     <Trash2 className="w-4 h-4" />
                 </button>
             </div>
@@ -709,7 +827,7 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                 {option.values.map((v, vIdx) => (
                     <span key={vIdx} className="inline-flex items-center gap-1 bg-surface px-2 py-0.5 rounded border border-line text-content-muted text-xs">
                         {v}
-                        <button type="button" onClick={() => onRemoveValue(vIdx)} className="text-content-muted/60 hover:text-red-600 dark:hover:text-red-400">
+                        <button type="button" onClick={() => onRemoveValue(vIdx)} className="text-content-muted/60 hover:text-danger">
                             <Trash2 className="w-3 h-3" />
                         </button>
                     </span>
@@ -722,8 +840,42 @@ export function OptionRow({ option, onRename, onAddValue, onRemoveValue, onRemov
                     }}
                     onBlur={() => { if (newValue.trim() !== '') { onAddValue(newValue); setNewValue(''); } }}
                     placeholder="+ value"
-                    className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-indigo-500"
+                    className="w-20 text-xs bg-surface border border-dashed border-line rounded px-1.5 py-0.5 text-content focus:outline-none focus:border-primary"
                 />
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Server-computed readiness for the product as currently SAVED (ProductPublishReadinessService)
+ * — the same check that gates the publish endpoints. Informational only; it
+ * never blocks saving this form. Distinct from PublishReadinessNotice below,
+ * which previews unsaved form state client-side.
+ */
+function PublishReadinessPanel({ readiness = {} }) {
+    const platforms = Object.entries(readiness);
+    if (platforms.length === 0) return null;
+
+    const badge = { ready: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', blocked: 'bg-danger-soft text-danger' };
+
+    return (
+        <div className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-4">
+            <p className="text-xs font-semibold text-content-muted uppercase tracking-wide mb-2.5">Publish readiness</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {platforms.map(([platform, report]) => (
+                    <div key={platform} className="rounded-[var(--radius-button)] border border-line bg-surface p-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-content uppercase">{platform}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${badge[report.status] ?? 'bg-slate-500/15 text-content-muted'}`}>
+                                {report.status}
+                            </span>
+                        </div>
+                        {[...(report.errors ?? []), ...(report.warnings ?? [])].slice(0, 2).map((msg, i) => (
+                            <p key={i} className="mt-1 text-xs text-content-muted">{msg}</p>
+                        ))}
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -754,10 +906,10 @@ export function PublishReadinessNotice({ options = [], variants = [] }) {
     if (warnings.length === 0) return null;
 
     return (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
-            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Publish readiness</p>
+        <div className="rounded-[var(--radius-button)] border border-warning/30 bg-warning-soft p-3 space-y-1">
+            <p className="text-[11px] font-semibold text-warning uppercase tracking-wide">Publish readiness</p>
             {warnings.map((w, i) => (
-                <p key={i} className="text-xs text-amber-700 dark:text-amber-300">{w}</p>
+                <p key={i} className="text-xs text-warning">{w}</p>
             ))}
         </div>
     );

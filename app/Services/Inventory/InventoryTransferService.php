@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Inventory;
 
-use App\Enums\FulfillmentStatus;
-use App\Models\InventoryAllocation;
+use App\Models\AgentActivityEvent;
 use App\Models\InventoryItem;
 use App\Models\InventoryReservation;
 use App\Models\InventoryTransfer;
@@ -13,13 +12,18 @@ use App\Models\InventoryTransferItem;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\Activity\AgentActivityRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InventoryTransferService
 {
-    public function __construct(private readonly InventoryEngine $inventory) {}
+    public function __construct(
+        private readonly InventoryEngine $inventory,
+        private readonly AllocationCompletionService $completion,
+        private readonly AgentActivityRecorder $activity,
+    ) {}
 
     /** @param array<int,array{inventory_item_id:string,quantity:int,allocation_id?:?string}> $items */
     public function request(Organization $organization, Warehouse $source, Warehouse $destination, array $items, ?User $actor=null, string $reason='replenishment'): InventoryTransfer
@@ -85,7 +89,7 @@ class InventoryTransferService
     public function receive(InventoryTransfer $transfer, ?User $actor=null): InventoryTransfer
     {
         abort_unless($transfer->status===InventoryTransfer::IN_TRANSIT,422,'Only in-transit stock can be received.');
-        return DB::transaction(function () use ($transfer,$actor): InventoryTransfer {
+        $received = DB::transaction(function () use ($transfer,$actor): InventoryTransfer {
             $transfer->load(['items.inventoryItem','destinationWarehouse']);
             foreach ($transfer->items as $line) {
                 $this->inventory->receiveTransfer($line->inventoryItem,$transfer->destinationWarehouse,$line->quantity,$transfer,$actor);
@@ -94,6 +98,20 @@ class InventoryTransferService
             }
             $transfer->update(['status'=>InventoryTransfer::RECEIVED,'received_at'=>now()]); return $transfer->refresh();
         });
+
+        // Activity ledger — best-effort store resolution from the actor's own
+        // active store (a transfer is organization/warehouse-scoped, not
+        // store-scoped, so there is no other reliable store to attribute
+        // this to). No actor, or no resolvable store, simply skips logging.
+        $store = $actor?->getActiveStore();
+        if ($actor !== null && $store !== null) {
+            $this->activity->record($actor, $store, AgentActivityEvent::STOCK_TRANSFER_RECEIVED, 'inventory', [
+                'subject' => $transfer,
+                'metadata' => ['items' => $transfer->items->count(), 'reference' => $transfer->reference ?? null],
+            ]);
+        }
+
+        return $received;
     }
 
     private function topUpAllocation(InventoryTransferItem $line, ?User $actor): void
@@ -103,30 +121,21 @@ class InventoryTransferService
         if ($reservation===null || $reservation->shortage_quantity<=0) return;
         $qty=min($line->quantity,$reservation->shortage_quantity);
         $this->inventory->reserve($line->inventoryItem,$line->transfer->destinationWarehouse,$qty,$reservation->allocation,$actor,'Reserved after transfer receipt');
-        $reservation->update(['reserved_quantity'=>$reservation->reserved_quantity+$qty,'shortage_quantity'=>$reservation->shortage_quantity-$qty,'status'=>($reservation->shortage_quantity-$qty)===0?InventoryReservation::STATUS_ACTIVE:InventoryReservation::STATUS_WAITING_TRANSFER]);
-        $allocation=$reservation->allocation;
-        if ($allocation->reservations()->where('shortage_quantity','>',0)->doesntExist()) {
-            $allocation->update(['status'=>InventoryAllocation::STATUS_RESERVED]);
-            $this->markSourceReadyForPicking($allocation);
-        }
-    }
-
-    private function markSourceReadyForPicking(InventoryAllocation $allocation): void
-    {
-        $source = $allocation->source;
-
-        if ($source === null) {
-            return;
-        }
-
-        $current = $source->fulfillment_status ?? null;
-
-        if ($current === FulfillmentStatus::WaitingForStock) {
-            $source->forceFill([
-                'fulfillment_status' => FulfillmentStatus::ReadyForPicking,
-                'fulfillment_updated_at' => now(),
-            ])->save();
-        }
+        $newShortage = $reservation->shortage_quantity-$qty;
+        $reservation->update([
+            'reserved_quantity'=>$reservation->reserved_quantity+$qty,
+            'shortage_quantity'=>$newShortage,
+            'status'=>$newShortage===0?InventoryReservation::STATUS_ACTIVE:InventoryReservation::STATUS_WAITING_TRANSFER,
+            'resolved_at'=>$newShortage===0?now():null,
+        ]);
+        // Only fully received quantity resolves a line — a partial receipt
+        // (received_quantity < quantity, tracked separately on $line) still
+        // leaves shortage_quantity > 0 above, which correctly keeps the
+        // allocation/order waiting (WaitingStockState then reports
+        // "ready_to_recheck" once the transfer itself is RECEIVED, so a
+        // supervisor can trigger WaitingStockReallocationService for any
+        // stock that arrived from elsewhere in the meantime).
+        $this->completion->syncIfComplete($reservation->allocation);
     }
 
     private function nextReference(Organization $organization): string

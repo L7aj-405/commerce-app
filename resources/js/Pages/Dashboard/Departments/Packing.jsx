@@ -46,9 +46,9 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Pick & pack',
-            subtitle: 'Prepare confirmed orders and hand them to logistics',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Pick & Pack' }],
+            title: 'Pick & Pack Workbench',
+            subtitle: 'Worker screen for picking, packing, and moving orders through warehouse steps.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Pick & Pack Workbench' }],
         }}>
             <DepartmentNav departments={departments} current="packing" />
 
@@ -68,7 +68,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                         search={q.search} onSearch={q.setSearch}
                         placeholder="Search order or customer…"
                         extra={
-                            <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-2 border border-line">
+                            <div className="flex items-center gap-1 p-1 rounded-[var(--radius-button)] bg-surface-2 border border-line">
                                 {[
                                     { value: 'all',    label: 'All sources' },
                                     { value: 'online', label: 'Online' },
@@ -78,7 +78,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                         key={s.value}
                                         onClick={() => q.setSource(s.value)}
                                         className={[
-                                            'px-3 py-1.5 text-sm font-medium rounded-lg transition',
+                                            'px-3 py-1.5 text-sm font-medium rounded-[var(--radius-button)] transition',
                                             q.source === s.value
                                                 ? 'bg-surface text-content border border-line shadow-sm'
                                                 : 'text-content-muted hover:text-content hover:bg-surface-3 border border-transparent',
@@ -114,8 +114,8 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                     <li
                                         key={key}
                                         className={[
-                                            'bg-surface border rounded-xl overflow-hidden transition',
-                                            mine ? 'border-indigo-500/50 ring-1 ring-indigo-500/20' : 'border-line',
+                                            'bg-surface border rounded-[var(--radius-card)] overflow-hidden transition',
+                                            mine ? 'border-primary/50 ring-1 ring-primary/20' : 'border-line',
                                         ].join(' ')}
                                     >
                                         <div className="flex flex-wrap items-start justify-between gap-3 p-4 pb-3">
@@ -157,7 +157,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
 
                                         {/* Picking checklist */}
                                         <div className="px-4">
-                                            <ul className="rounded-lg border border-line divide-y divide-line/60 overflow-hidden">
+                                            <ul className="rounded-[var(--radius-button)] border border-line divide-y divide-line/60 overflow-hidden">
                                                 {items.length === 0 && (
                                                     <li className="px-3 py-2.5 text-xs text-content-muted">No line items recorded.</li>
                                                 )}
@@ -169,13 +169,13 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                                 onClick={() => toggle(key, i)}
                                                                 className={[
                                                                     'w-full flex items-center gap-3 px-3 py-2.5 text-left transition',
-                                                                    on ? 'bg-emerald-500/10' : 'bg-surface-2/40 hover:bg-surface-3/60',
+                                                                    on ? 'bg-success-soft' : 'bg-surface-2/40 hover:bg-surface-3/60',
                                                                 ].join(' ')}
                                                             >
                                                                 <span className={[
                                                                     'shrink-0 inline-flex items-center justify-center w-5 h-5 rounded border transition',
                                                                     on
-                                                                        ? 'bg-emerald-600 border-emerald-600 text-white'
+                                                                        ? 'bg-success border-success text-white'
                                                                         : 'border-line bg-surface',
                                                                 ].join(' ')}>
                                                                     {on && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
@@ -203,7 +203,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                 <button
                                                     disabled={busy}
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/claim`)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
                                                 >
                                                     <Hand className="w-4 h-4" /> Claim
                                                 </button>
@@ -212,7 +212,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                 <button
                                                     disabled={busy}
                                                     onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/release`)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
                                                 >
                                                     Release
                                                 </button>
@@ -220,15 +220,18 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
 
                                             <div className="ml-auto flex items-center gap-2">
                                                 {waitingStock && (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                                                        Waiting for transfer
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-warning-soft text-warning">
+                                                        {/* Never hardcode "Waiting for transfer" here — that label is only
+                                                            correct once a real transfer exists and is actually in transit.
+                                                            See App\Support\WaitingStockState. */}
+                                                        {o.allocation?.waiting_state_label ?? 'Waiting for stock'}
                                                     </span>
                                                 )}
                                                 {readyToPick && (
                                                     <button
                                                         disabled={busy}
                                                         onClick={() => move(o, 'picking')}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 transition"
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 transition"
                                                     >
                                                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
                                                         Start picking
@@ -239,7 +242,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                         disabled={busy || ! allDone}
                                                         onClick={() => move(o, 'packing')}
                                                         title={allDone ? undefined : 'Tick every line before moving to packing'}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                     >
                                                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
                                                         Move to packing
@@ -250,7 +253,7 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                         disabled={busy || ! allDone}
                                                         onClick={() => move(o, 'ready_for_delivery')}
                                                         title={allDone ? undefined : 'Tick every line before marking it packed'}
-                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-success text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                                     >
                                                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
                                                         Packed & ready

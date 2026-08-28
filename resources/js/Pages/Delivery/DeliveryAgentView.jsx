@@ -119,7 +119,7 @@ function TabButton({ active, onClick, label, count }) {
             onClick={onClick}
             className={[
                 'inline-flex items-center justify-center gap-1.5 py-2 text-sm font-semibold rounded-lg transition',
-                active ? 'bg-indigo-600 text-white shadow-sm' : 'text-content-muted hover:text-content',
+                active ? 'bg-primary text-primary-contrast shadow-sm' : 'text-content-muted hover:text-content',
             ].join(' ')}
         >
             {label}
@@ -133,21 +133,21 @@ function TabButton({ active, onClick, label, count }) {
 
 function Reconciliation({ data, currency }) {
     return (
-        <section className="bg-gradient-to-br from-indigo-600 to-indigo-500 text-white rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-2 text-indigo-100 text-xs font-medium">
+        <section className="bg-gradient-to-br from-primary to-primary-strong text-primary-contrast rounded-[var(--radius-card)] p-5 shadow-sm">
+            <div className="flex items-center gap-2 text-primary-contrast/80 text-xs font-medium">
                 <Wallet className="w-4 h-4" /> Cash reconciliation · today
             </div>
             <div className="mt-3 grid grid-cols-2 gap-4">
                 <div>
                     <div className="text-2xl font-bold tabular-nums">{money(data.collected_today, currency)}</div>
-                    <div className="text-[11px] text-indigo-100">Collected to hand in</div>
+                    <div className="text-[11px] text-primary-contrast/80">Collected to hand in</div>
                 </div>
                 <div>
                     <div className="text-2xl font-bold tabular-nums">{money(data.outstanding, currency)}</div>
-                    <div className="text-[11px] text-indigo-100">Still to collect</div>
+                    <div className="text-[11px] text-primary-contrast/80">Still to collect</div>
                 </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-white/20 flex items-center gap-4 text-xs text-indigo-100">
+            <div className="mt-3 pt-3 border-t border-white/20 flex items-center gap-4 text-xs text-primary-contrast/80">
                 <span className="inline-flex items-center gap-1.5"><Package className="w-3.5 h-3.5" /> {data.in_queue} in queue</span>
                 <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> {data.delivered_today} delivered</span>
             </div>
@@ -176,7 +176,7 @@ function DeliveryCard({ parcel, currency, busy, onDeliver, onFail }) {
         : null;
 
     return (
-        <li className="bg-surface border border-line rounded-2xl overflow-hidden">
+        <li className="bg-surface border border-line rounded-[var(--radius-card)] overflow-hidden">
             <div className="p-4">
                 <div className="flex items-center justify-between gap-2">
                     <SourceBadge source={parcel.source} />
@@ -205,11 +205,11 @@ function DeliveryCard({ parcel, currency, busy, onDeliver, onFail }) {
                         <div className="text-lg font-bold tabular-nums text-content">{money(parcel.total, currency)}</div>
                     </div>
                     {cod > 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 text-sm font-semibold">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-button)] bg-warning-soft text-warning text-sm font-semibold">
                             <Banknote className="w-4 h-4" /> Collect {money(cod, currency)}
                         </span>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-sm font-semibold">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--radius-button)] bg-success-soft text-success text-sm font-semibold">
                             <CheckCircle2 className="w-4 h-4" /> Prepaid
                         </span>
                     )}
@@ -247,14 +247,14 @@ function DeliveryCard({ parcel, currency, busy, onDeliver, onFail }) {
                 <button
                     disabled={busy}
                     onClick={onFail}
-                    className="flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition"
+                    className="flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-danger hover:bg-danger-soft disabled:opacity-40 transition"
                 >
                     <XCircle className="w-4 h-4" /> Failed
                 </button>
                 <button
                     disabled={busy}
                     onClick={onDeliver}
-                    className="flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 transition"
+                    className="flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-white bg-success hover:brightness-90 disabled:opacity-40 transition"
                 >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                     Delivered
@@ -272,8 +272,8 @@ function HistoryCard({ parcel, currency }) {
             <div className="flex items-center justify-between gap-2">
                 <span className={[
                     'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold',
-                    delivered ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                              : 'bg-red-500/15 text-red-700 dark:text-red-300',
+                    delivered ? 'bg-success-soft text-success'
+                              : 'bg-danger-soft text-danger',
                 ].join(' ')}>
                     {delivered ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                     {delivered ? 'Delivered' : 'Failed'}
@@ -289,14 +289,14 @@ function HistoryCard({ parcel, currency }) {
                 <div className="text-right shrink-0">
                     {delivered ? (
                         Number(parcel.cod_collected) > 0 ? (
-                            <span className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                            <span className="text-sm font-semibold tabular-nums text-success">
                                 +{money(parcel.cod_collected, currency)}
                             </span>
                         ) : (
                             <span className="text-xs text-content-muted">Prepaid</span>
                         )
                     ) : (
-                        <span className="text-xs text-red-600 dark:text-red-400">
+                        <span className="text-xs text-danger">
                             {REASON_LABEL[parcel.failure_reason] ?? parcel.failure_reason ?? 'Failed'}
                         </span>
                     )}
@@ -308,7 +308,7 @@ function HistoryCard({ parcel, currency }) {
 
 function EmptyState({ icon: Icon, title, hint }) {
     return (
-        <div className="mt-3 bg-surface border border-line rounded-2xl py-16 text-center">
+        <div className="mt-3 bg-surface border border-line rounded-[var(--radius-card)] py-16 text-center">
             <Icon className="w-11 h-11 mx-auto text-content-muted" strokeWidth={1.5} />
             <h3 className="mt-3 text-base font-semibold text-content">{title}</h3>
             <p className="mt-1 text-sm text-content-muted">{hint}</p>
@@ -333,7 +333,7 @@ function Sheet({ open, onClose, children }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-            <div className="relative w-full sm:max-w-md bg-surface border-t sm:border border-line sm:rounded-2xl rounded-t-2xl shadow-2xl p-5 pb-8 sm:pb-5">
+            <div className="relative w-full sm:max-w-md bg-surface border-t sm:border border-line sm:rounded-[var(--radius-card)] rounded-t-2xl shadow-2xl p-5 pb-8 sm:pb-5">
                 <div className="sm:hidden mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
                 {children}
             </div>
@@ -354,7 +354,7 @@ function DeliverSheet({ parcel, currency, busy, onClose, onConfirm }) {
     return (
         <Sheet open onClose={onClose}>
             <div className="flex items-center gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-[var(--radius-button)] bg-success-soft text-success">
                     <PackageCheck className="w-5 h-5" />
                 </span>
                 <div>
@@ -377,12 +377,12 @@ function DeliverSheet({ parcel, currency, busy, onClose, onConfirm }) {
                             step="0.01"
                             value={collected}
                             onChange={(e) => setCollected(e.target.value)}
-                            className="w-full pl-9 pr-14 py-3 text-lg font-semibold tabular-nums rounded-xl bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                            className="w-full pl-9 pr-14 py-3 text-lg font-semibold tabular-nums rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-success/40"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-content-muted">{currency}</span>
                     </div>
                     {short && (
-                        <p className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                        <p className="mt-1.5 text-[11px] text-warning">
                             Short by {money(cod - Number(collected), currency)} — recorded as a partial collection.
                         </p>
                     )}
@@ -392,13 +392,13 @@ function DeliverSheet({ parcel, currency, busy, onClose, onConfirm }) {
             )}
 
             <div className="mt-5 flex gap-2">
-                <button onClick={onClose} className="flex-1 py-3 text-sm font-medium rounded-xl bg-surface-2 border border-line text-content-muted hover:text-content transition">
+                <button onClick={onClose} className="flex-1 py-3 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content transition">
                     Cancel
                 </button>
                 <button
                     disabled={busy}
                     onClick={() => onConfirm(cod > 0 ? Number(collected || 0) : null)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 transition"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold rounded-[var(--radius-button)] bg-success text-white hover:brightness-90 disabled:opacity-50 transition"
                 >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                     Confirm delivery
@@ -421,7 +421,7 @@ function FailSheet({ parcel, busy, onClose, onConfirm }) {
     return (
         <Sheet open onClose={onClose}>
             <div className="flex items-center gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-red-500/15 text-red-600 dark:text-red-400">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-[var(--radius-button)] bg-danger-soft text-danger">
                     <XCircle className="w-5 h-5" />
                 </span>
                 <div>
@@ -440,15 +440,15 @@ function FailSheet({ parcel, busy, onClose, onConfirm }) {
                         key={r.value}
                         onClick={() => setReason(r.value)}
                         className={[
-                            'w-full flex items-center gap-2.5 px-3 py-3 rounded-xl border text-left text-sm font-medium transition',
+                            'w-full flex items-center gap-2.5 px-3 py-3 rounded-[var(--radius-button)] border text-left text-sm font-medium transition',
                             reason === r.value
-                                ? 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300'
+                                ? 'border-danger bg-danger-soft text-danger'
                                 : 'border-line bg-surface-2 text-content-muted hover:text-content',
                         ].join(' ')}
                     >
                         <span className={[
                             'w-4 h-4 rounded-full border-2 shrink-0',
-                            reason === r.value ? 'border-red-500 bg-red-500' : 'border-line',
+                            reason === r.value ? 'border-danger bg-danger' : 'border-line',
                         ].join(' ')} />
                         {r.label}
                     </button>
@@ -461,19 +461,19 @@ function FailSheet({ parcel, busy, onClose, onConfirm }) {
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder="What happened?"
-                        className="w-full px-3 py-2 text-sm rounded-xl bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-red-500/40"
+                        className="w-full px-3 py-2 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-danger/40"
                     />
                 )}
             </div>
 
             <div className="mt-5 flex gap-2">
-                <button onClick={onClose} className="flex-1 py-3 text-sm font-medium rounded-xl bg-surface-2 border border-line text-content-muted hover:text-content transition">
+                <button onClick={onClose} className="flex-1 py-3 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content transition">
                     Cancel
                 </button>
                 <button
                     disabled={busy || ! value}
                     onClick={() => onConfirm(value)}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold rounded-xl bg-red-600 text-white hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-semibold rounded-[var(--radius-button)] bg-danger text-white hover:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                     Report failure

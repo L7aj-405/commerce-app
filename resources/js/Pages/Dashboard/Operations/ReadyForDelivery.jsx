@@ -24,9 +24,9 @@ export default function ReadyForDelivery({ orders = [], is_agency_context = fals
 
     return (
         <SaasLayout pageHeader={{
-            title: 'Ready for delivery',
-            subtitle: 'Packed orders staged and waiting for a carrier',
-            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Operations' }, { label: 'Ready for delivery' }],
+            title: 'Ready for Dispatch',
+            subtitle: 'Packed orders waiting for delivery assignment or handoff.',
+            breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Supervisor Queues' }, { label: 'Ready for Dispatch' }],
         }}>
             <OperationsNav current="ready-delivery" />
 
@@ -61,7 +61,7 @@ export default function ReadyForDelivery({ orders = [], is_agency_context = fals
                                     <button
                                         disabled={busy}
                                         onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/claim`)}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-50 transition"
                                     >
                                         <Hand className="w-3.5 h-3.5" /> Claim
                                     </button>
@@ -70,14 +70,14 @@ export default function ReadyForDelivery({ orders = [], is_agency_context = fals
                                     <button
                                         disabled={busy}
                                         onClick={() => post(o, `/dashboard/departments/${o.type}/${o.id}/release`)}
-                                        className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
+                                        className="px-2.5 py-1.5 text-xs font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content-muted hover:text-content disabled:opacity-50 transition"
                                     >
                                         Release
                                     </button>
                                 )}
                                 <Link
                                     href="/dashboard/departments/dispatch"
-                                    className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                 >
                                     Assign carrier <ArrowRight className="w-3 h-3" />
                                 </Link>

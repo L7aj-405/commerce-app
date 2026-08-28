@@ -18,7 +18,7 @@ export default function RolesIndex({ store, roles = [] }) {
                 actions: (
                     <Link
                         href="/dashboard/roles/create"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong transition"
                     >
                         <Plus className="w-4 h-4" /> New role
                     </Link>
@@ -26,10 +26,10 @@ export default function RolesIndex({ store, roles = [] }) {
             }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {roles.map((role) => (
-                        <div key={role.id} className="flex flex-col rounded-xl border border-line bg-surface-2 p-4">
+                        <div key={role.id} className="flex flex-col rounded-[var(--radius-card)] border border-line bg-surface-2 p-4">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 flex items-center justify-center flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-[var(--radius-button)] bg-primary-soft text-primary flex items-center justify-center flex-shrink-0">
                                         <ShieldCheck className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
@@ -56,7 +56,7 @@ export default function RolesIndex({ store, roles = [] }) {
                                         <button
                                             type="button"
                                             onClick={() => deleteRole(role)}
-                                            className="p-1.5 rounded-md text-content-muted hover:bg-red-500/10 hover:text-red-600 dark:text-red-400"
+                                            className="p-1.5 rounded-md text-content-muted hover:bg-danger-soft hover:text-danger"
                                             aria-label="Delete role"
                                         >
                                             <Trash2 className="w-4 h-4" />

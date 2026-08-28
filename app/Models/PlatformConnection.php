@@ -138,6 +138,41 @@ class PlatformConnection extends Model
         return $this->webhook_status === self::WEBHOOK_STATUS_VERIFIED;
     }
 
+    /**
+     * The secret Shopify's HMAC signature must be verified against, no
+     * matter which connection_method this connection actually uses for
+     * SYNC. Previously the webhook endpoint only accepted
+     * CONNECTION_METHOD_WEBHOOK connections (a separate, credential-less
+     * setup), which meant a normal admin_client_credentials/admin_token
+     * Shopify connection — the one manual "Sync" actually uses — could
+     * never receive webhooks at all, even if one was configured on
+     * Shopify's side. Shopify signs every webhook belonging to a custom
+     * app with that app's API secret key, which for
+     * admin_client_credentials is exactly the already-stored
+     * `consumer_secret` (client_secret) — so that connection can verify
+     * webhooks with zero extra setup. An explicit `webhook_secret` (set via
+     * the dedicated webhook connection method, or manually) always wins
+     * when present.
+     */
+   public function effectiveWebhookSecret(): ?string
+{
+    if (filled($this->webhook_secret)) {
+        return $this->webhook_secret;
+    }
+
+    if ($this->platform === self::PLATFORM_SHOPIFY
+        && in_array($this->connection_method, [
+            self::CONNECTION_METHOD_ADMIN_CLIENT_CREDENTIALS,
+            self::CONNECTION_METHOD_ADMIN_TOKEN,
+        ], true)
+        && filled($this->consumer_secret)
+    ) {
+        return $this->consumer_secret;
+    }
+
+    return null;
+}
+
     public function getLastSyncLog(): ?SyncLog
     {
         return $this->syncLogs()->latest('started_at')->first();

@@ -53,6 +53,7 @@ class ShopifyConnector extends BaseConnector
     {
         return Http::withHeaders(['X-Shopify-Access-Token' => $this->resolveAccessToken()])
             ->baseUrl($this->getBaseUrl())
+            ->connectTimeout(10)
             ->timeout(30)
             ->acceptJson();
     }
@@ -208,6 +209,63 @@ class ShopifyConnector extends BaseConnector
     public function mapWebhookOrder(array $raw): array
     {
         return $this->normalizeOrder($this->parseOrder($raw));
+    }
+
+    /** @return array<int, array{id: int, topic: string, address: string}> */
+    public function listWebhooks(): array
+    {
+        $response = $this->guard($this->client()->get('/webhooks.json'));
+        $response->throw();
+
+        return array_map(
+            fn (array $w) => ['id' => (int) $w['id'], 'topic' => (string) $w['topic'], 'address' => (string) $w['address']],
+            $response->json('webhooks') ?? [],
+        );
+    }
+
+    /**
+     * Register one webhook subscription via the Admin REST API. Idempotent
+     * from the caller's point of view: Shopify returns 422 "Address for
+     * this topic has already been taken" when one already exists for the
+     * same topic+address, which is treated as success here rather than an
+     * error — registering twice must never be destructive or noisy.
+     *
+     * @return array{success: bool, already_exists: bool, id: ?int, message: string}
+     */
+    public function registerWebhook(string $topic, string $address): array
+    {
+        $response = $this->client()->post('/webhooks.json', [
+            'webhook' => ['topic' => $topic, 'address' => $address, 'format' => 'json'],
+        ]);
+
+        if ($response->status() === 422) {
+            return ['success' => true, 'already_exists' => true, 'id' => null, 'message' => 'Webhook already registered.'];
+        }
+
+        if ($response->status() === 401 || $response->status() === 403) {
+            return [
+                'success' => false,
+                'already_exists' => false,
+                'id' => null,
+                'message' => 'Shopify rejected the webhook registration — the app may be missing the write_webhooks scope.',
+            ];
+        }
+
+        if (! $response->successful()) {
+            return [
+                'success' => false,
+                'already_exists' => false,
+                'id' => null,
+                'message' => $this->responseErrorMessage($response) ?: "Shopify returned HTTP {$response->status()}.",
+            ];
+        }
+
+        return [
+            'success' => true,
+            'already_exists' => false,
+            'id' => $response->json('webhook.id'),
+            'message' => 'Webhook registered.',
+        ];
     }
 
     protected function parseOrder(array $order): array
@@ -735,6 +793,352 @@ class ShopifyConnector extends BaseConnector
             Log::warning('Shopify deleteVariant failed', ['variant' => $variant->id, 'error' => $e->getMessage()]);
             throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
         }
+    }
+
+    /**
+     * Create a Shopify product from an already-built canonical payload
+     * (see ShopifyProductPayloadMapper). Pure HTTP send + response parse —
+     * no attribute/option business logic lives here.
+     *
+     * @return array{success: bool, external_id: string, variant_ids: array<int, string>, message: string, error: ?string}
+     */
+    public function sendProductPayload(array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->post('/products.json', ['product' => $payload]));
+            $response->throw();
+
+            $data = $response->json('product') ?? [];
+            $variantIds = array_values(array_map(
+                fn (array $v) => (string) ($v['id'] ?? ''),
+                $data['variants'] ?? [],
+            ));
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? ''),
+                'variant_ids' => $variantIds,
+                'variants' => $data['variants'] ?? [],
+                'message' => 'Product created on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify sendProductPayload failed', ['error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update an existing Shopify product from an already-built canonical
+     * payload. Variants inside the payload are created/updated in place by
+     * Shopify when they carry a matching remote `id`; variants without an
+     * `id` are created new.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateProductPayload(string $externalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/products/{$externalId}.json", ['product' => $payload]));
+            $response->throw();
+
+            $data = $response->json('product') ?? [];
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $externalId),
+                'variants' => $data['variants'] ?? [],
+                'message' => 'Product updated on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify updateProductPayload failed', ['external_id' => $externalId, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Update a single existing Shopify variant by id from an already-built
+     * canonical variant payload (see ShopifyProductPayloadMapper). This is
+     * the only reliable way to change a SIMPLE product's SKU — Shopify SKU
+     * lives on the variant, never the product parent, and sending an
+     * id-less variant inside a product update risks Shopify creating a
+     * second default variant instead of updating the existing one.
+     *
+     * @return array{success: bool, external_id: string, message: string, error: ?string}
+     */
+    public function updateVariantPayload(string $variantExternalId, array $payload): array
+    {
+        try {
+            $response = $this->guard($this->client()->put("/variants/{$variantExternalId}.json", ['variant' => $payload]));
+            $response->throw();
+
+            $data = $response->json('variant') ?? [];
+
+            return [
+                'success' => true,
+                'external_id' => (string) ($data['id'] ?? $variantExternalId),
+                'inventory_item_id' => isset($data['inventory_item_id']) ? (string) $data['inventory_item_id'] : null,
+                'message' => 'Variant updated on Shopify',
+                'error' => null,
+            ];
+        } catch (ConnectorException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            Log::warning('Shopify updateVariantPayload failed', ['variant_id' => $variantExternalId, 'error' => $e->getMessage()]);
+            throw ConnectorException::connectionFailed($this->getPlatform(), $e->getMessage());
+        }
+    }
+
+    /**
+     * Fallback lookup for a simple product's default (first) remote variant
+     * id when it wasn't already saved on the ProductChannelListing and the
+     * triggering response didn't carry a usable variants array. Returns
+     * null (never throws) so the publisher can report a clear failure
+     * instead of an unrelated HTTP exception.
+     */
+    public function getDefaultVariantId(string $productExternalId): ?string
+    {
+        try {
+            $response = $this->guard($this->client()->get("/products/{$productExternalId}.json"));
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $variantId = $response->json('product.variants.0.id');
+
+            return $variantId !== null ? (string) $variantId : null;
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to fetch default variant id', [
+                'product_id' => $productExternalId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Fetch a simple product's default (first) variant's inventory_item_id
+     * — used to backfill ProductChannelListing.metadata.default_inventory_item_id
+     * when a stock push finds it missing. Never throws.
+     */
+    public function getDefaultVariantInventoryItemId(string $productExternalId): ?string
+    {
+        try {
+            $response = $this->guard($this->client()->get("/products/{$productExternalId}.json"));
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $inventoryItemId = $response->json('product.variants.0.inventory_item_id');
+
+            return $inventoryItemId !== null ? (string) $inventoryItemId : null;
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to fetch default variant inventory_item_id', [
+                'product_id' => $productExternalId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Fetch one variant's inventory_item_id by its remote id — used to
+     * backfill ProductVariantChannelListing.external_inventory_item_id when
+     * a stock push finds it missing. Never throws.
+     */
+    public function getVariantInventoryItemId(string $variantExternalId): ?string
+    {
+        try {
+            $response = $this->guard($this->client()->get("/variants/{$variantExternalId}.json"));
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $inventoryItemId = $response->json('variant.inventory_item_id');
+
+            return $inventoryItemId !== null ? (string) $inventoryItemId : null;
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to fetch variant inventory_item_id', [
+                'variant_id' => $variantExternalId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Resolve the Shopify location to push inventory levels against.
+     * Prefers the connection's saved metadata.location_id; otherwise fetches
+     * /locations.json, picks the first active location (falling back to the
+     * first location returned if none are explicitly flagged active), and
+     * saves it back to the connection for every future call to skip the
+     * extra round trip. Returns null (never throws) when no location can be
+     * resolved at all — the caller reports a clear failure instead.
+     */
+    public function resolveLocationId(): ?string
+    {
+        $saved = $this->connection->metadata['location_id'] ?? null;
+
+        if (! empty($saved)) {
+            return (string) $saved;
+        }
+
+        try {
+            $response = $this->guard($this->client()->get('/locations.json'));
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $locations = $response->json('locations') ?? [];
+
+            if (empty($locations)) {
+                return null;
+            }
+
+            $chosen = collect($locations)->first(fn (array $l) => ($l['active'] ?? true) === true) ?? $locations[0];
+            $locationId = (string) ($chosen['id'] ?? '');
+
+            if ($locationId === '') {
+                return null;
+            }
+
+            $metadata = $this->connection->metadata ?? [];
+            $metadata['location_id'] = $locationId;
+            $this->connection->update(['metadata' => $metadata]);
+
+            return $locationId;
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to resolve location id', [
+                'connection_id' => $this->connection->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Set the absolute available quantity for one inventory item at one
+     * location via POST /inventory_levels/set.json — the only Shopify API
+     * that actually changes stock. Product/variant update payloads never
+     * carry quantity (inventory_quantity is create-only and ignored on
+     * update); this must always be a separate, explicit call.
+     *
+     * @return array{success: bool, message: string, error: ?string}
+     */
+    public function setInventoryLevel(string $inventoryItemId, string $locationId, int $available): array
+    {
+        $response = $this->attemptSetInventoryLevel($inventoryItemId, $locationId, $available);
+
+        if ($response->successful()) {
+            return ['success' => true, 'message' => "Shopify inventory set to {$available}", 'error' => null];
+        }
+
+        if ($this->looksLikeUntrackedInventoryError($response)) {
+            // Shopify refuses to set a level for an inventory item that
+            // isn't tracked yet, or isn't connected to this location —
+            // both are the normal first-time state for a variant/location
+            // pair that has never had a level set before. Activate, then
+            // retry once. Never silently swallow this: if activation
+            // doesn't actually fix it, the retry's own failure still
+            // surfaces below exactly like any other failure.
+            $this->activateInventoryTracking($inventoryItemId, $locationId);
+            $response = $this->attemptSetInventoryLevel($inventoryItemId, $locationId, $available);
+
+            if ($response->successful()) {
+                return ['success' => true, 'message' => "Shopify inventory set to {$available}", 'error' => null];
+            }
+        }
+
+        // Never include the token — it lives in the X-Shopify-Access-Token
+        // header, never in the request body/URL/response body.
+        Log::warning('Shopify setInventoryLevel failed', [
+            'inventory_item_id' => $inventoryItemId,
+            'location_id' => $locationId,
+            'status' => $response->status(),
+        ]);
+        throw ConnectorException::connectionFailed($this->getPlatform(), $this->responseErrorMessage($response));
+    }
+
+    private function attemptSetInventoryLevel(string $inventoryItemId, string $locationId, int $available): Response
+    {
+        return $this->guard($this->client()->post('/inventory_levels/set.json', [
+            'location_id' => $locationId,
+            'inventory_item_id' => $inventoryItemId,
+            'available' => $available,
+        ]));
+    }
+
+    /** Shopify's error shape for "this item isn't tracked / isn't stocked at this location yet". */
+    private function looksLikeUntrackedInventoryError(Response $response): bool
+    {
+        if (! in_array($response->status(), [404, 422], true)) {
+            return false;
+        }
+
+        $body = strtolower((string) $response->body());
+
+        return str_contains($body, 'not stocked')
+            || str_contains($body, 'not tracked')
+            || str_contains($body, 'inventory_management')
+            || str_contains($body, 'does not have inventory')
+            || str_contains($body, 'not found for inventory item');
+    }
+
+    /**
+     * Best-effort activation: mark the inventory item as tracked, then
+     * connect it to the location. Each step logs and moves on if it fails
+     * — the caller's retry of setInventoryLevel is what ultimately decides
+     * success or failure, this never reports a false positive on its own.
+     */
+    private function activateInventoryTracking(string $inventoryItemId, string $locationId): void
+    {
+        try {
+            $this->guard($this->client()->put("/inventory_items/{$inventoryItemId}.json", [
+                'inventory_item' => ['tracked' => true],
+            ]));
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to mark inventory item tracked', [
+                'inventory_item_id' => $inventoryItemId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $this->guard($this->client()->post('/inventory_levels/connect.json', [
+                'location_id' => $locationId,
+                'inventory_item_id' => $inventoryItemId,
+            ]));
+        } catch (\Throwable $e) {
+            Log::warning('Shopify: failed to connect inventory item to location', [
+                'inventory_item_id' => $inventoryItemId,
+                'location_id' => $locationId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function responseErrorMessage(Response $response): string
+    {
+        $errors = $response->json('errors');
+
+        if (is_string($errors)) {
+            return $errors;
+        }
+
+        return 'Shopify returned ' . $response->status();
     }
 
     /**

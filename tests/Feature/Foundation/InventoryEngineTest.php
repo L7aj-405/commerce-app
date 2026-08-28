@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
-use App\Jobs\SyncInventoryToWebhooks;
+use App\Jobs\ExternalStockPushJob;
 use App\Models\City;
 use App\Models\InventoryAllocation;
 use App\Models\InventoryItem;
@@ -217,7 +217,7 @@ it('uses reserve then consume semantics in the online order workflow', function 
     $workflow->transition($order->refresh(),FulfillmentStatus::ReadyForDelivery,$user);
     expect($engine->balance($item,$warehouse)->on_hand)->toBe(4)->and($engine->balance($item,$warehouse)->reserved)->toBe(0)->and($engine->balance($item,$warehouse)->available())->toBe(4)
         ->and(InventoryLedgerEntry::withoutOrganizationTenancy(fn()=>InventoryLedgerEntry::query()->where('inventory_item_id',$item->id)->count()))->toBeGreaterThanOrEqual(3);
-    Queue::assertPushed(SyncInventoryToWebhooks::class);
+    Queue::assertPushed(ExternalStockPushJob::class);
 });
 
 it('releases both local and transfer reservations when a waiting order is cancelled', function (): void {

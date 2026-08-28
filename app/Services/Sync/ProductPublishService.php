@@ -7,6 +7,7 @@ namespace App\Services\Sync;
 use App\Models\PlatformConnection;
 use App\Models\Product;
 use App\Models\Store;
+use App\Services\Publishing\ProductChannelPublisher;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,15 +19,25 @@ use Illuminate\Support\Collection;
  * re-verified against the product's own Store here, never trusted as-is
  * from the request.
  *
- * The actual platform API calls stay inside ProductPushService (which in
- * turn stays inside the WooCommerce/Shopify connectors) — this class only
- * decides WHICH (product, connection) pairs are eligible and routes them to
- * pushProduct() (update, existing listing) or createProduct() (create,
- * explicitly opted into via create_missing_listings).
+ * Shopify AND WooCommerce connections are routed through
+ * ProductChannelPublisher — the canonical, mapper-driven path that reads
+ * options/variants from ProductAttribute/ProductAttributeValue/
+ * ProductVariant, never from the legacy `attributes` JSON column. This is
+ * the same publisher the queued /publish-queued endpoint uses, so the
+ * synchronous and background paths — and Shopify/WooCommerce — never
+ * diverge in behavior. YouCan (no canonical mapper yet) still goes through
+ * ProductPushService (which in turn stays inside its connector) — this
+ * class only decides WHICH (product, connection) pairs are eligible and,
+ * for that platform, routes them to pushProduct() (update, existing
+ * listing) or createProduct() (create, explicitly opted into via
+ * create_missing_listings).
  */
 class ProductPublishService
 {
-    public function __construct(private readonly ProductPushService $pushService) {}
+    public function __construct(
+        private readonly ProductPushService $pushService,
+        private readonly ProductChannelPublisher $channelPublisher,
+    ) {}
 
     /**
      * @param  array<int, string>  $connectionIds
@@ -120,6 +131,12 @@ class ProductPublishService
                 continue;
             }
 
+            if (in_array($connection->platform, ['shopify', 'woocommerce'], true)) {
+                $outcome = $this->channelPublisher->publish($product, $connection, $createMissingListings);
+                $results[] = $this->mapChannelOutcome($product, $connection, $outcome);
+                continue;
+            }
+
             $isLinked = $product->listingForConnection($connection) !== null
                 || $product->externalIdForConnection($connection) !== null;
 
@@ -179,6 +196,18 @@ class ProductPublishService
             'status' => ($result['success'] ?? false) ? 'succeeded' : 'failed',
             'message' => $result['message'] ?? ($result['error'] ?? ''),
             'listing_id' => $result['listing_id'] ?? null,
+        ];
+    }
+
+    /** @param array{status: string, message: string, external_product_id: ?string, error_code: ?string, variant_failures: list<array{variant_id: string, message: string}>} $outcome */
+    private function mapChannelOutcome(Product $product, PlatformConnection $connection, array $outcome): array
+    {
+        return [
+            'connection_id' => $connection->id,
+            'platform' => $connection->platform,
+            'status' => $outcome['status'],
+            'message' => $outcome['message'],
+            'listing_id' => $product->listingForConnection($connection)?->id,
         ];
     }
 }

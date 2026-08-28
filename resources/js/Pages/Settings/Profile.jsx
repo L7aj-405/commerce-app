@@ -31,7 +31,7 @@ export default function Profile({ user, mustVerifyEmail, hasVerifiedEmail, statu
 
             <Card title="Profile" subtitle="Update your name and email address" className="max-w-2xl">
                 {status === 'verification-link-sent' && (
-                    <p className="mb-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                    <p className="mb-4 text-sm font-medium text-success">
                         A new verification link has been sent to your email address.
                     </p>
                 )}
@@ -43,7 +43,7 @@ export default function Profile({ user, mustVerifyEmail, hasVerifiedEmail, statu
                         <Field label="Email" type="email" value={data.email} onChange={(v) => setData('email', v)} error={errors.email} required />
 
                         {mustVerifyEmail && ! hasVerifiedEmail && (
-                            <div className="mt-2 flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
+                            <div className="mt-2 flex items-start gap-2 text-xs text-warning">
                                 <Mail className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                                 <span>
                                     Your email address is unverified.{' '}
@@ -77,12 +77,12 @@ function DeleteAccountCard() {
     };
 
     return (
-        <Card title="Delete account" subtitle="Delete your account and all of its resources" className="max-w-2xl mt-6 border-red-500/30">
+        <Card title="Delete account" subtitle="Delete your account and all of its resources" className="max-w-2xl mt-6 border-danger/30">
             {! confirming ? (
                 <Button variant="danger" onClick={() => setConfirming(true)}>Delete account</Button>
             ) : (
                 <form onSubmit={submit} className="space-y-4">
-                    <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+                    <div className="flex items-start gap-2 text-xs text-danger">
                         <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                         <span>Once your account is deleted, all of its resources and data will be permanently deleted. Enter your password to confirm.</span>
                     </div>
@@ -101,15 +101,15 @@ function Field({ label, type = 'text', value, onChange, error, required }) {
     return (
         <div>
             <label className="block text-xs font-medium text-content-muted mb-1">
-                {label} {required && <span className="text-red-500">*</span>}
+                {label} {required && <span className="text-danger">*</span>}
             </label>
             <input
                 type={type}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-red-500/60' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40`}
+                className={`w-full px-3 py-2 rounded-[var(--radius-button)] bg-surface-3 border ${error ? 'border-danger/60' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary/40`}
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );
 }

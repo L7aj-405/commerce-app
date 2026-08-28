@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import { CheckCircle2, XCircle, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const TONES = {
-    success: { ring: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200', icon: CheckCircle2,  iconClass: 'text-emerald-600 dark:text-emerald-400' },
-    error:   { ring: 'border-red-500/30 bg-red-500/10 text-red-200',             icon: XCircle,       iconClass: 'text-red-600 dark:text-red-400'     },
-    warning: { ring: 'border-amber-500/30 bg-amber-500/10 text-amber-200',       icon: AlertTriangle, iconClass: 'text-amber-600 dark:text-amber-400'   },
+    success: { ring: 'border-success/30 bg-success-soft text-content', icon: CheckCircle2,  iconClass: 'text-success' },
+    error:   { ring: 'border-danger/30 bg-danger-soft text-content',   icon: XCircle,       iconClass: 'text-danger'  },
+    warning: { ring: 'border-warning/30 bg-warning-soft text-content', icon: AlertTriangle, iconClass: 'text-warning' },
+    info:    { ring: 'border-primary/30 bg-primary-soft text-content', icon: Info,          iconClass: 'text-primary' },
 };
 
 const DURATION_MS = 4000;
 
-export default function ToastNotification() {
+/** `polled` is the live order-notification list from useOrderNotifications() — new ones toast once each, deduped by id (never by message, since two different orders can share the same title). */
+export default function ToastNotification({ polled = [] }) {
     const { flash } = usePage().props;
     const [toasts, setToasts] = useState([]);
     const seenRef             = useRef(new Set());
+    const firstPollRef        = useRef(true);
+
+    const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
     useEffect(() => {
         const ingest = (kind, message) => {
@@ -29,9 +34,27 @@ export default function ToastNotification() {
         ingest('success', flash?.success);
         ingest('error',   flash?.error);
         ingest('warning', flash?.warning);
+        ingest('info',    flash?.info);
     }, [flash]);
 
-    const dismiss = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
+    useEffect(() => {
+        // The FIRST poll on page load can already carry a backlog of
+        // existing unseen notifications — toast only ones that arrive after
+        // that, so opening any page doesn't dump a wall of old toasts.
+        const isFirstPoll = firstPollRef.current;
+        firstPollRef.current = false;
+
+        polled.forEach((n) => {
+            const key = `order-notif:${n.id}`;
+            if (seenRef.current.has(key)) return;
+            seenRef.current.add(key);
+            if (isFirstPoll || n.seen) return;
+
+            const id = Math.random().toString(36).slice(2, 9);
+            setToasts((prev) => [...prev, { id, kind: 'success', message: [n.title, n.message].filter(Boolean).join(' — ') }]);
+            setTimeout(() => dismiss(id), DURATION_MS);
+        });
+    }, [polled]);
 
     if (toasts.length === 0) return null;
 
@@ -44,7 +67,7 @@ export default function ToastNotification() {
                     <div
                         key={t.id}
                         role="status"
-                        className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border backdrop-blur-sm shadow-xl ${tone.ring}`}
+                        className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-[var(--radius-card)] border backdrop-blur-sm shadow-xl bg-card ${tone.ring}`}
                     >
                         <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${tone.iconClass}`} />
                         <div className="flex-1 text-sm">{t.message}</div>

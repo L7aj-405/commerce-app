@@ -86,7 +86,7 @@ class CheckoutController extends Controller
         $order->update(['receipt_path' => $receiptPath]);
 
         // ✅ Use $orderService (parameter)
-        $orderService->adjustInventory($order);
+        $orderService->adjustInventory($order, $cashier);
         $orderService->queueInventorySyncToWebhooks($store, $order);
 
         return response()->json([

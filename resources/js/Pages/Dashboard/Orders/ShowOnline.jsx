@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail } from 'lucide-react';
+import axios from 'axios';
+import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail, Warehouse, AlertTriangle, Truck, RefreshCw } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
 
-export default function ShowOnline({ order, store, invoice = null, canInvoice = false }) {
+export default function ShowOnline({ order, store, invoice = null, canInvoice = false, shipment = null, ozon_city_resolution: ozonCityResolution = null }) {
     const currency = store?.currency ?? 'MAD';
     const [generating, setGenerating] = useState(false);
+
+    // Opening this order's detail page marks only ITS new-order notification
+    // seen for this user — never all of them, per the ticket's own scoping.
+    useEffect(() => {
+        if (! order?.id) return;
+        axios.post('/dashboard/notifications/mark-seen', { context: 'order_detail', order_id: order.id }).catch(() => {});
+    }, [order?.id]);
 
     const generateInvoice = () => {
         if (! confirm('Generate a finalized invoice for this online order? It will be locked once issued.')) return;
@@ -147,17 +155,98 @@ export default function ShowOnline({ order, store, invoice = null, canInvoice = 
                         </dl>
                     </Card>
 
+                    {shipment && <DeliveryCard shipment={shipment} />}
+                    {!shipment && ozonCityResolution && <OzonCityCard resolution={ozonCityResolution} />}
+
                     <Card>
                         <CardHeader title="Origin" />
                         <dl className="px-5 py-4 space-y-2 text-sm">
-                            <Row label="Channel"    value={order.source_label ?? 'Online store'} icon={Globe} />
+                            <Row label="Platform"   value={order.platform_label ?? order.source_label ?? 'Online store'} icon={Globe} />
+                            {order.store_domain && <Row label="Store" value={order.store_domain} />}
                             <Row label="Order #"    value={<span className="font-mono">{order.reference}</span>} icon={Hash} />
+                            {order.external_order_number && order.external_order_number !== order.reference && (
+                                <Row label="Platform order #" value={<span className="font-mono">{order.external_order_number}</span>} />
+                            )}
                             <Row label="Created"    value={order.created_at ? new Date(order.created_at).toLocaleString() : '—'} icon={Calendar} />
                         </dl>
                     </Card>
+
+                    {(order.inventory_status || order.allocation || (order.unmapped_lines ?? []).length > 0) && (
+                        <Card>
+                            <CardHeader title="Inventory" />
+                            <dl className="px-5 py-4 space-y-2 text-sm">
+                                {order.inventory_status && <Row label="Status" value={order.inventory_status.label} icon={Warehouse} />}
+                                {order.allocation?.warehouse_name && <Row label="Warehouse" value={order.allocation.warehouse_name} icon={Warehouse} />}
+                                {(order.unmapped_lines ?? []).length > 0 && (
+                                    <p className="flex items-start gap-1.5 text-amber-600 dark:text-amber-400 text-xs pt-1">
+                                        <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                        Some lines are not linked to local inventory: {order.unmapped_lines.join(', ')}.
+                                    </p>
+                                )}
+                            </dl>
+                        </Card>
+                    )}
                 </div>
             </div>
         </SaasLayout>
+    );
+}
+
+/** Pre-send visibility into how "Send to Ozon" would resolve this order's city — helps debug "not mapped" errors. */
+function OzonCityCard({ resolution }) {
+    return (
+        <Card>
+            <CardHeader
+                title="Ozon city mapping"
+                right={<StatusBadge type="city_match" status={resolution.resolved ? 'exact' : 'no_match'} label={resolution.resolved ? 'Resolved' : 'Unresolved'} />}
+            />
+            <dl className="px-5 py-4 space-y-2 text-sm">
+                <Row label="Order city" value={resolution.raw_city || <span className="text-content-muted">—</span>} icon={MapPin} />
+                <Row label="Internal city" value={resolution.internal_city_name || <span className="text-content-muted">Not matched</span>} />
+                <Row label="Ozon city" value={resolution.provider_city_name || <span className="text-content-muted">Not mapped</span>} />
+            </dl>
+            {!resolution.resolved && resolution.suggested_internal_city_name && (
+                <p className="px-5 pb-4 text-xs text-amber-600 dark:text-amber-400">
+                    Suggested match: <strong>{resolution.suggested_internal_city_name}</strong> — map it on the Delivery providers page.
+                </p>
+            )}
+        </Card>
+    );
+}
+
+function DeliveryCard({ shipment }) {
+    const [refreshing, setRefreshing] = useState(false);
+
+    const refresh = () => {
+        setRefreshing(true);
+        router.post(`/dashboard/delivery-shipments/${shipment.id}/refresh-tracking`, {}, {
+            preserveScroll: true,
+            onFinish: () => setRefreshing(false),
+        });
+    };
+
+    return (
+        <Card>
+            <CardHeader
+                title="Delivery"
+                right={<StatusBadge type="shipment" status={shipment.status} />}
+            />
+            <dl className="px-5 py-4 space-y-2 text-sm">
+                <Row label="Carrier" value={shipment.provider === 'ozon' ? 'Ozon Express' : shipment.provider} icon={Truck} />
+                {shipment.tracking_number && <Row label="Tracking #" value={<span className="font-mono">{shipment.tracking_number}</span>} />}
+                {shipment.last_update && <Row label="Last update" value={new Date(shipment.last_update).toLocaleString()} icon={Calendar} />}
+            </dl>
+            <div className="px-5 pb-4">
+                <button
+                    type="button"
+                    onClick={refresh}
+                    disabled={refreshing}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1 disabled:opacity-50"
+                >
+                    {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Refresh tracking
+                </button>
+            </div>
+        </Card>
     );
 }
 

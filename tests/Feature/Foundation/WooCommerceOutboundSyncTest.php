@@ -71,7 +71,11 @@ it('publishes product changes to WooCommerce using the existing remote product i
         'woo-outbound-test.example.com/wp-json/wc/v3/products/501' => Http::response(['id' => 501], 200),
     ]);
 
-    $this->actingAs($owner)->post("/dashboard/products/{$product->id}/push")->assertRedirect();
+   $this->actingAs($owner)
+    ->post("/dashboard/products/{$product->id}/publish", [
+        'connection_ids' => [$connection->id],
+    ])
+    ->assertOk();
 
     Http::assertSent(fn ($request) => $request->method() === 'PUT'
         && str_contains($request->url(), '/products/501')
@@ -82,12 +86,25 @@ it('publishes product changes to WooCommerce using the existing remote product i
 
 it('publishes a variant using its remote variation id', function (): void {
     [$owner, $store, $connection] = wooOutboundWorkspace();
-    [$product, $listing] = wooOutboundProduct($store, $connection, 'WOO-VAR-PARENT', '601');
-    $product->update(['type' => 'variable']);
 
-    $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::create([
-        'product_id' => $product->id, 'name' => 'Red / M', 'sku' => 'WOO-VAR-1', 'price' => 40, 'attributes' => ['Color' => 'Red'],
+    // Canonical variant — publish now routes WooCommerce through the same
+    // ProductAttribute/ProductAttributeValue/ProductVariant mapper Shopify
+    // uses, so a legacy `attributes` JSON-only variant is no longer
+    // readiness-ready (WooCommerceProductPayloadMapper reads canonical
+    // pivots exclusively, never the JSON column).
+    $product = Product::withoutTenancy(fn () => Product::create([
+        'store_id' => $store->id, 'name' => 'Outbound Variable Product', 'sku' => 'WOO-VAR-PARENT', 'type' => 'variable', 'status' => 'active', 'price' => 40,
     ]));
+    $listing = ProductChannelListing::withoutTenancy(fn () => ProductChannelListing::create([
+        'product_id' => $product->id, 'platform_connection_id' => $connection->id, 'external_product_id' => '601', 'sync_status' => 'synced',
+    ]));
+
+    app(\App\Services\Catalog\ProductVariantWizardService::class)->sync($product, [
+        ['name' => 'Color', 'values' => ['Red']],
+    ], [
+        ['sku' => 'WOO-VAR-1', 'price' => 40, 'options' => ['Color' => 'Red']],
+    ]);
+    $variant = ProductVariant::withoutTenancy(fn () => ProductVariant::query()->where('product_id', $product->id)->firstOrFail());
 
     ProductVariantChannelListing::withoutTenancy(fn () => ProductVariantChannelListing::create([
         'product_id' => $product->id,
@@ -103,17 +120,25 @@ it('publishes a variant using its remote variation id', function (): void {
         'woo-outbound-test.example.com/wp-json/wc/v3/products/601/variations/7001' => Http::response(['id' => 7001], 200),
     ]);
 
-    $this->actingAs($owner)->post("/dashboard/products/{$product->id}/push")->assertRedirect();
+    $this->actingAs($owner)
+    ->post("/dashboard/products/{$product->id}/publish", [
+        'connection_ids' => [$connection->id],
+    ])
+    ->assertOk();
 
     Http::assertSent(fn ($request) => $request->method() === 'PUT' && str_contains($request->url(), '/products/601/variations/7001'));
 });
 
 it('does not let a product from Store A be pushed through Store Bs connection', function (): void {
     [, $storeA, $connectionA] = wooOutboundWorkspace('Store A Woo');
-    [$ownerB] = wooOutboundWorkspace('Store B Woo');
-    [$productA] = wooOutboundProduct($storeA, $connectionA);
+[$ownerB, , $connectionB] = wooOutboundWorkspace('Store B Woo');
+[$productA] = wooOutboundProduct($storeA, $connectionA);
 
-    $this->actingAs($ownerB)->post("/dashboard/products/{$productA->id}/push")->assertNotFound();
+$this->actingAs($ownerB)
+    ->post("/dashboard/products/{$productA->id}/publish", [
+        'connection_ids' => [$connectionB->id],
+    ])
+    ->assertNotFound();
 });
 
 it('cannot update quantity by blindly writing product.quantity through the edit form', function (): void {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
-use App\Jobs\SyncInventoryToWebhooks;
+use App\Jobs\ExternalStockPushJob;
 use App\Models\InventoryAdjustment;
 use App\Models\Order;
 use App\Models\OrderReturn;
@@ -126,7 +126,7 @@ describe('stock commitment', function () {
 
         $this->workflow->transition($order, FulfillmentStatus::Confirmed, $this->actor);
 
-        Queue::assertPushed(SyncInventoryToWebhooks::class, 1);
+        Queue::assertPushed(ExternalStockPushJob::class, 1);
         expect(InventoryAdjustment::where('sync_status', 'pending')->count())->toBe(1);
     });
 });
@@ -365,7 +365,7 @@ describe('online line item id resolution', function () {
             )->toBe(-2);
     });
 
-    it('moves no stock for an online line that matches no local product', function () {
+    it('blocks confirmation for an online line that carries a product/sku identifier matching nothing locally, explicitly rather than silently', function () {
         $order = Order::factory()->create([
             'store_id'           => $this->store->id,
             'order_number'       => 'ORD-' . fake()->unique()->numerify('####'),
@@ -381,10 +381,13 @@ describe('online line item id resolution', function () {
             ]],
         ]);
 
-        // Must not throw — the unmatched line resolves to null and moves nothing.
-        $this->workflow->transition($order, FulfillmentStatus::Confirmed, $this->actor);
+        // A real product/sku identifier that resolves to nothing must block
+        // confirmation (Phase O4) — never silently allocate zero stock and
+        // let the order proceed as if everything matched.
+        expect(fn () => $this->workflow->transition($order, FulfillmentStatus::Confirmed, $this->actor))
+            ->toThrow(ValidationException::class, 'Some lines are not linked to local inventory.');
 
         expect(StockLedger::count())->toBe(0)
-            ->and($order->fresh()->fulfillment_status)->toBe(FulfillmentStatus::Confirmed);
+            ->and($order->fresh()->fulfillment_status)->toBe(FulfillmentStatus::Pending);
     });
 });

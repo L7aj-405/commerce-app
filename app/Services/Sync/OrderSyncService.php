@@ -13,14 +13,22 @@ use App\Models\Order;
 use App\Models\PlatformConnection;
 use App\Models\Store;
 use App\Models\SyncLog;
+use App\Services\Inventory\WarehouseAllocationService;
+use App\Support\OrderSourceSummary;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class OrderSyncService
 {
+    public function __construct(private readonly WarehouseAllocationService $allocations) {}
+
     /**
-     * Page through all orders on the platform and persist them to the store.
+     * Page through orders on the platform and persist them to the store.
+     * $since === null means "no lower bound" — the caller decides whether
+     * that's appropriate (a genuine full resync) or whether it should have
+     * resolved a default range first; this method itself applies no default.
      */
     public function syncFromPlatform(Store $store, PlatformConnection $connection, ?CarbonInterface $since = null): SyncLog
     {
@@ -36,6 +44,8 @@ class OrderSyncService
         $processed = 0;
         $created   = 0;
         $updated   = 0;
+        $skipped   = 0;
+        $failed    = 0;
 
         try {
             $connector = ConnectorFactory::make($connection);
@@ -45,17 +55,34 @@ class OrderSyncService
                 $orders = $connector->getOrders(page: $page, perPage: 50, since: $since);
 
                 foreach ($orders as $platformOrder) {
-                    $order = $this->saveOrder($platformOrder, $connection);
+                    // One bad order (a mapping quirk, a per-line inventory
+                    // hiccup) must never abort the whole page/sync — the
+                    // rest of the batch still needs to land, and the caller
+                    // needs an accurate failed_count rather than a single
+                    // opaque "sync failed" for what was mostly a success.
+                    try {
+                        $order = $this->saveOrder($platformOrder, $connection);
 
-                    // Skipped (e.g. no external id) — don't count it.
-                    if ($order === null) {
-                        continue;
+                        if ($order === null) {
+                            $skipped++;
+
+                            continue;
+                        }
+
+                        $this->createOrderItems($order, $platformOrder['items'] ?? []);
+
+                        $order->wasRecentlyCreated ? $created++ : $updated++;
+                        $processed++;
+                    } catch (Throwable $e) {
+                        $failed++;
+
+                        Log::warning('Order sync: one order failed to import, continuing', [
+                            'store'       => $store->id,
+                            'platform'    => $connection->platform,
+                            'platform_id' => $platformOrder['platform_id'] ?? null,
+                            'error'       => $e->getMessage(),
+                        ]);
                     }
-
-                    $this->createOrderItems($order, $platformOrder['items'] ?? []);
-
-                    $order->wasRecentlyCreated ? $created++ : $updated++;
-                    $processed++;
                 }
 
                 $page++;
@@ -68,6 +95,8 @@ class OrderSyncService
                 'summary'           => [
                     'created'         => $created,
                     'updated'         => $updated,
+                    'skipped'         => $skipped,
+                    'failed'          => $failed,
                     'total_processed' => $processed,
                 ],
             ]);
@@ -84,6 +113,8 @@ class OrderSyncService
                 'platform' => $connection->platform,
                 'created'  => $created,
                 'updated'  => $updated,
+                'skipped'  => $skipped,
+                'failed'   => $failed,
             ]);
         } catch (Throwable $e) {
             $log->update([
@@ -91,7 +122,7 @@ class OrderSyncService
                 'completed_at'      => now(),
                 'records_processed' => $processed,
                 'error_message'     => $e->getMessage(),
-                'summary'           => ['created' => $created, 'updated' => $updated],
+                'summary'           => ['created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'failed' => $failed],
             ]);
 
             $connection->update([
@@ -155,7 +186,13 @@ class OrderSyncService
                     'customer_email' => $platformOrder['customer_email'],
                     'customer_phone' => $platformOrder['customer_phone'],
                     'items'          => $platformOrder['items'],
-                    'platform_data'  => $platformOrder,
+                    // The RAW platform payload — BaseConnector::normalizeOrder()
+                    // already puts it under this same key, so storing
+                    // $platformOrder itself here would double-wrap it
+                    // (Order.platform_data.platform_data.shipping_address...)
+                    // and silently break every raw-payload reader, including
+                    // OrderAddressSummary.
+                    'platform_data'  => $platformOrder['platform_data'] ?? $platformOrder,
                     'synced_at'      => now(),
                 ]);
             }
@@ -166,8 +203,9 @@ class OrderSyncService
         // New order — always lands awaiting confirmation. It must NOT jump to
         // fulfillment/completed on the way in; only the confirmation step (dashboard
         // or a customer WhatsApp reply) may advance it.
-        $order = Order::create([
+        $order = Order::create(array_merge([
             'store_id'               => $connection->store_id,
+            'organization_id'        => $connection->store?->organization_id,
             'platform_connection_id' => $connection->id,
             'platform_order_id'      => $externalId,
             'order_number'           => $platformOrder['number'],
@@ -179,9 +217,14 @@ class OrderSyncService
             'customer_email'         => $platformOrder['customer_email'],
             'customer_phone'         => $platformOrder['customer_phone'],
             'items'                  => $platformOrder['items'],
-            'platform_data'          => $platformOrder,
+            'platform_data'          => $platformOrder['platform_data'] ?? $platformOrder,
             'synced_at'              => now(),
-        ]);
+            'imported_at'            => now(),
+        ], OrderSourceSummary::forConnection($connection)));
+
+        if (config('inventory.reserve_online_pending_orders') === true) {
+            $this->softReservePending($order);
+        }
 
         OrderCreated::dispatch($order);
 
@@ -190,6 +233,39 @@ class OrderSyncService
         }
 
         return $order;
+    }
+
+    /**
+     * Optional (config('inventory.reserve_online_pending_orders'), default
+     * false) soft reservation for a brand-new pending order — reduces
+     * available stock the moment it's imported, before anyone confirms it.
+     *
+     * This is deliberately just WarehouseAllocationService::allocate() — the
+     * same call the Pending -> Confirmed transition makes. Allocating is
+     * already idempotent per order (it returns the existing allocation if
+     * one exists), so confirming later never reserves a second time; it just
+     * finds this one already in place. Organization-less stores and any
+     * allocation failure (e.g. an unmapped line, no warehouse configured yet)
+     * are logged and skipped rather than blocking the import — the order
+     * still exists, and confirmation will surface the same problem for real.
+     */
+    private function softReservePending(Order $order): void
+    {
+        $order->loadMissing('store.organization');
+
+        if ($order->store?->organization === null) {
+            return;
+        }
+
+        try {
+            $this->allocations->allocate($order, $order->shippingCity);
+        } catch (ValidationException $e) {
+            Log::warning('OrderSyncService: soft reservation for pending order failed', [
+                'order_id' => $order->id,
+                'store_id' => $order->store_id,
+                'error'    => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
+use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\OrderShipment;
 use App\Models\PosOrder;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\Activity\AgentActivityRecorder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -26,6 +28,7 @@ class DispatchService
 {
     public function __construct(
         private readonly OrderWorkflowService $workflow,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     /**
@@ -71,7 +74,7 @@ class DispatchService
                 return $shipment->refresh();
             }
 
-            return OrderShipment::create($attributes + [
+            $created = OrderShipment::create($attributes + [
                 'store_id'         => $store->id,
                 'shippable_type'   => $order::class,
                 'shippable_id'     => $order->getKey(),
@@ -79,6 +82,19 @@ class DispatchService
                 'delivery_address' => $order->delivery_address ?? null,
                 'cod_amount'       => $this->expectedCod($order),
             ]);
+
+            // Only the FIRST assignment counts as "assigned" activity — a
+            // carrier change re-uses the update() branch above and never
+            // reaches here.
+            if ($store !== null) {
+                $this->activity->record($actor, $store, AgentActivityEvent::DELIVERY_ASSIGNED, 'delivery', [
+                    'subject' => $order,
+                    'order_id' => $order->getKey(),
+                    'metadata' => ['carrier_type' => $data['carrier_type']],
+                ]);
+            }
+
+            return $created;
         });
     }
 
@@ -105,6 +121,17 @@ class DispatchService
 
                 if ($current->canTransitionTo(FulfillmentStatus::Delivered)) {
                     $this->workflow->transition($order, FulfillmentStatus::Delivered, $actor);
+
+                    if ($order->store !== null) {
+                        $this->activity->record($actor, $order->store, AgentActivityEvent::DELIVERY_DELIVERED, 'delivery', [
+                            'subject' => $order,
+                            'order_id' => $order->getKey(),
+                            'metadata' => [
+                                'cod_amount' => (float) $shipment->cod_amount,
+                                'cod_collected' => $shipment->cod_collected !== null ? (float) $shipment->cod_collected : null,
+                            ],
+                        ]);
+                    }
                 }
             }
 
@@ -137,6 +164,18 @@ class DispatchService
 
                 if ($current->canTransitionTo(FulfillmentStatus::Returned)) {
                     $this->workflow->transition($order, FulfillmentStatus::Returned, $actor, $reason);
+
+                    if ($order->store !== null) {
+                        $eventType = $reason === 'customer_unreachable'
+                            ? AgentActivityEvent::DELIVERY_UNREACHABLE
+                            : AgentActivityEvent::DELIVERY_FAILED;
+
+                        $this->activity->record($actor, $order->store, $eventType, 'delivery', [
+                            'subject' => $order,
+                            'order_id' => $order->getKey(),
+                            'metadata' => ['reason' => $reason],
+                        ]);
+                    }
                 }
             }
 

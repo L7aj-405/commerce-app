@@ -39,7 +39,7 @@ export default function Index({ warehouses = [] }) {
             subtitle: 'Stock locations across your business',
             breadcrumbs: [{ label: 'Dashboard', href: '/dashboard' }, { label: 'Warehouses' }],
             actions: (
-                <Link href="/dashboard/warehouses/create" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
+                <Link href="/dashboard/warehouses/create" className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong">
                     <Plus className="w-4 h-4" /> Add warehouse
                 </Link>
             ),
@@ -51,7 +51,7 @@ export default function Index({ warehouses = [] }) {
                         title="No warehouses yet"
                         description="Create your first warehouse to track stock by location."
                         action={
-                            <Link href="/dashboard/warehouses/create" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500">
+                            <Link href="/dashboard/warehouses/create" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong">
                                 <Plus className="w-4 h-4" /> Add warehouse
                             </Link>
                         }
@@ -62,7 +62,7 @@ export default function Index({ warehouses = [] }) {
                     {warehouses.map((w) => (
                         <div key={w.id} className="bg-surface-2 border border-line rounded-xl p-5 hover:border-line transition">
                             <div className="flex items-start justify-between gap-2 mb-3">
-                                <div className="w-10 h-10 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-lg bg-primary-soft text-primary dark:text-primary flex items-center justify-center">
                                     <Warehouse className="w-5 h-5" />
                                 </div>
                                 {w.is_default && (
@@ -91,7 +91,7 @@ export default function Index({ warehouses = [] }) {
                                 {w.can_manage !== false && (
                                     <Link
                                         href={`/dashboard/warehouses/${w.id}/edit`}
-                                        className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:text-indigo-300"
+                                        className="inline-flex items-center gap-1 text-xs text-primary dark:text-primary hover:text-primary-strong dark:text-primary"
                                     >
                                         <Edit className="w-3 h-3" /> Edit
                                     </Link>

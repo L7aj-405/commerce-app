@@ -34,6 +34,13 @@ final class PermissionCatalog
                     ['key' => 'orders.manage',  'label' => 'Manage orders',  'description' => 'Update order status and details across every department.'],
                     ['key' => 'orders.confirm', 'label' => 'Confirm orders', 'description' => 'Confirmation desk: approve or cancel newly synced orders.'],
                     ['key' => 'orders.fulfil',   'label' => 'Fulfil orders',  'description' => 'Warehouse: pick, pack and mark orders ready for delivery.'],
+                    // Nav-visibility only — does not gate any route by itself.
+                    // Distinguishes a supervisor (sees the status-monitoring
+                    // queues in the sidebar) from a plain picker/packer (sees
+                    // only the Pick & Pack Workbench they work from) without
+                    // touching the operations.* routes, which stay gated on
+                    // orders.fulfil/inventory.transfers.receive as before.
+                    ['key' => 'operations.supervise', 'label' => 'Supervise operations queues', 'description' => 'See the supervisor status queues (waiting for stock, picking, packing, ready for dispatch, transfer receiving) in the sidebar.'],
                     ['key' => 'orders.dispatch', 'label' => 'Dispatch orders', 'description' => 'Logistics: assign carriers, track shipments and confirm delivery.'],
                     ['key' => 'orders.deliver',  'label' => 'Deliver orders',  'description' => 'Delivery agent: work an assigned delivery queue, collect COD and confirm or fail delivery.'],
                     ['key' => 'orders.return',  'label' => 'Flag returns',   'description' => 'Mark a dispatched or delivered order as returned.'],
@@ -72,6 +79,16 @@ final class PermissionCatalog
                 'label' => 'Point of Sale',
                 'permissions' => [
                     ['key' => 'pos.access', 'label' => 'Access POS terminal', 'description' => 'Sign in to and use the POS terminal.'],
+                ],
+            ],
+            [
+                'group' => 'delivery',
+                'label' => 'Delivery providers',
+                'permissions' => [
+                    ['key' => 'delivery.connections.manage', 'label' => 'Manage delivery connections', 'description' => 'Connect and configure external carriers such as Ozon Express.'],
+                    ['key' => 'delivery.shipments.create',   'label' => 'Send to delivery provider',   'description' => 'Send a packed order to an external carrier.'],
+                    ['key' => 'delivery.shipments.track',    'label' => 'Track shipments',              'description' => 'Refresh tracking status for external-carrier shipments.'],
+                    ['key' => 'delivery.notes.manage',       'label' => 'Manage delivery notes',        'description' => 'Create and save carrier delivery notes (Bon de Livraison).'],
                 ],
             ],
             [
@@ -156,6 +173,7 @@ final class PermissionCatalog
                     'stock.view', 'stock.adjust',
                     'factures.view', 'invoices.issue', 'bon.manage',
                     'pos.access',
+                    'delivery.connections.manage', 'delivery.notes.manage',
                 ],
                 'locked' => false,
             ],
@@ -187,11 +205,17 @@ final class PermissionCatalog
                 'locked'      => false,
             ],
             [
+                'name'        => 'Supervisor',
+                'description' => 'Monitors warehouse status queues (waiting for stock, picking, packing, ready for dispatch, transfer receiving) without necessarily doing the hands-on picking/packing.',
+                'permissions' => ['orders.view', 'orders.fulfil', 'operations.supervise', 'stock.view', 'inventory.transfers.receive'],
+                'locked'      => false,
+            ],
+            [
                 'name'        => 'Dispatcher',
                 'description' => 'Logistics: assigns couriers or delivery agents and confirms delivery.',
                 // Also holds orders.return: a refused delivery is flagged from
                 // the dispatch board, not the warehouse.
-                'permissions' => ['orders.view', 'orders.dispatch', 'orders.return'],
+                'permissions' => ['orders.view', 'orders.dispatch', 'orders.return', 'delivery.shipments.create', 'delivery.shipments.track'],
                 'locked'      => false,
             ],
             [

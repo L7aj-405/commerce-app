@@ -16,21 +16,21 @@ const CONDITIONS = [
         label: 'Resellable',
         hint: 'Back into active stock',
         icon: CheckCircle2,
-        active: 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+        active: 'border-success bg-success-soft text-success',
     },
     {
         value: 'damaged',
         label: 'Damaged',
         hint: 'Written off to damaged stock',
         icon: XCircle,
-        active: 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-300',
+        active: 'border-danger bg-danger-soft text-danger',
     },
     {
         value: 'missing',
         label: 'Not received',
         hint: 'No stock movement',
         icon: HelpCircle,
-        active: 'border-slate-400 bg-slate-500/10 text-slate-700 dark:text-slate-300',
+        active: 'border-content-muted/40 bg-surface-soft text-content-muted',
     },
 ];
 
@@ -105,14 +105,14 @@ export default function Inspect({ return: ret, summary }) {
             actions: (
                 <Link
                     href="/dashboard/orders/returns"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-surface border border-line text-content hover:bg-surface-3 transition"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface border border-line text-content hover:bg-surface-3 transition"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to queue
                 </Link>
             ),
         }}>
             {/* Header card */}
-            <section className="bg-surface-2 border border-line rounded-xl p-5 mb-5">
+            <section className="bg-surface-2 border border-line rounded-[var(--radius-card)] p-5 mb-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export default function Inspect({ return: ret, summary }) {
                                     Order{' '}
                                     <Link
                                         href="/dashboard/orders/manage"
-                                        className="font-mono text-content hover:text-indigo-500 transition"
+                                        className="font-mono text-content hover:text-primary transition"
                                     >
                                         {ret.order_reference}
                                     </Link>
@@ -144,8 +144,8 @@ export default function Inspect({ return: ret, summary }) {
                     </div>
 
                     <div className="flex gap-3">
-                        <Tally label="Restocked" value={summary.restocked} tone="emerald" />
-                        <Tally label="Damaged"   value={summary.damaged}   tone="red" />
+                        <Tally label="Restocked" value={summary.restocked} tone="success" />
+                        <Tally label="Damaged"   value={summary.damaged}   tone="danger" />
                         <Tally label="Missing"   value={summary.missing}   tone="slate" />
                     </div>
                 </div>
@@ -159,7 +159,7 @@ export default function Inspect({ return: ret, summary }) {
                         <article
                             key={item.id}
                             className={[
-                                'bg-surface border rounded-xl p-4 transition',
+                                'bg-surface border rounded-[var(--radius-card)] p-4 transition',
                                 item.locked ? 'border-line opacity-75' : 'border-line',
                             ].join(' ')}
                         >
@@ -170,7 +170,7 @@ export default function Inspect({ return: ret, summary }) {
                                         {item.product_sku && <span className="font-mono">{item.product_sku}</span>}
                                         <span>{item.quantity_ordered} ordered</span>
                                         {! item.movable && (
-                                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                            <span className="inline-flex items-center gap-1 text-warning">
                                                 <AlertTriangle className="w-3 h-3" /> No linked product — no stock will move
                                             </span>
                                         )}
@@ -178,7 +178,7 @@ export default function Inspect({ return: ret, summary }) {
                                 </div>
 
                                 {item.locked ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-xs text-content-muted">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-button)] bg-surface-2 border border-line text-xs text-content-muted">
                                         <Lock className="w-3.5 h-3.5" /> Stock already moved
                                     </span>
                                 ) : (
@@ -190,7 +190,7 @@ export default function Inspect({ return: ret, summary }) {
                                             max={item.quantity_ordered}
                                             value={d.quantity ?? 0}
                                             onChange={(e) => set(item.id, { quantity: e.target.value })}
-                                            className="w-20 px-2 py-1.5 text-sm text-right tabular-nums rounded-lg bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                            className="w-20 px-2 py-1.5 text-sm text-right tabular-nums rounded-[var(--radius-button)] bg-surface-2 border border-line text-content focus:outline-none focus:ring-2 focus:ring-primary/40"
                                         />
                                     </div>
                                 )}
@@ -207,7 +207,7 @@ export default function Inspect({ return: ret, summary }) {
                                             disabled={item.locked}
                                             onClick={() => set(item.id, { condition: c.value })}
                                             className={[
-                                                'flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-left transition disabled:cursor-not-allowed',
+                                                'flex items-start gap-2.5 px-3 py-2.5 rounded-[var(--radius-button)] border text-left transition disabled:cursor-not-allowed',
                                                 isActive ? c.active : 'border-line bg-surface-2 text-content-muted hover:text-content hover:bg-surface-3',
                                             ].join(' ')}
                                         >
@@ -232,7 +232,7 @@ export default function Inspect({ return: ret, summary }) {
                                             value={d.notes ?? ''}
                                             onChange={(e) => set(item.id, { notes: e.target.value })}
                                             placeholder="Inspection note (optional)…"
-                                            className="flex-1 min-w-48 px-3 py-1.5 text-sm rounded-lg bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                            className="flex-1 min-w-48 px-3 py-1.5 text-sm rounded-[var(--radius-button)] bg-surface-2 border border-line text-content placeholder:text-content-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
                                         />
                                     )}
                                 </div>
@@ -253,7 +253,7 @@ export default function Inspect({ return: ret, summary }) {
                     <button
                         disabled={busy || closed || ! dirty}
                         onClick={save}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
                         Save inspection
@@ -263,7 +263,7 @@ export default function Inspect({ return: ret, summary }) {
                         disabled={busy || closed || pending > 0 || dirty}
                         onClick={close}
                         title={pending > 0 ? 'Every line needs a condition first' : dirty ? 'Save your changes first' : undefined}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 disabled:cursor-not-allowed transition"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                         Close return
@@ -276,8 +276,8 @@ export default function Inspect({ return: ret, summary }) {
 
 function Tally({ label, value, tone }) {
     const tones = {
-        emerald: 'text-emerald-600 dark:text-emerald-400',
-        red:     'text-red-600 dark:text-red-400',
+        success: 'text-success',
+        danger:  'text-danger',
         slate:   'text-content-muted',
     };
     return (

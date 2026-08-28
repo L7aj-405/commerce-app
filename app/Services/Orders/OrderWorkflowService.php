@@ -6,10 +6,11 @@ namespace App\Services\Orders;
 
 use App\Enums\FulfillmentStatus;
 use App\Enums\OrderStatus;
-use App\Models\InventoryAllocation;
+use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\User;
+use App\Services\Activity\AgentActivityRecorder;
 use App\Services\Inventory\WarehouseAllocationService;
 use App\Support\OrderLineItems;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class OrderWorkflowService
         private readonly StockMovementWriter $stock,
         private readonly ReturnInspectionService $returns,
         private readonly WarehouseAllocationService $allocations,
+        private readonly AgentActivityRecorder $activity,
     ) {}
 
     /**
@@ -85,8 +87,66 @@ class OrderWorkflowService
                 ])
                 ->log("Order moved to {$finalTarget->label()}");
 
+            // Agent activity ledger — confirmation/fulfillment only (delivery
+            // outcomes are recorded by DispatchService, which has the
+            // OrderShipment context this method doesn't). Never fired when
+            // there is no human actor (e.g. the WhatsApp reply path), which
+            // is what keeps this "agent activity" rather than "every status
+            // change." Purely additive: never throws, never changes the
+            // transition's outcome.
+            if ($actor !== null) {
+                $this->recordActivity($order, $current, $target, $finalTarget, $actor, $reason);
+            }
+
             return $order->refresh();
         });
+    }
+
+    private function recordActivity(
+        Order|PosOrder $order,
+        FulfillmentStatus $current,
+        FulfillmentStatus $target,
+        FulfillmentStatus $finalTarget,
+        User $actor,
+        ?string $reason,
+    ): void {
+        $store = $order->store;
+
+        if ($store === null) {
+            return;
+        }
+
+        [$eventType, $sourceModule] = match (true) {
+            $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed
+                => [AgentActivityEvent::CONFIRMATION_CONFIRMED, 'confirmation'],
+            $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Cancelled
+                => [AgentActivityEvent::CONFIRMATION_CANCELLED, 'confirmation'],
+            $current === FulfillmentStatus::Picking && $finalTarget === FulfillmentStatus::Packing
+                => [AgentActivityEvent::FULFILLMENT_PICKED, 'fulfillment'],
+            in_array($current, [FulfillmentStatus::Packing, FulfillmentStatus::InProgress], true) && $finalTarget === FulfillmentStatus::ReadyForDelivery
+                => [AgentActivityEvent::FULFILLMENT_PACKED, 'fulfillment'],
+            default => [null, null],
+        };
+
+        if ($eventType === null) {
+            return;
+        }
+
+        $metadata = ['from' => $current->value, 'to' => $finalTarget->value];
+
+        if (in_array($eventType, [AgentActivityEvent::FULFILLMENT_PICKED, AgentActivityEvent::FULFILLMENT_PACKED], true)) {
+            $metadata['units'] = collect(OrderLineItems::for($order))->sum('quantity');
+        }
+
+        if ($reason !== null) {
+            $metadata['reason'] = $reason;
+        }
+
+        $this->activity->record($actor, $store, $eventType, $sourceModule, [
+            'subject' => $order,
+            'order_id' => $order->getKey(),
+            'metadata' => $metadata,
+        ]);
     }
 
     /** Legal moves out of the order's current state, for building UI actions. */
@@ -113,13 +173,28 @@ class OrderWorkflowService
         ?User $actor,
         ?string $reason,
     ): ?FulfillmentStatus {
-        // V2 inventory semantics for online orders:
-        //   confirm => reserve available stock
+        // An online order line the platform clearly identified as a real
+        // product/variant/sku, but that never resolved to a local product,
+        // must never silently skip stock movement — block confirmation
+        // instead of quietly allocating only the lines that happened to
+        // match. A line the platform sent with no identifier at all (a
+        // genuine custom/service line) is not stock-required and never blocks.
+        if ($order instanceof Order && $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
+            $this->assertNoUnmappedStockedLines($order);
+        }
+
+        // V2 inventory semantics, shared by online orders AND POS delivery
+        // orders alike:
+        //   confirm (online) / checkout (POS) => reserve available stock
         //   ready_for_delivery => consume the reservation (goods leave the warehouse)
         //   cancellation before dispatch => release; cancellation after packing => restock
-        // POS checkout still uses the legacy stock writer for now; the Stock compatibility
-        // bridge mirrors those writes into the organization-level Inventory Engine.
-        if ($order instanceof Order) {
+        // A POS order never passes through Pending -> Confirmed here (it is
+        // born past that point — see FulfillmentType::initialFulfillmentStatus()
+        // and OrderProcessingService::commitInventoryViaEngine(), which does the
+        // equivalent allocate()/consume() at checkout time instead) — so that
+        // branch below is effectively online-order-only, while ready_for_delivery
+        // and cancellation are genuinely shared by both order types.
+        if ($order instanceof Order || $order instanceof PosOrder) {
             $order->loadMissing('store.organization');
 
             // Organization-backed stores use the V2 inventory engine. A small
@@ -127,10 +202,10 @@ class OrderWorkflowService
             // those rows keep the original Stock/StockLedger behavior until
             // they are migrated by the organization backfill.
             if ($order->store?->organization !== null) {
-                if ($current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
+                if ($order instanceof Order && $current === FulfillmentStatus::Pending && $target === FulfillmentStatus::Confirmed) {
                     $allocation = $this->allocations->allocate($order, $order->shippingCity, $actor);
 
-                    return $this->statusAfterAllocation($allocation);
+                    return $this->allocations->statusForAllocation($allocation);
                 }
 
                 if ($target === FulfillmentStatus::ReadyForDelivery) {
@@ -183,14 +258,15 @@ class OrderWorkflowService
         return null;
     }
 
-    private function statusAfterAllocation(InventoryAllocation $allocation): FulfillmentStatus
+    private function assertNoUnmappedStockedLines(Order $order): void
     {
-        return match ($allocation->status) {
-            InventoryAllocation::STATUS_RESERVED => FulfillmentStatus::ReadyForPicking,
-            InventoryAllocation::STATUS_WAITING_TRANSFER,
-            InventoryAllocation::STATUS_INSUFFICIENT => FulfillmentStatus::WaitingForStock,
-            default => FulfillmentStatus::ReadyForPicking,
-        };
+        $hasUnmapped = collect(OrderLineItems::for($order))->contains(fn (array $line) => $line['unmapped']);
+
+        if ($hasUnmapped) {
+            throw ValidationException::withMessages([
+                'items' => 'Some lines are not linked to local inventory.',
+            ]);
+        }
     }
 
     /**
