@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -77,30 +78,35 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
-        Blade::anonymousComponentNamespace('layouts', 'layouts');
-
-        Event::listen(Login::class, function (Login $event): void {
-            if ($event->user instanceof User) {
-                $event->user->recordLogin();
-            }
-        });
-
-        Event::listen(Logout::class, function (Logout $event): void {
-            if ($event->user instanceof User && $event->user->isSuperAdmin()) {
-                app(\App\Services\SupportAccess::class)->end($event->user, 'logout');
-            }
-        });
-
-        Event::listen(OrderCreated::class, CreateNewOrderNotifications::class);
-
-        $this->bridgePermissionsToGate();
-
-        Gate::policy(Facture::class, FacturePolicy::class);
-
-        $this->configureDefaults();
+   public function boot(): void
+{
+    if ($this->app->environment('production')) {
+        URL::forceScheme('https');
+        URL::forceRootUrl(config('app.url'));
     }
+
+    Blade::anonymousComponentNamespace('layouts', 'layouts');
+
+    Event::listen(Login::class, function (Login $event): void {
+        if ($event->user instanceof User) {
+            $event->user->recordLogin();
+        }
+    });
+
+    Event::listen(Logout::class, function (Logout $event): void {
+        if ($event->user instanceof User && $event->user->isSuperAdmin()) {
+            app(\App\Services\SupportAccess::class)->end($event->user, 'logout');
+        }
+    });
+
+    Event::listen(OrderCreated::class, CreateNewOrderNotifications::class);
+
+    $this->bridgePermissionsToGate();
+
+    Gate::policy(Facture::class, FacturePolicy::class);
+
+    $this->configureDefaults();
+}
 
     /**
      * Bridge the store-scoped PermissionCatalog into Laravel's native Gate so
