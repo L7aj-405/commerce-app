@@ -3,9 +3,9 @@ FROM dunglas/frankenphp:1-php8.4-bookworm
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    git unzip curl ca-certificates \
-    && install-php-extensions pdo_mysql redis bcmath zip pcntl intl gd \
-    && rm -rf /var/lib/apt/lists/*
+git unzip curl ca-certificates supervisor \
+&& install-php-extensions pdo_mysql redis bcmath zip pcntl intl gd \
+&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -30,6 +30,8 @@ RUN npm run build \
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+RUN chmod +x /app/docker/start.sh
+
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["/app/docker/start.sh"]
