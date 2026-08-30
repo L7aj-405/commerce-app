@@ -32,3 +32,7 @@ Schedule::call(function () {
 // Polls tracking for every active Ozon (and future provider) shipment. Kept as
 // its own schedule entry, separate from the order-sync call above.
 Schedule::job(new TrackActiveShipmentsJob())->everyFifteenMinutes();
+
+// Finance Desk — generates due expenses from active recurring
+// expenses/subscriptions across every organization. Idempotent.
+Schedule::command('finance:generate-recurring-expenses')->daily();

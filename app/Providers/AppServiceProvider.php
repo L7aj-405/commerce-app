@@ -5,8 +5,24 @@ namespace App\Providers;
 use App\Events\OrderCreated;
 use App\Listeners\CreateNewOrderNotifications;
 use App\Models\Facture;
+use App\Models\FinanceAccount;
+use App\Models\FinanceCodSettlement;
+use App\Models\FinanceCourierDeposit;
+use App\Models\FinanceExpense;
+use App\Models\FinanceExpenseCategory;
+use App\Models\FinanceRecurringExpense;
+use App\Models\FinanceTransaction;
+use App\Models\FinanceVendor;
 use App\Models\User;
 use App\Policies\FacturePolicy;
+use App\Policies\FinanceAccountPolicy;
+use App\Policies\FinanceCodSettlementPolicy;
+use App\Policies\FinanceCourierDepositPolicy;
+use App\Policies\FinanceExpenseCategoryPolicy;
+use App\Policies\FinanceExpensePolicy;
+use App\Policies\FinanceRecurringExpensePolicy;
+use App\Policies\FinanceTransactionPolicy;
+use App\Policies\FinanceVendorPolicy;
 use App\Support\PermissionCatalog;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
@@ -100,10 +116,19 @@ class AppServiceProvider extends ServiceProvider
     });
 
     Event::listen(OrderCreated::class, CreateNewOrderNotifications::class);
+    Event::listen(OrderCreated::class, \App\Listeners\SyncFinanceOrderTransactions::class);
 
     $this->bridgePermissionsToGate();
 
     Gate::policy(Facture::class, FacturePolicy::class);
+    Gate::policy(FinanceExpenseCategory::class, FinanceExpenseCategoryPolicy::class);
+    Gate::policy(FinanceVendor::class, FinanceVendorPolicy::class);
+    Gate::policy(FinanceExpense::class, FinanceExpensePolicy::class);
+    Gate::policy(FinanceRecurringExpense::class, FinanceRecurringExpensePolicy::class);
+    Gate::policy(FinanceAccount::class, FinanceAccountPolicy::class);
+    Gate::policy(FinanceTransaction::class, FinanceTransactionPolicy::class);
+    Gate::policy(FinanceCodSettlement::class, FinanceCodSettlementPolicy::class);
+    Gate::policy(FinanceCourierDeposit::class, FinanceCourierDepositPolicy::class);
 
     $this->configureDefaults();
 }

@@ -11,10 +11,13 @@ use App\Models\Order;
 use App\Models\PosOrder;
 use App\Models\User;
 use App\Services\Activity\AgentActivityRecorder;
+use App\Services\Finance\FinanceOrderTransactionService;
 use App\Services\Inventory\WarehouseAllocationService;
 use App\Support\OrderLineItems;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Every fulfillment status change goes through here — the board, the WhatsApp
@@ -31,6 +34,7 @@ class OrderWorkflowService
         private readonly ReturnInspectionService $returns,
         private readonly WarehouseAllocationService $allocations,
         private readonly AgentActivityRecorder $activity,
+        private readonly FinanceOrderTransactionService $finance,
     ) {}
 
     /**
@@ -73,6 +77,23 @@ class OrderWorkflowService
 
             if ($finalTarget === FulfillmentStatus::Returned) {
                 $this->returns->open($order, (string) $reason, $actor);
+            }
+
+            // Finance ledger sync — purely additive and defensive. A bug here
+            // must never abort an otherwise-legal fulfillment transition, so
+            // any failure is logged and swallowed rather than rethrown.
+            try {
+                if ($finalTarget === FulfillmentStatus::Cancelled) {
+                    $this->finance->handleOrderCancelled($order);
+                } elseif ($finalTarget === FulfillmentStatus::ReturnCompleted) {
+                    $this->finance->handleOrderReturned($order);
+                }
+            } catch (Throwable $e) {
+                Log::error('Finance: failed to sync order financials on transition', [
+                    'order_id' => $order->getKey(),
+                    'target' => $finalTarget->value,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             activity('order')

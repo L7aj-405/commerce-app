@@ -1,888 +1,976 @@
 {
-  "session_id": "session-2026-08-28-1123",
-  "started": "2026-08-28T10:23:14.341Z",
+  "session_id": "session-2026-08-30-2135",
+  "started": "2026-08-30T20:35:59.634Z",
   "files_read": {
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/AgentActivityEvent.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php": {
+      "count": 2,
+      "tokens": 1073,
+      "first_read": "2026-08-30T20:41:58.274Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceTransaction.php": {
       "count": 1,
-      "tokens": 763,
-      "first_read": "2026-08-28T10:23:21.487Z"
+      "tokens": 446,
+      "first_read": "2026-08-30T20:41:58.839Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php": {
-      "count": 2,
-      "tokens": 1770,
-      "first_read": "2026-08-28T10:23:22.580Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/SupervisorDashboardMetricsService.php": {
-      "count": 2,
-      "tokens": 1023,
-      "first_read": "2026-08-28T10:23:23.131Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentScorePreviewService.php": {
-      "count": 2,
-      "tokens": 539,
-      "first_read": "2026-08-28T10:23:23.683Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DashboardController.php": {
-      "count": 2,
-      "tokens": 3031,
-      "first_read": "2026-08-28T10:23:23.761Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/AgentScoreRule.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_30_000002_create_finance_transactions_table.php": {
       "count": 1,
-      "tokens": 437,
-      "first_read": "2026-08-28T10:23:33.596Z"
+      "tokens": 748,
+      "first_read": "2026-08-30T20:41:59.070Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/DashboardNavigationVisibilityTest.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php": {
+      "count": 2,
+      "tokens": 2019,
+      "first_read": "2026-08-30T20:42:40.161Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php": {
       "count": 1,
-      "tokens": 1588,
-      "first_read": "2026-08-28T10:23:58.426Z"
+      "tokens": 3328,
+      "first_read": "2026-08-30T20:44:05.940Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/factories/OrderFactory.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceTransactionType.php": {
+      "count": 1,
+      "tokens": 452,
+      "first_read": "2026-08-30T20:44:12.378Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceTransactionDirection.php": {
+      "count": 1,
+      "tokens": 132,
+      "first_read": "2026-08-30T20:44:12.953Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php": {
+      "count": 1,
+      "tokens": 2393,
+      "first_read": "2026-08-30T20:44:13.371Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceTransactionService.php": {
+      "count": 1,
+      "tokens": 1102,
+      "first_read": "2026-08-30T20:44:18.736Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php": {
+      "count": 1,
+      "tokens": 1218,
+      "first_read": "2026-08-30T20:44:31.577Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx": {
+      "count": 1,
+      "tokens": 3039,
+      "first_read": "2026-08-30T20:44:52.522Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx": {
+      "count": 2,
+      "tokens": 7745,
+      "first_read": "2026-08-30T20:44:55.981Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceTransactionController.php": {
+      "count": 1,
+      "tokens": 926,
+      "first_read": "2026-08-30T20:44:56.469Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceAccountType.php": {
+      "count": 1,
+      "tokens": 169,
+      "first_read": "2026-08-30T20:45:02.950Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceDashboardService.php": {
+      "count": 1,
+      "tokens": 2048,
+      "first_read": "2026-08-30T20:45:04.005Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php": {
+      "count": 4,
+      "tokens": 3270,
+      "first_read": "2026-08-30T20:45:04.028Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Dashboard.jsx": {
+      "count": 1,
+      "tokens": 3083,
+      "first_read": "2026-08-30T20:45:08.727Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx": {
+      "count": 2,
+      "tokens": 3403,
+      "first_read": "2026-08-30T20:45:09.177Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/PermissionCatalog.php": {
+      "count": 1,
+      "tokens": 4037,
+      "first_read": "2026-08-30T20:45:22.100Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Policies/FinanceTransactionPolicy.php": {
+      "count": 1,
+      "tokens": 265,
+      "first_read": "2026-08-30T20:45:34.682Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Policies/FinanceAccountPolicy.php": {
+      "count": 1,
+      "tokens": 330,
+      "first_read": "2026-08-30T20:45:35.190Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceAccount.php": {
+      "count": 1,
+      "tokens": 334,
+      "first_read": "2026-08-30T20:45:35.396Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Concerns/BelongsToOrganization.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-28T10:24:15.617Z"
+      "first_read": "2026-08-30T20:45:41.238Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_26_000002_add_generic_location_fields_to": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Requests/Finance/FinanceTransactionAdjustmentRequest.php": {
       "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T10:26:14.465Z"
+      "tokens": 363,
+      "first_read": "2026-08-30T20:45:41.704Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_28_000002_create_agent_score_rules_table.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Requests/Finance/FinanceCodCollectRequest.php": {
       "count": 1,
-      "tokens": 840,
-      "first_read": "2026-08-28T10:26:23.833Z"
+      "tokens": 265,
+      "first_read": "2026-08-30T20:45:41.859Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/OwnerDashboardMetricsService.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Policies/FinanceExpensePolicy.php": {
       "count": 1,
-      "tokens": 1625,
-      "first_read": "2026-08-28T10:53:18.806Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/AgentDashboardMetricsTest.php": {
-      "count": 1,
-      "tokens": 1588,
-      "first_read": "2026-08-28T10:55:45.040Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/DeliveryAgentDashboardTest.php": {
-      "count": 1,
-      "tokens": 788,
-      "first_read": "2026-08-28T10:57:29.660Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/SupervisorDashboardMetricsTest.php": {
-      "count": 1,
-      "tokens": 1688,
-      "first_read": "2026-08-28T10:58:21.412Z"
+      "tokens": 407,
+      "first_read": "2026-08-30T20:45:43.402Z"
     },
     "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Order.php": {
       "count": 1,
       "tokens": 2535,
-      "first_read": "2026-08-28T11:03:25.693Z"
+      "first_read": "2026-08-30T20:50:48.581Z"
     },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/OrderStatus.php": {
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php": {
+      "count": 2,
+      "tokens": 4083,
+      "first_read": "2026-08-30T20:50:49.079Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php": {
+      "count": 1,
+      "tokens": 1606,
+      "first_read": "2026-08-30T20:50:57.445Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceExpenseTest.php": {
+      "count": 1,
+      "tokens": 1944,
+      "first_read": "2026-08-30T20:50:57.542Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceExpense.php": {
+      "count": 1,
+      "tokens": 709,
+      "first_read": "2026-08-30T20:51:35.793Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_29_000004_create_finance_expenses_table.php": {
+      "count": 1,
+      "tokens": 754,
+      "first_read": "2026-08-30T20:51:36.251Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Concerns/BelongsToTenant.php": {
       "count": 1,
       "tokens": 0,
-      "first_read": "2026-08-28T11:03:26.242Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/PosOrder.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:03:26.401Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_06_01_000002_create_pos_orders_table.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:03:46.319Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_06_01_000009_create_bon_de_livraisons_table.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:06:02.767Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Dashboard/Roles/OwnerDashboard.jsx": {
-      "count": 1,
-      "tokens": 4058,
-      "first_read": "2026-08-28T11:06:23.315Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Orders/OrderChannelViewsTest.php": {
-      "count": 1,
-      "tokens": 1510,
-      "first_read": "2026-08-28T11:08:47.013Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/bootstrap/app.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:14:51.957Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Middleware/HandleInertiaRequests.php": {
-      "count": 1,
-      "tokens": 1455,
-      "first_read": "2026-08-28T11:15:01.644Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx": {
-      "count": 1,
-      "tokens": 1074,
-      "first_read": "2026-08-28T11:15:02.181Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/vendor/inertiajs/inertia-laravel/src/ExceptionResponse.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:15:31.449Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/vendor/inertiajs/inertia-laravel/src/ResponseFactory.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:15:36.575Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/vendor/inertiajs/inertia-laravel/src/ServiceProvider.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:15:47.279Z"
+      "first_read": "2026-08-30T20:55:43.564Z"
     },
     "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php": {
       "count": 1,
-      "tokens": 1322,
-      "first_read": "2026-08-28T11:16:00.581Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx": {
-      "count": 1,
-      "tokens": 5812,
-      "first_read": "2026-08-28T11:17:31.760Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx": {
-      "count": 6,
-      "tokens": 14350,
-      "first_read": "2026-08-28T11:18:01.047Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/OrderController.php": {
-      "count": 2,
-      "tokens": 5854,
-      "first_read": "2026-08-28T11:18:19.278Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Hooks/useQueue.js": {
-      "count": 1,
-      "tokens": 1013,
-      "first_read": "2026-08-28T11:18:58.733Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/node_modules/@inertiajs/core/dist/index.esm.js": {
-      "count": 2,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:21:11.192Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FulfillmentStatus.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:23:58.356Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/OrderPresenter.php": {
-      "count": 1,
-      "tokens": 3496,
-      "first_read": "2026-08-28T11:24:10.756Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php": {
-      "count": 3,
-      "tokens": 5955,
-      "first_read": "2026-08-28T11:24:23.513Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/views/app.blade.php": {
-      "count": 1,
-      "tokens": 309,
-      "first_read": "2026-08-28T11:25:28.773Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/PremiumDashboard/SoftCard.jsx": {
-      "count": 1,
-      "tokens": 90,
-      "first_read": "2026-08-28T11:25:29.426Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/app.jsx": {
-      "count": 1,
-      "tokens": 365,
-      "first_read": "2026-08-28T11:25:49.911Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ConfirmationDeskClaimTest.php": {
-      "count": 1,
-      "tokens": 3527,
-      "first_read": "2026-08-28T11:32:33.851Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/vendor/inertiajs/inertia-laravel/src/Middleware.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T11:35:54.208Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/InertiaForbiddenActionTest.php": {
-      "count": 1,
-      "tokens": 1335,
-      "first_read": "2026-08-28T11:36:36.189Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/console.php": {
-      "count": 1,
-      "tokens": 339,
-      "first_read": "2026-08-28T14:49:53.502Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php": {
-      "count": 2,
-      "tokens": 1743,
-      "first_read": "2026-08-28T14:50:14.695Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/WooCommerceWebhookController.php": {
-      "count": 1,
-      "tokens": 1653,
-      "first_read": "2026-08-28T14:50:15.122Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/PlatformConnection.php": {
-      "count": 1,
-      "tokens": 982,
-      "first_read": "2026-08-28T14:51:09.176Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/IntegrationsController.php": {
-      "count": 3,
-      "tokens": 6435,
-      "first_read": "2026-08-28T14:51:43.823Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Sync/OrderSyncService.php": {
-      "count": 1,
-      "tokens": 3164,
-      "first_read": "2026-08-28T14:52:37.367Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyOrderMapper.php": {
-      "count": 1,
-      "tokens": 271,
-      "first_read": "2026-08-28T14:52:46.925Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/WooCommerce/WooCommerceOrderMapper.php": {
-      "count": 1,
-      "tokens": 285,
-      "first_read": "2026-08-28T14:52:47.205Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php": {
-      "count": 1,
-      "tokens": 12456,
-      "first_read": "2026-08-28T14:53:52.221Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyAuthService.php": {
-      "count": 1,
-      "tokens": 2714,
-      "first_read": "2026-08-28T14:54:50.428Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php": {
-      "count": 3,
-      "tokens": 9394,
-      "first_read": "2026-08-28T14:55:38.618Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Factories/ConnectorFactory.php": {
-      "count": 1,
-      "tokens": 0,
-      "first_read": "2026-08-28T14:56:07.946Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyWebhookVerifier.php": {
-      "count": 1,
-      "tokens": 203,
-      "first_read": "2026-08-28T14:56:18.284Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php": {
-      "count": 1,
-      "tokens": 7828,
-      "first_read": "2026-08-28T14:59:26.795Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyConnectionWorkflowTest.php": {
-      "count": 1,
-      "tokens": 1993,
-      "first_read": "2026-08-28T15:01:03.274Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookTest.php": {
-      "count": 1,
-      "tokens": 2169,
-      "first_read": "2026-08-28T15:02:19.763Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyOrderWebhookImportTest.php": {
-      "count": 1,
-      "tokens": 1927,
-      "first_read": "2026-08-28T15:02:36.201Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/WooCommerceOrderWebhookImportTest.php": {
-      "count": 1,
-      "tokens": 2143,
-      "first_read": "2026-08-28T15:02:36.741Z"
-    },
-    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/OrderSyncJob.php": {
-      "count": 1,
-      "tokens": 1392,
-      "first_read": "2026-08-28T15:04:11.699Z"
+      "tokens": 1620,
+      "first_read": "2026-08-30T20:57:39.726Z"
     }
   },
   "files_written": [
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/RoleBasedDashboardTest.php",
-      "action": "create",
-      "tokens": 1167,
-      "at": "2026-08-28T10:24:44.914Z"
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/Order.php",
+      "action": "edit",
+      "tokens": 133,
+      "at": "2026-08-30T20:51:42.008Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/AgentDashboardMetricsTest.php",
-      "action": "create",
-      "tokens": 1702,
-      "at": "2026-08-28T10:25:05.315Z"
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "action": "edit",
+      "tokens": 658,
+      "at": "2026-08-30T20:51:53.497Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/SupervisorDashboardMetricsTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Support/formatDate.js",
       "action": "create",
-      "tokens": 1809,
-      "at": "2026-08-28T10:25:31.536Z"
+      "tokens": 314,
+      "at": "2026-08-30T20:52:04.491Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ConfirmationAgentDashboardTest.php",
-      "action": "create",
-      "tokens": 753,
-      "at": "2026-08-28T10:25:45.336Z"
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx",
+      "action": "edit",
+      "tokens": 55,
+      "at": "2026-08-30T20:52:09.354Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/FulfillmentAgentDashboardTest.php",
-      "action": "create",
-      "tokens": 941,
-      "at": "2026-08-28T10:25:57.638Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/DeliveryAgentDashboardTest.php",
-      "action": "create",
-      "tokens": 845,
-      "at": "2026-08-28T10:26:09.139Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/AgentPointsPreviewTest.php",
-      "action": "create",
-      "tokens": 1185,
-      "at": "2026-08-28T10:26:40.431Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx",
       "action": "edit",
       "tokens": 40,
-      "at": "2026-08-28T10:53:49.708Z"
+      "at": "2026-08-30T20:52:13.854Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 20,
-      "at": "2026-08-28T10:53:53.861Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 34,
-      "at": "2026-08-28T10:53:57.785Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 33,
-      "at": "2026-08-28T10:54:01.518Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 32,
-      "at": "2026-08-28T10:54:05.607Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 36,
-      "at": "2026-08-28T10:54:09.431Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentScorePreviewService.php",
-      "action": "edit",
-      "tokens": 39,
-      "at": "2026-08-28T10:54:13.804Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentScorePreviewService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Dashboard.jsx",
       "action": "edit",
       "tokens": 31,
-      "at": "2026-08-28T10:54:17.583Z"
+      "at": "2026-08-30T20:52:20.127Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/SupervisorDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Dashboard.jsx",
       "action": "edit",
-      "tokens": 22,
-      "at": "2026-08-28T10:54:21.463Z"
+      "tokens": 57,
+      "at": "2026-08-30T20:52:24.429Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/SupervisorDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
       "action": "edit",
-      "tokens": 30,
-      "at": "2026-08-28T10:54:25.621Z"
+      "tokens": 35,
+      "at": "2026-08-30T20:52:29.035Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/SupervisorDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
       "action": "edit",
-      "tokens": 30,
-      "at": "2026-08-28T10:54:29.702Z"
+      "tokens": 277,
+      "at": "2026-08-30T20:52:35.517Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/AgentDashboardMetricsTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceTransactionType.php",
       "action": "edit",
-      "tokens": 43,
-      "at": "2026-08-28T10:55:50.100Z"
+      "tokens": 835,
+      "at": "2026-08-30T20:52:52.813Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/AgentDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
       "action": "edit",
-      "tokens": 97,
-      "at": "2026-08-28T10:56:51.965Z"
+      "tokens": 376,
+      "at": "2026-08-30T20:53:02.642Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/DeliveryAgentDashboardTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
       "action": "edit",
-      "tokens": 132,
-      "at": "2026-08-28T10:57:34.886Z"
+      "tokens": 158,
+      "at": "2026-08-30T20:53:09.907Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/SupervisorDashboardMetricsTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 78,
+      "at": "2026-08-30T20:53:21.971Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceTransactionType.php",
       "action": "edit",
       "tokens": 151,
-      "at": "2026-08-28T10:58:27.776Z"
+      "at": "2026-08-30T20:53:30.042Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/OwnerDashboardMetricsService.php",
-      "action": "create",
-      "tokens": 3497,
-      "at": "2026-08-28T11:08:08.143Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OwnerDashboardMetricsTest.php",
-      "action": "create",
-      "tokens": 2463,
-      "at": "2026-08-28T11:10:07.399Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/OwnerDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
-      "tokens": 203,
-      "at": "2026-08-28T11:11:34.427Z"
+      "tokens": 181,
+      "at": "2026-08-30T20:53:35.556Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/OwnerDashboardMetricsService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
-      "tokens": 75,
-      "at": "2026-08-28T11:11:56.656Z"
+      "tokens": 495,
+      "at": "2026-08-30T20:53:53.174Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Metrics/OwnerDashboardMetricsService.php",
-      "action": "edit",
-      "tokens": 123,
-      "at": "2026-08-28T11:12:03.470Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/OrderPresenter.php",
-      "action": "edit",
-      "tokens": 39,
-      "at": "2026-08-28T11:25:58.647Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/OrderPresenter.php",
-      "action": "edit",
-      "tokens": 595,
-      "at": "2026-08-28T11:26:09.396Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/OrderController.php",
-      "action": "edit",
-      "tokens": 171,
-      "at": "2026-08-28T11:26:24.117Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
-      "action": "edit",
-      "tokens": 19,
-      "at": "2026-08-28T11:26:36.040Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
-      "action": "edit",
-      "tokens": 19,
-      "at": "2026-08-28T11:26:41.989Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
-      "action": "edit",
-      "tokens": 18,
-      "at": "2026-08-28T11:26:47.129Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
-      "action": "edit",
-      "tokens": 209,
-      "at": "2026-08-28T11:26:54.462Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/InertiaErrorResponder.php",
-      "action": "create",
-      "tokens": 1078,
-      "at": "2026-08-28T11:27:14.300Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/bootstrap/app.php",
-      "action": "edit",
-      "tokens": 23,
-      "at": "2026-08-28T11:27:19.923Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/bootstrap/app.php",
-      "action": "edit",
-      "tokens": 67,
-      "at": "2026-08-28T11:27:25.637Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/bootstrap/app.php",
-      "action": "edit",
-      "tokens": 150,
-      "at": "2026-08-28T11:27:31.642Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/bootstrap/app.php",
-      "action": "edit",
-      "tokens": 22,
-      "at": "2026-08-28T11:27:44.222Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Error.jsx",
-      "action": "create",
-      "tokens": 951,
-      "at": "2026-08-28T11:28:02.284Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx",
-      "action": "edit",
-      "tokens": 166,
-      "at": "2026-08-28T11:28:09.932Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/ToastNotification.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php",
       "action": "edit",
       "tokens": 48,
-      "at": "2026-08-28T11:28:15.321Z"
+      "at": "2026-08-30T20:53:57.208Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Middleware/HandleInertiaRequests.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php",
       "action": "edit",
-      "tokens": 41,
-      "at": "2026-08-28T11:28:21.013Z"
+      "tokens": 53,
+      "at": "2026-08-30T20:53:58.914Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceCodSettlementStatus.php",
+      "action": "create",
+      "tokens": 115,
+      "at": "2026-08-30T20:54:12.951Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceCourierDepositStatus.php",
+      "action": "create",
+      "tokens": 117,
+      "at": "2026-08-30T20:54:15.987Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_31_000001_create_finance_cod_settlements_table.php",
+      "action": "create",
+      "tokens": 744,
+      "at": "2026-08-30T20:54:24.743Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_31_000002_create_finance_cod_settlement_items_table.php",
+      "action": "create",
+      "tokens": 353,
+      "at": "2026-08-30T20:54:29.852Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_31_000003_create_finance_courier_deposits_table.php",
+      "action": "create",
+      "tokens": 692,
+      "at": "2026-08-30T20:54:37.692Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_08_31_000004_create_finance_courier_deposit_items_table.php",
+      "action": "create",
+      "tokens": 355,
+      "at": "2026-08-30T20:54:42.941Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceCodSettlement.php",
+      "action": "create",
+      "tokens": 601,
+      "at": "2026-08-30T20:54:50.644Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceCodSettlementItem.php",
+      "action": "create",
+      "tokens": 206,
+      "at": "2026-08-30T20:54:54.763Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceCourierDeposit.php",
+      "action": "create",
+      "tokens": 581,
+      "at": "2026-08-30T20:55:04.112Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceCourierDepositItem.php",
+      "action": "create",
+      "tokens": 206,
+      "at": "2026-08-30T20:55:08.134Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "create",
+      "tokens": 2010,
+      "at": "2026-08-30T20:55:36.568Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "action": "create",
+      "tokens": 1912,
+      "at": "2026-08-30T20:56:25.599Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
       "action": "edit",
-      "tokens": 64,
-      "at": "2026-08-28T11:29:33.878Z"
+      "tokens": 92,
+      "at": "2026-08-30T20:56:30.693Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 287,
-      "at": "2026-08-28T11:29:42.685Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
       "action": "edit",
       "tokens": 100,
-      "at": "2026-08-28T11:29:49.009Z"
+      "at": "2026-08-30T20:56:37.265Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 83,
-      "at": "2026-08-28T11:29:54.702Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 25,
-      "at": "2026-08-28T11:30:00.059Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 150,
-      "at": "2026-08-28T11:30:06.182Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 1306,
-      "at": "2026-08-28T11:30:28.820Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 26,
-      "at": "2026-08-28T11:30:40.261Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 1368,
-      "at": "2026-08-28T11:31:09.342Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/Manage.jsx",
-      "action": "edit",
-      "tokens": 129,
-      "at": "2026-08-28T11:31:17.037Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
-      "action": "edit",
-      "tokens": 576,
-      "at": "2026-08-28T11:31:37.923Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Confirmation.jsx",
-      "action": "edit",
-      "tokens": 366,
-      "at": "2026-08-28T11:31:46.902Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderActionAuthorizationUxTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
       "action": "create",
-      "tokens": 1486,
-      "at": "2026-08-28T11:33:00.327Z"
+      "tokens": 2081,
+      "at": "2026-08-30T20:56:57.027Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/InertiaForbiddenActionTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Requests/Finance/FinanceCodSettlementRequest.php",
       "action": "create",
-      "tokens": 1431,
-      "at": "2026-08-28T11:33:25.078Z"
+      "tokens": 437,
+      "at": "2026-08-30T20:57:05.582Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/BrandedErrorPageTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Requests/Finance/FinanceCourierDepositRequest.php",
       "action": "create",
-      "tokens": 890,
-      "at": "2026-08-28T11:33:42.236Z"
+      "tokens": 384,
+      "at": "2026-08-30T20:57:10.710Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ConfirmationOrderCardActionTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Policies/FinanceCodSettlementPolicy.php",
       "action": "create",
-      "tokens": 2295,
-      "at": "2026-08-28T11:34:29.451Z"
+      "tokens": 327,
+      "at": "2026-08-30T20:57:15.356Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderActionAuthorizationUxTest.php",
-      "action": "edit",
-      "tokens": 117,
-      "at": "2026-08-28T11:35:02.290Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/OrderActionAuthorizationUxTest.php",
-      "action": "edit",
-      "tokens": 58,
-      "at": "2026-08-28T11:35:08.231Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/InertiaForbiddenActionTest.php",
-      "action": "edit",
-      "tokens": 119,
-      "at": "2026-08-28T11:36:44.023Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/InertiaForbiddenActionTest.php",
-      "action": "edit",
-      "tokens": 67,
-      "at": "2026-08-28T11:36:49.765Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/InertiaForbiddenActionTest.php",
-      "action": "edit",
-      "tokens": 166,
-      "at": "2026-08-28T11:36:58.796Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/PlatformConnection.php",
-      "action": "edit",
-      "tokens": 433,
-      "at": "2026-08-28T14:56:30.899Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Jobs/ShopifyOrderWebhookJob.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Policies/FinanceCourierDepositPolicy.php",
       "action": "create",
-      "tokens": 957,
-      "at": "2026-08-28T14:57:01.941Z"
+      "tokens": 324,
+      "at": "2026-08-30T20:57:19.904Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
-      "action": "edit",
-      "tokens": 88,
-      "at": "2026-08-28T14:57:10.405Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodSettlementController.php",
       "action": "create",
-      "tokens": 2446,
-      "at": "2026-08-28T14:57:44.941Z"
+      "tokens": 482,
+      "at": "2026-08-30T20:57:25.951Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Api/ShopifyWebhookController.php",
-      "action": "edit",
-      "tokens": 144,
-      "at": "2026-08-28T14:57:58.383Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Connectors/ShopifyConnector.php",
-      "action": "edit",
-      "tokens": 720,
-      "at": "2026-08-28T14:58:22.995Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Shopify/ShopifyWebhookRegistrationService.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCourierDepositController.php",
       "action": "create",
-      "tokens": 1001,
-      "at": "2026-08-28T14:58:49.139Z"
+      "tokens": 479,
+      "at": "2026-08-30T20:57:37.049Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php",
+      "action": "edit",
+      "tokens": 194,
+      "at": "2026-08-30T20:57:45.616Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Providers/AppServiceProvider.php",
+      "action": "edit",
+      "tokens": 70,
+      "at": "2026-08-30T20:57:48.904Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/PermissionCatalog.php",
+      "action": "edit",
+      "tokens": 110,
+      "at": "2026-08-30T20:57:52.834Z"
     },
     {
       "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 170,
-      "at": "2026-08-28T14:59:34.139Z"
+      "tokens": 85,
+      "at": "2026-08-30T20:58:09.824Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
       "action": "edit",
-      "tokens": 61,
-      "at": "2026-08-28T14:59:40.627Z"
+      "tokens": 512,
+      "at": "2026-08-30T20:58:19.734Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
       "action": "edit",
-      "tokens": 982,
-      "at": "2026-08-28T14:59:57.643Z"
+      "tokens": 118,
+      "at": "2026-08-30T20:58:56.593Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
       "action": "edit",
-      "tokens": 285,
-      "at": "2026-08-28T15:00:16.803Z"
+      "tokens": 230,
+      "at": "2026-08-30T20:59:02.662Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/ConnectionProfileController.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
       "action": "edit",
-      "tokens": 476,
-      "at": "2026-08-28T15:00:27.667Z"
+      "tokens": 592,
+      "at": "2026-08-30T20:59:19.438Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookSignatureTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 118,
+      "at": "2026-08-30T20:59:26.322Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 377,
+      "at": "2026-08-30T20:59:38.263Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-08-30T20:59:42.802Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceDashboardService.php",
+      "action": "edit",
+      "tokens": 112,
+      "at": "2026-08-30T20:59:47.752Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceDashboardService.php",
+      "action": "edit",
+      "tokens": 221,
+      "at": "2026-08-30T20:59:53.613Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
       "action": "create",
-      "tokens": 1654,
-      "at": "2026-08-28T15:04:44.259Z"
+      "tokens": 7745,
+      "at": "2026-08-30T21:01:26.967Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookSignatureTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
       "action": "edit",
-      "tokens": 334,
-      "at": "2026-08-28T15:05:11.815Z"
+      "tokens": 1121,
+      "at": "2026-08-30T21:01:46.582Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookSignatureTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodSettlementTest.php",
+      "action": "create",
+      "tokens": 2724,
+      "at": "2026-08-30T21:03:21.866Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCourierDepositTest.php",
+      "action": "create",
+      "tokens": 2591,
+      "at": "2026-08-30T21:03:51.305Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 119,
+      "at": "2026-08-30T21:04:34.878Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 1146,
+      "at": "2026-08-30T21:04:54.214Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 242,
+      "at": "2026-08-30T21:05:10.543Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php",
+      "action": "edit",
+      "tokens": 842,
+      "at": "2026-08-30T21:05:27.960Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 33,
+      "at": "2026-08-30T21:06:28.374Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 94,
+      "at": "2026-08-30T21:06:32.648Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 66,
+      "at": "2026-08-30T21:32:32.275Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 841,
+      "at": "2026-08-30T21:32:45.122Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 355,
+      "at": "2026-08-30T21:32:53.557Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php",
+      "action": "edit",
+      "tokens": 974,
+      "at": "2026-08-30T21:33:20.304Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 319,
+      "at": "2026-08-30T21:33:36.833Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 36,
+      "at": "2026-08-30T21:33:40.185Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceMonthlyStatementService.php",
+      "action": "edit",
+      "tokens": 132,
+      "at": "2026-08-30T21:33:45.072Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php",
+      "action": "edit",
+      "tokens": 1185,
+      "at": "2026-08-30T21:34:16.081Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php",
+      "action": "edit",
+      "tokens": 22,
+      "at": "2026-08-30T21:34:31.357Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementTest.php",
+      "action": "edit",
+      "tokens": 91,
+      "at": "2026-08-30T21:35:20.097Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "action": "edit",
+      "tokens": 189,
+      "at": "2026-08-30T21:35:40.296Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "action": "edit",
+      "tokens": 45,
+      "at": "2026-08-30T21:35:46.032Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "action": "edit",
+      "tokens": 20,
+      "at": "2026-08-30T21:35:49.029Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Finance/ExpenseForm.jsx",
+      "action": "edit",
+      "tokens": 1071,
+      "at": "2026-08-30T21:36:21.339Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Components/Finance/ExpenseForm.jsx",
+      "action": "edit",
+      "tokens": 442,
+      "at": "2026-08-30T21:36:30.843Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx",
+      "action": "edit",
+      "tokens": 58,
+      "at": "2026-08-30T21:36:37.284Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 220,
+      "at": "2026-08-30T21:37:48.363Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 283,
+      "at": "2026-08-30T21:38:17.873Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FinanceCodCollectabilityStatus.php",
+      "action": "create",
+      "tokens": 618,
+      "at": "2026-08-30T21:42:46.142Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodCollectabilityService.php",
+      "action": "create",
+      "tokens": 1521,
+      "at": "2026-08-30T21:43:03.173Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
       "tokens": 78,
-      "at": "2026-08-28T15:05:18.730Z"
+      "at": "2026-08-30T21:43:10.400Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookSignatureTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
-      "tokens": 75,
-      "at": "2026-08-28T15:05:25.177Z"
+      "tokens": 69,
+      "at": "2026-08-30T21:43:13.916Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookConnectionResolutionTest.php",
-      "action": "create",
-      "tokens": 1448,
-      "at": "2026-08-28T15:06:00.370Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyOrderImportIdempotencyTest.php",
-      "action": "create",
-      "tokens": 1666,
-      "at": "2026-08-28T15:06:35.265Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyManualSyncStillWorksTest.php",
-      "action": "create",
-      "tokens": 1092,
-      "at": "2026-08-28T15:07:04.210Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyManualSyncStillWorksTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
-      "tokens": 184,
-      "at": "2026-08-28T15:07:29.346Z"
+      "tokens": 683,
+      "at": "2026-08-30T21:43:26.762Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyScheduledOrderImportTest.php",
-      "action": "create",
-      "tokens": 1383,
-      "at": "2026-08-28T15:08:03.101Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php",
-      "action": "create",
-      "tokens": 1770,
-      "at": "2026-08-28T15:08:39.716Z"
-    },
-    {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
       "action": "edit",
-      "tokens": 725,
-      "at": "2026-08-28T15:09:03.073Z"
+      "tokens": 813,
+      "at": "2026-08-30T21:43:42.679Z"
     },
     {
-      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Foundation/ShopifyAutomaticOrderImportTest.php",
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 65,
+      "at": "2026-08-30T21:43:50.847Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 1,
+      "at": "2026-08-30T21:43:57.543Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 22,
+      "at": "2026-08-30T21:44:03.882Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
+      "action": "edit",
+      "tokens": 374,
+      "at": "2026-08-30T21:44:43.875Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 32,
+      "at": "2026-08-30T21:44:50.753Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 839,
+      "at": "2026-08-30T21:45:05.036Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCodSettlementService.php",
+      "action": "edit",
+      "tokens": 14,
+      "at": "2026-08-30T21:45:12.497Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
+      "action": "edit",
+      "tokens": 32,
+      "at": "2026-08-30T21:45:16.904Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
+      "action": "edit",
+      "tokens": 100,
+      "at": "2026-08-30T21:45:22.179Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
+      "action": "edit",
+      "tokens": 42,
+      "at": "2026-08-30T21:45:29.414Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
+      "action": "edit",
+      "tokens": 966,
+      "at": "2026-08-30T21:45:45.310Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceCourierDepositService.php",
+      "action": "edit",
+      "tokens": 335,
+      "at": "2026-08-30T21:45:54.242Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "action": "edit",
+      "tokens": 47,
+      "at": "2026-08-30T21:46:05.777Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "action": "edit",
+      "tokens": 43,
+      "at": "2026-08-30T21:46:09.118Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "action": "edit",
+      "tokens": 347,
+      "at": "2026-08-30T21:46:18.181Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "action": "edit",
+      "tokens": 491,
+      "at": "2026-08-30T21:46:54.210Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "action": "edit",
+      "tokens": 99,
+      "at": "2026-08-30T21:46:59.055Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "action": "edit",
+      "tokens": 641,
+      "at": "2026-08-30T21:47:11.994Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 35,
+      "at": "2026-08-30T21:48:14.545Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 110,
+      "at": "2026-08-30T21:48:21.991Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 113,
+      "at": "2026-08-30T21:48:26.701Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "action": "edit",
+      "tokens": 109,
+      "at": "2026-08-30T21:48:31.005Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodSettlementTest.php",
+      "action": "edit",
+      "tokens": 45,
+      "at": "2026-08-30T21:48:46.060Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCodSettlementTest.php",
+      "action": "edit",
+      "tokens": 201,
+      "at": "2026-08-30T21:48:51.752Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCourierDepositTest.php",
+      "action": "edit",
+      "tokens": 46,
+      "at": "2026-08-30T21:49:15.747Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCourierDepositTest.php",
+      "action": "edit",
+      "tokens": 200,
+      "at": "2026-08-30T21:49:21.101Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php",
+      "action": "edit",
+      "tokens": 172,
+      "at": "2026-08-30T21:50:42.594Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php",
+      "action": "edit",
+      "tokens": 242,
+      "at": "2026-08-30T21:51:26.869Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceOrderTransactionService.php",
+      "action": "edit",
+      "tokens": 43,
+      "at": "2026-08-30T21:52:36.989Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_09_01_000001_add_sequence_to_finance_transactions_table.php",
       "action": "create",
-      "tokens": 1988,
-      "at": "2026-08-28T15:09:44.981Z"
+      "tokens": 665,
+      "at": "2026-08-30T21:58:16.261Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceTransaction.php",
+      "action": "edit",
+      "tokens": 22,
+      "at": "2026-08-30T21:58:25.346Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/FinanceTransaction.php",
+      "action": "edit",
+      "tokens": 50,
+      "at": "2026-08-30T21:58:28.873Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceTransactionService.php",
+      "action": "edit",
+      "tokens": 1217,
+      "at": "2026-08-30T21:58:49.356Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceTransactionService.php",
+      "action": "edit",
+      "tokens": 61,
+      "at": "2026-08-30T21:58:57.074Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 33,
+      "at": "2026-08-30T21:59:04.950Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 483,
+      "at": "2026-08-30T21:59:16.976Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Finance/FinanceExpenseService.php",
+      "action": "edit",
+      "tokens": 1424,
+      "at": "2026-08-30T21:59:37.722Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Finance/FinanceCashflowTest.php",
+      "action": "edit",
+      "tokens": 397,
+      "at": "2026-08-30T22:00:24.980Z"
     }
   ],
   "edit_counts": {
-    "tests/Feature/Foundation/RoleBasedDashboardTest.php": 1,
-    "tests/Feature/Foundation/AgentDashboardMetricsTest.php": 2,
-    "tests/Feature/Foundation/SupervisorDashboardMetricsTest.php": 2,
-    "tests/Feature/Foundation/ConfirmationAgentDashboardTest.php": 1,
-    "tests/Feature/Foundation/FulfillmentAgentDashboardTest.php": 1,
-    "tests/Feature/Foundation/DeliveryAgentDashboardTest.php": 2,
-    "tests/Feature/Foundation/AgentPointsPreviewTest.php": 1,
-    "app/Services/Metrics/AgentDashboardMetricsService.php": 7,
-    "app/Services/Metrics/AgentScorePreviewService.php": 2,
-    "app/Services/Metrics/SupervisorDashboardMetricsService.php": 3,
-    "app/Services/Metrics/OwnerDashboardMetricsService.php": 4,
-    "tests/Feature/Foundation/OwnerDashboardMetricsTest.php": 1,
-    "app/Support/OrderPresenter.php": 2,
-    "app/Http/Controllers/Dashboard/OrderController.php": 1,
-    "app/Http/Controllers/Dashboard/DepartmentController.php": 4,
-    "app/Support/InertiaErrorResponder.php": 1,
-    "bootstrap/app.php": 4,
-    "resources/js/Pages/Error.jsx": 1,
-    "resources/js/Components/ToastNotification.jsx": 2,
-    "app/Http/Middleware/HandleInertiaRequests.php": 1,
-    "resources/js/Pages/Dashboard/Orders/Manage.jsx": 10,
-    "resources/js/Pages/Dashboard/Departments/Confirmation.jsx": 2,
-    "tests/Feature/Foundation/OrderActionAuthorizationUxTest.php": 3,
-    "tests/Feature/Foundation/InertiaForbiddenActionTest.php": 4,
-    "tests/Feature/Foundation/BrandedErrorPageTest.php": 1,
-    "tests/Feature/Foundation/ConfirmationOrderCardActionTest.php": 1,
-    "app/Models/PlatformConnection.php": 1,
-    "app/Jobs/ShopifyOrderWebhookJob.php": 1,
-    "app/Http/Controllers/Api/ShopifyWebhookController.php": 3,
-    "app/Connectors/ShopifyConnector.php": 1,
-    "app/Services/Shopify/ShopifyWebhookRegistrationService.php": 1,
-    "routes/dashboard.php": 1,
-    "app/Http/Controllers/Dashboard/ConnectionProfileController.php": 4,
-    "tests/Feature/Foundation/ShopifyWebhookSignatureTest.php": 4,
-    "tests/Feature/Foundation/ShopifyWebhookConnectionResolutionTest.php": 1,
-    "tests/Feature/Foundation/ShopifyOrderImportIdempotencyTest.php": 1,
-    "tests/Feature/Foundation/ShopifyManualSyncStillWorksTest.php": 2,
-    "tests/Feature/Foundation/ShopifyScheduledOrderImportTest.php": 1,
-    "tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php": 2,
-    "tests/Feature/Foundation/ShopifyAutomaticOrderImportTest.php": 1
+    "app/Models/Order.php": 1,
+    "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php": 5,
+    "resources/js/Support/formatDate.js": 1,
+    "resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx": 2,
+    "resources/js/Pages/Dashboard/Finance/Dashboard.jsx": 2,
+    "resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx": 3,
+    "app/Enums/FinanceTransactionType.php": 2,
+    "app/Services/Finance/FinanceExpenseService.php": 11,
+    "app/Services/Finance/FinanceOrderTransactionService.php": 8,
+    "tests/Feature/Finance/FinanceCashflowTest.php": 5,
+    "app/Enums/FinanceCodSettlementStatus.php": 1,
+    "app/Enums/FinanceCourierDepositStatus.php": 1,
+    "database/migrations/2026_08_31_000001_create_finance_cod_settlements_table.php": 1,
+    "database/migrations/2026_08_31_000002_create_finance_cod_settlement_items_table.php": 1,
+    "database/migrations/2026_08_31_000003_create_finance_courier_deposits_table.php": 1,
+    "database/migrations/2026_08_31_000004_create_finance_courier_deposit_items_table.php": 1,
+    "app/Models/FinanceCodSettlement.php": 1,
+    "app/Models/FinanceCodSettlementItem.php": 1,
+    "app/Models/FinanceCourierDeposit.php": 1,
+    "app/Models/FinanceCourierDepositItem.php": 1,
+    "app/Services/Finance/FinanceCodSettlementService.php": 9,
+    "app/Services/Finance/FinanceCourierDepositService.php": 6,
+    "app/Http/Requests/Finance/FinanceCodSettlementRequest.php": 1,
+    "app/Http/Requests/Finance/FinanceCourierDepositRequest.php": 1,
+    "app/Policies/FinanceCodSettlementPolicy.php": 1,
+    "app/Policies/FinanceCourierDepositPolicy.php": 1,
+    "app/Http/Controllers/Dashboard/Finance/FinanceCodSettlementController.php": 1,
+    "app/Http/Controllers/Dashboard/Finance/FinanceCourierDepositController.php": 1,
+    "app/Providers/AppServiceProvider.php": 2,
+    "app/Support/PermissionCatalog.php": 1,
+    "routes/dashboard.php": 2,
+    "app/Services/Finance/FinanceMonthlyStatementService.php": 9,
+    "app/Services/Finance/FinanceDashboardService.php": 2,
+    "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx": 4,
+    "tests/Feature/Finance/FinanceCodSettlementTest.php": 3,
+    "tests/Feature/Finance/FinanceCourierDepositTest.php": 3,
+    "tests/Feature/Finance/FinanceCodReceivableTest.php": 9,
+    "tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php": 4,
+    "tests/Feature/Finance/FinanceMonthlyStatementTest.php": 1,
+    "app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php": 3,
+    "resources/js/Components/Finance/ExpenseForm.jsx": 2,
+    "resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx": 1,
+    "app/Enums/FinanceCodCollectabilityStatus.php": 1,
+    "app/Services/Finance/FinanceCodCollectabilityService.php": 1,
+    "database/migrations/2026_09_01_000001_add_sequence_to_finance_transactions_table.php": 1,
+    "app/Models/FinanceTransaction.php": 2,
+    "app/Services/Finance/FinanceTransactionService.php": 2
   },
-  "anatomy_hits": 47,
-  "anatomy_misses": 13,
-  "repeated_reads_warned": 18,
+  "anatomy_hits": 31,
+  "anatomy_misses": 2,
+  "repeated_reads_warned": 8,
   "cerebrum_warnings": 0,
   "stop_count": 4
 }

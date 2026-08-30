@@ -82,6 +82,20 @@ export const CONTEXTUAL_NAV = [
         ],
     },
     {
+        match: '/dashboard/finance',
+        tabs: [
+            { label: 'Overview', href: '/dashboard/finance', perm: 'finance.view' },
+            { label: 'Expenses', href: '/dashboard/finance/expenses', perm: 'finance.view' },
+            { label: 'Recurring', href: '/dashboard/finance/recurring', perm: 'finance.view' },
+            { label: 'Vendors', href: '/dashboard/finance/vendors', perm: 'finance.view' },
+            { label: 'Categories', href: '/dashboard/finance/categories', perm: 'finance.view' },
+            { label: 'Accounts', href: '/dashboard/finance/accounts', perm: 'finance.view' },
+            { label: 'Transactions', href: '/dashboard/finance/transactions', perm: 'finance.view_reports' },
+            { label: 'COD Receivables', href: '/dashboard/finance/cod-receivables', perm: 'finance.view' },
+            { label: 'Monthly Statement', href: '/dashboard/finance/statement', perm: 'finance.view_reports' },
+        ],
+    },
+    {
         match: '/dashboard/settings',
         tabs: [
             { label: 'Store Settings', href: '/dashboard/settings', perm: 'settings.manage' },

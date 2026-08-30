@@ -100,6 +100,23 @@ final class PermissionCatalog
                 ],
             ],
             [
+                'group' => 'finance',
+                'label' => 'Finance',
+                'permissions' => [
+                    ['key' => 'finance.view',             'label' => 'View finance desk',        'description' => 'See the Finance dashboard and summaries.'],
+                    ['key' => 'finance.manage_expenses',  'label' => 'Manage expenses',           'description' => 'Create, edit, cancel and mark expenses as paid/unpaid.'],
+                    ['key' => 'finance.manage_categories','label' => 'Manage expense categories', 'description' => 'Create, edit and deactivate expense categories.'],
+                    ['key' => 'finance.manage_recurring', 'label' => 'Manage recurring expenses', 'description' => 'Create, edit, pause and cancel recurring expenses/subscriptions.'],
+                    ['key' => 'finance.manage_vendors',   'label' => 'Manage vendors',            'description' => 'Create, edit and deactivate vendors/suppliers.'],
+                    ['key' => 'finance.view_reports',     'label' => 'View finance reports',      'description' => 'See the monthly finance statement and the transaction ledger.'],
+                    ['key' => 'finance.export_reports',   'label' => 'Export finance reports',    'description' => 'Export the monthly finance statement.'],
+                    ['key' => 'finance.manage_accounts',  'label' => 'Manage finance accounts',   'description' => 'Create, edit and deactivate cash/bank/card accounts.'],
+                    ['key' => 'finance.manage_cashflow',  'label' => 'Manage cashflow',           'description' => 'Record manual ledger adjustments.'],
+                    ['key' => 'finance.mark_collected',   'label' => 'Mark COD collected',        'description' => 'Confirm a COD order\'s cash has been physically collected.'],
+                    ['key' => 'finance.manage_cod_settlements', 'label' => 'Manage COD settlements', 'description' => 'Create and confirm external carrier settlements and internal courier cash deposits.'],
+                ],
+            ],
+            [
                 'group' => 'administration',
                 'label' => 'Administration',
                 'permissions' => [

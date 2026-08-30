@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\Stock;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\Finance\FinanceOrderTransactionService;
 use App\Services\Inventory\WarehouseAllocationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +25,10 @@ use Throwable;
 
 class OrderProcessingService
 {
-    public function __construct(private readonly WarehouseAllocationService $allocations) {}
+    public function __construct(
+        private readonly WarehouseAllocationService $allocations,
+        private readonly FinanceOrderTransactionService $finance,
+    ) {}
 
     /**
      * Create a POS order with its line items. Runs in a single transaction so
@@ -44,7 +48,7 @@ class OrderProcessingService
         $fulfillmentType = FulfillmentType::tryFrom((string) ($data['fulfillment_type'] ?? '')) ?? FulfillmentType::Instant;
 
         try {
-            return DB::transaction(function () use ($store, $cashier, $session, $data, $fulfillmentType) {
+            $order = DB::transaction(function () use ($store, $cashier, $session, $data, $fulfillmentType) {
                 $order = PosOrder::create([
                     'store_id'         => $store->id,
                     'pos_session_id'   => $session->id,
@@ -117,6 +121,19 @@ class OrderProcessingService
 
             throw new RuntimeException('Failed to create order: ' . $e->getMessage(), 0, $e);
         }
+
+        // Outside the order's own transaction, and defensively caught: a
+        // Finance-side bug must never roll back or fail a POS sale.
+        try {
+            $this->finance->syncPosOrderFinancials($order);
+        } catch (Throwable $e) {
+            Log::error('Finance: failed to sync POS order financials', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $order;
     }
 
     /**

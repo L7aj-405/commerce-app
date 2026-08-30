@@ -11483,6 +11483,964 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-28T15:09:03.090Z"
+    },
+    {
+      "id": "bug-699",
+      "timestamp": "2026-08-29T20:32:37.966Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceExpenseCategoryController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T20:32:37.966Z"
+    },
+    {
+      "id": "bug-700",
+      "timestamp": "2026-08-29T20:32:46.157Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceDashboardController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T20:32:46.157Z"
+    },
+    {
+      "id": "bug-701",
+      "timestamp": "2026-08-29T20:32:56.661Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T20:32:56.661Z"
+    },
+    {
+      "id": "bug-702",
+      "timestamp": "2026-08-29T20:33:02.278Z",
+      "error_message": "Wrong reference: FinanceRecurringExpenseService should be FinanceExpenseCategoryService",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php",
+      "root_cause": "Used \"FinanceRecurringExpenseService\" instead of \"FinanceExpenseCategoryService\"",
+      "fix": "Changed FinanceRecurringExpenseService → FinanceExpenseCategoryService",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T20:33:02.278Z"
+    },
+    {
+      "id": "bug-703",
+      "timestamp": "2026-08-29T20:33:09.765Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T20:33:09.765Z"
+    },
+    {
+      "id": "bug-704",
+      "timestamp": "2026-08-29T21:00:56.116Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceExpenseCategoryTest.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 12→28 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:00:56.116Z"
+    },
+    {
+      "id": "bug-705",
+      "timestamp": "2026-08-29T21:04:16.127Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceDashboardService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:04:16.127Z"
+    },
+    {
+      "id": "bug-706",
+      "timestamp": "2026-08-29T21:04:21.469Z",
+      "error_message": "Wrong reference: where should be whereDate",
+      "file": "app/Services/Finance/FinanceDashboardService.php",
+      "root_cause": "Used \"where\" instead of \"whereDate\"",
+      "fix": "Changed where → whereDate",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:04:21.469Z"
+    },
+    {
+      "id": "bug-707",
+      "timestamp": "2026-08-29T21:04:35.333Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 15→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:04:35.333Z"
+    },
+    {
+      "id": "bug-708",
+      "timestamp": "2026-08-29T21:17:06.179Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/PremiumDashboard/FullNavigationDrawer.jsx",
+      "root_cause": "Had 'Integrations'",
+      "fix": "Changed to 'Finance'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:17:06.179Z"
+    },
+    {
+      "id": "bug-709",
+      "timestamp": "2026-08-29T21:23:32.836Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/FinanceExpense.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:23:32.836Z"
+    },
+    {
+      "id": "bug-710",
+      "timestamp": "2026-08-29T21:23:47.836Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/FinanceRecurringExpense.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:23:47.836Z"
+    },
+    {
+      "id": "bug-711",
+      "timestamp": "2026-08-29T21:25:46.128Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceDashboardService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:25:46.128Z"
+    },
+    {
+      "id": "bug-712",
+      "timestamp": "2026-08-29T21:26:05.842Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Finance/Dashboard.jsx",
+      "root_cause": "Had \"flex items-center gap-2 text-content-muted\"",
+      "fix": "Changed to \"flex items-center gap-2 text-content-muted capita",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T21:26:05.842Z"
+    },
+    {
+      "id": "bug-713",
+      "timestamp": "2026-08-29T22:01:51.690Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Had 'currency'",
+      "fix": "Changed to 'MAD'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-29T22:02:05.800Z"
+    },
+    {
+      "id": "bug-714",
+      "timestamp": "2026-08-29T22:02:17.981Z",
+      "error_message": "Wrong reference: Organization should be PosOrder",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Used \"Organization\" instead of \"PosOrder\"",
+      "fix": "Changed Organization → PosOrder",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:02:17.981Z"
+    },
+    {
+      "id": "bug-715",
+      "timestamp": "2026-08-29T22:03:41.620Z",
+      "error_message": "Wrong reference: return should be $order",
+      "file": "app/Services/Pos/OrderProcessingService.php",
+      "root_cause": "Used \"return\" instead of \"$order\"",
+      "fix": "Changed return → $order",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:03:41.620Z"
+    },
+    {
+      "id": "bug-716",
+      "timestamp": "2026-08-29T22:04:36.229Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "app/Services/Orders/OrderWorkflowService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:04:36.230Z"
+    },
+    {
+      "id": "bug-717",
+      "timestamp": "2026-08-29T22:07:59.770Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 17→25 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:07:59.770Z"
+    },
+    {
+      "id": "bug-718",
+      "timestamp": "2026-08-29T22:08:15.623Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:08:15.623Z"
+    },
+    {
+      "id": "bug-719",
+      "timestamp": "2026-08-29T22:13:21.325Z",
+      "error_message": "CSS fix: sm",
+      "file": "resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
+      "root_cause": "sm: grid-cols-2 xl:grid-cols-4 gap-4 mb-6\"> → grid-cols-2 gap-4 mb-6\">",
+      "fix": "Changed sm: grid-cols-2 xl:grid-cols-4 gap-4 mb-6\"> → grid-cols-2 gap-4 mb-6\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:13:21.325Z"
+    },
+    {
+      "id": "bug-720",
+      "timestamp": "2026-08-29T22:13:43.344Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:13:43.344Z"
+    },
+    {
+      "id": "bug-721",
+      "timestamp": "2026-08-29T22:52:49.117Z",
+      "error_message": "Wrong return value",
+      "file": "tests/Feature/Finance/FinanceCashflowTest.php",
+      "root_cause": "Was returning: = \\App\\Models\\OrderReturn::where('order_id', $orde",
+      "fix": "Now returns: = \\App\\Models\\OrderReturn::where('returnable_type'",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-29T22:52:49.117Z"
+    },
+    {
+      "id": "bug-722",
+      "timestamp": "2026-08-30T20:51:53.503Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:51:53.503Z"
+    },
+    {
+      "id": "bug-723",
+      "timestamp": "2026-08-30T20:52:13.862Z",
+      "error_message": "CSS fix: key",
+      "file": "resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx",
+      "root_cause": "key: 'occurred_at', label: 'Date', render: (t) => t.occurred_at → 'occurred_at', label: 'Date', render: (t) => <span className=\"whitespace-nowrap\">{formatDateTime(t.occurred_at)",
+      "fix": "Changed key: 'occurred_at', label: 'Date', render: (t) => t.occurred_at → 'occurred_at', label: 'Date', render: (t) => <span className=\"whitespace-nowrap\">{formatDateTime(t.occurred_at)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:52:13.862Z"
+    },
+    {
+      "id": "bug-724",
+      "timestamp": "2026-08-30T20:52:52.821Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Enums/FinanceTransactionType.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 33→61 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:52:52.821Z"
+    },
+    {
+      "id": "bug-725",
+      "timestamp": "2026-08-30T20:53:02.648Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 26→30 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:53:02.648Z"
+    },
+    {
+      "id": "bug-726",
+      "timestamp": "2026-08-30T20:53:53.182Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:53:53.182Z"
+    },
+    {
+      "id": "bug-727",
+      "timestamp": "2026-08-30T20:53:57.214Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Finance/FinanceCashflowTest.php",
+      "root_cause": "Had 'manual_adjustment'",
+      "fix": "Changed to 'expense_payment_reversed'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-30T20:53:58.921Z"
+    },
+    {
+      "id": "bug-728",
+      "timestamp": "2026-08-30T20:59:19.445Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→29 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:59:19.445Z"
+    },
+    {
+      "id": "bug-729",
+      "timestamp": "2026-08-30T20:59:53.622Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceDashboardService.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 6→9 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T20:59:53.622Z"
+    },
+    {
+      "id": "bug-730",
+      "timestamp": "2026-08-30T21:05:10.549Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→12 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:05:10.549Z"
+    },
+    {
+      "id": "bug-731",
+      "timestamp": "2026-08-30T21:06:28.385Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "root_cause": "Had 'Ozon'",
+      "fix": "Changed to 'Ozon Express'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:06:28.385Z"
+    },
+    {
+      "id": "bug-732",
+      "timestamp": "2026-08-30T21:30:00.000Z",
+      "error_message": "PDOException: SQLSTATE[HY000]: General error: 1 ambiguous column name: shippable_id — Finance → COD Receivables returned HTTP 500 as soon as a pending COD order existed.",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "The controller eager-loaded 'shipment:id,shippable_id,shippable_type,provider_code,status' (a column-restricted with()). Order::shipment() is a MorphOne ...->latestOfMany(), which compiles to a self-join between `shipments` and an aggregate subquery over the SAME table. An unqualified column list in the select is ambiguous between the two joined instances of `shippable_id` the moment there is at least one parent Order id to eager-load for — with zero pending orders the relation query never even runs, which is why the bug was invisible until a real COD receivable existed.",
+      "fix": "Never restrict select columns on a morphOne/hasOne \"...->latestOfMany()\" (or oldestOfMany()) relation eager load — load the relation in full (optionally restrict a NESTED, non-self-joined relation instead, e.g. 'shipment.provider:code,name'). Also added Order::orderShipment() (same latestOfMany pattern) for the internal-courier grouping, deliberately unrestricted.",
+      "tags": [
+        "finance",
+        "cod-receivables",
+        "eloquent",
+        "latestOfMany",
+        "ambiguous-column",
+        "morphOne",
+        "500"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:30:00.000Z"
+    },
+    {
+      "id": "bug-733",
+      "timestamp": "2026-08-30T21:30:00.000Z",
+      "error_message": "User-reported: marking a paid expense back to unpaid creates a positive adjustment labeled \"Manual adjustment\", which is confusing.",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "FinanceExpenseService::recordReversalIfNeeded() wrote the reversal using FinanceTransactionType::ManualAdjustment — the exact same ledger type the Transactions page's free-form \"Add adjustment\" button uses — so an automatic, well-understood reversal was visually indistinguishable from an arbitrary manual entry.",
+      "fix": "Added a dedicated FinanceTransactionType::ExpensePaymentReversed ('expense_payment_reversed') case with its own label ('Expense payment reversed') and direction (In, same as before). markUnpaid()/cancel() now record that type instead of ManualAdjustment. Updated the two FinanceCashflowTest assertions that hardcoded the old type value.",
+      "tags": [
+        "finance",
+        "expenses",
+        "ledger",
+        "transaction-type",
+        "ux"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:30:00.000Z"
+    },
+    {
+      "id": "bug-734",
+      "timestamp": "2026-08-30T21:30:00.000Z",
+      "error_message": "Latent (no user report yet): a pending COD order placed against a sibling store in the same organization silently never appeared on the org-wide COD Receivables / settlement / deposit screens.",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "Order uses App\\Models\\Concerns\\BelongsToTenant, a STORE-level global scope (TenantScope), while Finance is an ORGANIZATION-level desk (FinanceTransaction/FinanceAccount use the separate BelongsToOrganization scope). FinanceOrderTransactionService::pendingCodOrderIds() correctly computes pending order ids across the whole organization from the ledger, but the controller's plain `Order::whereIn('id', $pendingIds)->get()` was still silently narrowed to whichever ONE store is \"active\" for the current request/session, dropping orders from any other store in the same org.",
+      "fix": "Wrapped every direct Order::query() fetch driven by an organization-scoped id list in Order::withoutTenancy(fn () => ...) — in FinanceCodReceivableController::index(), FinanceCodSettlementService (resolvePendingOrders() and settle()'s item->order eager load), and FinanceCourierDepositService (same two spots). The organization_id membership check (via pendingCodOrderIds($organizationId)) is what actually keeps this tenant-safe, exactly like FinanceTransaction's existing withoutOrganizationTenancy() calls.",
+      "tags": [
+        "finance",
+        "cod",
+        "multi-store",
+        "tenant-scope",
+        "belongsToTenant",
+        "belongsToOrganization"
+      ],
+      "related_bugs": [
+        "bug-732"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:30:00.000Z"
+    },
+    {
+      "id": "bug-735",
+      "timestamp": "2026-08-30T21:30:00.000Z",
+      "error_message": "Would have been introduced by the new COD settlement/courier-deposit workflows: FinanceDashboardService's \"Pending COD\" card and FinanceMonthlyStatementService's \"pending receivables at month end\" would have kept counting an order as pending forever after it was closed via an external settlement or courier deposit.",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Both pendingCodOrderIds()-adjacent snapshot queries only subtracted the ORIGINAL 'cod_collected' transaction type (the ad-hoc single-order \"mark collected\" action). Adding two new ledger-closing types (cod_settled_external, cod_cleared_by_courier) for the new batch workflows meant every place that hardcoded 'cod_collected' as \"the\" closing type needed to be found and updated together, or the two would silently disagree with each other (COD Receivables page correct, Dashboard/Statement wrong).",
+      "fix": "Added FinanceTransactionType::codClosingTypes() (static array of every type that closes a receivable) as the single source of truth. Updated FinanceOrderTransactionService::pendingCodOrderIds(), FinanceDashboardService::build() ('cod_pending'), and FinanceMonthlyStatementService::forMonth() ('pending_receivables_at_month_end') to all whereIn() that array instead of a single hardcoded type. Any FUTURE way of closing a COD receivable should be added to codClosingTypes() and nowhere else.",
+      "tags": [
+        "finance",
+        "cod",
+        "ledger",
+        "dashboard",
+        "monthly-statement",
+        "single-source-of-truth"
+      ],
+      "related_bugs": [
+        "bug-732"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:30:00.000Z"
+    },
+    {
+      "id": "bug-736",
+      "timestamp": "2026-08-30T21:32:45.129Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:32:45.130Z"
+    },
+    {
+      "id": "bug-737",
+      "timestamp": "2026-08-30T21:32:53.569Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 23→28 lines (8 removed) | Also: $newPaymentMethod = $data['payment_method'] ?? nul; || ($newPaymentMethod !== null && $newPaymentMetho",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-30T21:37:48.371Z"
+    },
+    {
+      "id": "bug-738",
+      "timestamp": "2026-08-30T21:33:20.312Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceCashflowTest.php",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 29→45 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:33:20.312Z"
+    },
+    {
+      "id": "bug-739",
+      "timestamp": "2026-08-30T21:33:36.840Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 11→15 lines (11 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:33:36.840Z"
+    },
+    {
+      "id": "bug-740",
+      "timestamp": "2026-08-30T21:34:16.089Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 25→63 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:34:16.089Z"
+    },
+    {
+      "id": "bug-741",
+      "timestamp": "2026-08-30T21:36:30.850Z",
+      "error_message": "CSS fix: focus",
+      "file": "resources/js/Components/Finance/ExpenseForm.jsx",
+      "root_cause": "focus: outline-none focus:ring-2 focus:ring-primary` → outline-none focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed`",
+      "fix": "Changed focus: outline-none focus:ring-2 focus:ring-primary` → outline-none focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed`",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:36:30.850Z"
+    },
+    {
+      "id": "bug-742",
+      "timestamp": "2026-08-30T21:43:26.769Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:43:26.769Z"
+    },
+    {
+      "id": "bug-743",
+      "timestamp": "2026-08-30T21:44:43.882Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Was returning: $this->transactions->record([",
+      "fix": "Now returns: the existing row",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:44:43.882Z"
+    },
+    {
+      "id": "bug-744",
+      "timestamp": "2026-08-30T21:45:54.249Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceCourierDepositService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:45:54.250Z"
+    },
+    {
+      "id": "bug-745",
+      "timestamp": "2026-08-30T21:46:09.126Z",
+      "error_message": "Wrong reference: Response should be FinanceCodCollectabilityService",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "Used \"Response\" instead of \"FinanceCodCollectabilityService\"",
+      "fix": "Changed Response → FinanceCodCollectabilityService",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:46:09.126Z"
+    },
+    {
+      "id": "bug-746",
+      "timestamp": "2026-08-30T21:46:54.216Z",
+      "error_message": "CSS fix: settled",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "settled: 'bg-success-soft text-success', → 'Settled',",
+      "fix": "Changed settled: 'bg-success-soft text-success', → 'Settled',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-30T21:47:12.000Z"
+    },
+    {
+      "id": "bug-747",
+      "timestamp": "2026-08-30T21:46:59.063Z",
+      "error_message": "Missing guard clause",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "No early return/throw for edge case: ! order.is_collectable",
+      "fix": "Added guard clause: if (! order.is_collectable)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:46:59.063Z"
+    },
+    {
+      "id": "bug-748",
+      "timestamp": "2026-08-30T21:48:51.760Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceCodSettlementTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:48:51.760Z"
+    },
+    {
+      "id": "bug-749",
+      "timestamp": "2026-08-30T21:49:21.109Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceCourierDepositTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:49:21.109Z"
+    },
+    {
+      "id": "bug-750",
+      "timestamp": "2026-08-30T21:52:36.998Z",
+      "error_message": "Wrong reference: get should be with",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "Used \"get\" instead of \"with\"",
+      "fix": "Changed get → with",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:52:36.998Z"
+    },
+    {
+      "id": "bug-751",
+      "timestamp": "2026-08-31T00:00:00.000Z",
+      "error_message": "User-reported: Finance allowed marking a COD order collected/settled/deposited even though it had only been confirmed — not picked, packed, dispatched, or delivered.",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "cod_receivable_created is written the moment an order is CONFIRMED (FinanceOrderTransactionService::syncOrderFinancials()) — that only means cash is EXPECTED. Every COD cash action (markCodCollected, FinanceCodSettlementService::create()/settle(), FinanceCourierDepositService::create()/confirm()) only checked pendingCodOrderIds() membership (not yet closed), never the order's actual fulfillment_status — so a merely-confirmed order was fully collectable/settleable.",
+      "fix": "Added FinanceCodCollectabilityService (gates on App\\Enums\\FulfillmentStatus — Delivered/Completed = collectable, cancelled/return-flow = cancelled_or_returned, already-closed-via-any-mechanism = settled, else not_delivered/with_internal_courier/with_external_carrier). New FinanceOrderTransactionService::resolveCollectableOrders() is now the single gate both FinanceCodSettlementService::create() and FinanceCourierDepositService::create() call instead of their own duplicated resolvePendingOrders(). closeCodReceivable() and markCodCollected() both re-check collectability too (not just at create-time) — settle()/confirm() wrapped in DB::transaction so a mid-loop rejection rolls back cleanly, never a partial settlement.",
+      "tags": [
+        "finance",
+        "cod",
+        "delivery-lifecycle",
+        "fulfillment-status",
+        "double-counting",
+        "authorization-gap"
+      ],
+      "related_bugs": [
+        "bug-732",
+        "bug-734",
+        "bug-735"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-752",
+      "timestamp": "2026-08-31T00:00:00.000Z",
+      "error_message": "Latent double-count risk: marking a COD order collected via the ad-hoc single-order action after it was ALREADY closed via a different mechanism (an external settlement or courier deposit) would create a second, unrelated cod_collected transaction on top of the settlement/deposit's own net cash-in entry.",
+      "file": "app/Services/Finance/FinanceOrderTransactionService.php",
+      "root_cause": "markCodCollected()'s idempotency check only looked for an EXISTING cod_collected transaction for that exact (source, type) pair (record()'s built-in dedupe) — it never checked whether the order had already been closed via a DIFFERENT closing type (cod_settled_external / cod_cleared_by_courier), so those two mechanisms could double-book the same order's cash.",
+      "fix": "markCodCollected() now short-circuits to the existing row ONLY when the SAME action (cod_collected) was already recorded (true idempotency, no error). Otherwise it calls FinanceCodCollectabilityService::isCollectable(), which returns 'settled' (not collectable) for an order closed via ANY of the three closing types — so a cross-mechanism double-collect now throws a ValidationException instead of silently creating a duplicate cash entry.",
+      "tags": [
+        "finance",
+        "cod",
+        "idempotency",
+        "double-counting",
+        "ledger"
+      ],
+      "related_bugs": [
+        "bug-751"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T00:00:00.000Z"
+    },
+    {
+      "id": "bug-753",
+      "timestamp": "2026-08-30T21:58:57.081Z",
+      "error_message": "Wrong return value",
+      "file": "app/Services/Finance/FinanceTransactionService.php",
+      "root_cause": "Was returning: (int) $e->getCode() === 23000 || str_contains($e->",
+      "fix": "Now returns: (int) $e->getCode() === 23000",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:58:57.081Z"
+    },
+    {
+      "id": "bug-754",
+      "timestamp": "2026-08-30T21:59:37.730Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 49→109 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T21:59:37.730Z"
+    },
+    {
+      "id": "bug-755",
+      "timestamp": "2026-08-30T22:00:24.989Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/Feature/Finance/FinanceCashflowTest.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→16 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-30T22:00:24.989Z"
+    },
+    {
+      "id": "bug-753",
+      "timestamp": "2026-08-31T01:00:00.000Z",
+      "error_message": "User manual test: unpaid(100) -> paid(-100) -> unpaid(+100 reversal) -> edit amount to 150 -> paid again => expected a new expense_paid -150, actual: no new transaction created at all.",
+      "file": "app/Services/Finance/FinanceTransactionService.php",
+      "root_cause": "FinanceTransactionService::record()/alreadyRecorded()/findExisting() dedupe purely on (source_type, source_id, type) — enforced by a DB unique index of the same 3 columns. Since FinanceExpense + 'expense_paid' had already produced ONE row (now reversed), record() found that OLD row via findExisting() and returned it unchanged instead of creating a new one — and even if the app-level check were bypassed, the DB unique index would have rejected a second insert with a duplicate-key error. The 3-column key structurally cannot represent \"one active payment at a time, but repeatable over the expense's life\".",
+      "fix": "Added a `sequence` column (default 0, migration 2026_09_01_000001) and widened the unique index to (source_type, source_id, type, sequence) — a no-op for every OTHER transaction type (always sequence=0, identical behavior to before) but lets FinanceExpenseService assign a real 1,2,3... payment-cycle number, shared between one expense_paid and the expense_payment_reversed that later reverses it. FinanceExpenseService now decides collectability via COUNT comparison (paidTransactionCount > reversalTransactionCount = an active unreversed payment exists) instead of trusting a single-row existence check — recordPaidTransactionIfNeeded() only skips creating a new row when a cycle is still active; recordReversalIfNeeded() finds the latest ACTIVE expense_paid (by highest sequence) and reverses ITS exact amount (never the expense's current, possibly-since-edited amount), storing metadata.reverses_transaction_id + metadata.reversal_reason.",
+      "tags": [
+        "finance",
+        "expenses",
+        "ledger",
+        "idempotency",
+        "unique-index",
+        "payment-cycle"
+      ],
+      "related_bugs": ["bug-733"],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T01:00:00.000Z"
     }
   ]
 }

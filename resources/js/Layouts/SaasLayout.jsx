@@ -4,7 +4,8 @@ import {
     Home, ShoppingCart, Package, Layers, Monitor, FileText, Truck,
     Settings, Plug, Users, Building2, ShieldCheck, Undo2,
     ClipboardCheck, PackageCheck, Navigation, LifeBuoy, ClipboardList,
-    PackageSearch, ArrowLeftRight,
+    PackageSearch, ArrowLeftRight, Wallet, Receipt, RefreshCw, Tags, FileBarChart,
+    Landmark, ListOrdered, HandCoins,
 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import ToastNotification from '@/Components/ToastNotification';
@@ -56,6 +57,17 @@ const NAV_SECTIONS = [
         { label: 'POS Terminal', href: '/pos', icon: Monitor, perm: 'pos.access' },
         { label: 'Factures', href: '/dashboard/factures', icon: FileText, perm: 'factures.view' },
         { label: 'Bon de Livraison', href: '/dashboard/bon-de-livraison', icon: Truck, perm: 'factures.view' },
+    ]},
+    { label: 'Finance', domain: 'Finance', items: [
+        { label: 'Overview', href: '/dashboard/finance', icon: Wallet, perm: 'finance.view' },
+        { label: 'Expenses', href: '/dashboard/finance/expenses', icon: Receipt, perm: 'finance.view' },
+        { label: 'Recurring / Subscriptions', href: '/dashboard/finance/recurring', icon: RefreshCw, perm: 'finance.view' },
+        { label: 'Vendors', href: '/dashboard/finance/vendors', icon: Truck, perm: 'finance.view' },
+        { label: 'Categories', href: '/dashboard/finance/categories', icon: Tags, perm: 'finance.view' },
+        { label: 'Accounts', href: '/dashboard/finance/accounts', icon: Landmark, perm: 'finance.view' },
+        { label: 'Transactions', href: '/dashboard/finance/transactions', icon: ListOrdered, perm: 'finance.view_reports' },
+        { label: 'COD Receivables', href: '/dashboard/finance/cod-receivables', icon: HandCoins, perm: 'finance.view' },
+        { label: 'Monthly Statement', href: '/dashboard/finance/statement', icon: FileBarChart, perm: 'finance.view_reports' },
     ]},
     { label: 'Team', domain: 'Settings', items: [
         { label: 'Team Members', href: '/dashboard/team', icon: Users, perm: 'team.manage' },

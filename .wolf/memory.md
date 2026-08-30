@@ -3942,3 +3942,303 @@
 | 16:08 | Created tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php | — | ~1652 |
 | 16:09 | Edited tests/Feature/Foundation/ShopifyWebhookOrderImportTest.php | modified function() | ~677 |
 | 16:09 | Created tests/Feature/Foundation/ShopifyAutomaticOrderImportTest.php | — | ~1856 |
+
+## Session: 2026-08-29 21:22
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:26 | Created database/migrations/2026_08_29_000001_create_finance_expense_categories_table.php | — | ~316 |
+| 21:26 | Created database/migrations/2026_08_29_000002_create_finance_vendors_table.php | — | ~278 |
+| 21:26 | Created database/migrations/2026_08_29_000003_create_finance_recurring_expenses_table.php | — | ~556 |
+| 21:26 | Created database/migrations/2026_08_29_000004_create_finance_expenses_table.php | — | ~754 |
+| 21:26 | Created app/Enums/FinanceExpenseStatus.php | — | ~103 |
+| 21:26 | Created app/Enums/FinancePaymentMethod.php | — | ~165 |
+| 21:26 | Created app/Enums/FinanceRecurringFrequency.php | — | ~245 |
+| 21:26 | Created app/Enums/FinanceRecurringStatus.php | — | ~106 |
+| 21:26 | Created app/Models/FinanceExpenseCategory.php | — | ~335 |
+| 21:26 | Created app/Models/FinanceVendor.php | — | ~334 |
+| 21:26 | Created app/Models/FinanceExpense.php | — | ~645 |
+| 21:26 | Created app/Models/FinanceRecurringExpense.php | — | ~684 |
+| 21:27 | Edited app/Support/PermissionCatalog.php | expanded (+13 lines) | ~368 |
+| 21:27 | Created app/Policies/FinanceExpenseCategoryPolicy.php | — | ~416 |
+| 21:27 | Created app/Policies/FinanceVendorPolicy.php | — | ~326 |
+| 21:27 | Created app/Policies/FinanceExpensePolicy.php | — | ~407 |
+| 21:27 | Created app/Policies/FinanceRecurringExpensePolicy.php | — | ~343 |
+| 21:27 | Edited app/Providers/AppServiceProvider.php | added 8 import(s) | ~134 |
+| 21:27 | Edited app/Providers/AppServiceProvider.php | 1→5 lines | ~98 |
+| 21:28 | Created app/Http/Requests/Finance/FinanceExpenseCategoryRequest.php | — | ~326 |
+| 21:28 | Created app/Http/Requests/Finance/FinanceVendorRequest.php | — | ~227 |
+| 21:28 | Created app/Http/Requests/Finance/FinanceExpenseRequest.php | — | ~510 |
+| 21:28 | Created app/Http/Requests/Finance/FinanceRecurringExpenseRequest.php | — | ~586 |
+| 21:28 | Created app/Services/Finance/FinanceExpenseCategoryService.php | — | ~1020 |
+| 21:29 | Created app/Services/Finance/FinanceVendorService.php | — | ~407 |
+| 21:29 | Created app/Services/Finance/FinanceExpenseService.php | — | ~1182 |
+| 21:29 | Created app/Services/Finance/FinanceRecurringExpenseService.php | — | ~1908 |
+| 21:30 | Created app/Services/Finance/FinanceDashboardService.php | — | ~1064 |
+| 21:31 | Created app/Services/Finance/FinanceMonthlyStatementService.php | — | ~1283 |
+| 21:31 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | modified fn() | ~85 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceDashboardController.php | — | ~118 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceExpenseCategoryController.php | — | ~580 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceVendorController.php | — | ~523 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | — | ~1167 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php | — | ~1054 |
+| 21:31 | Created app/Http/Controllers/Dashboard/Finance/FinanceMonthlyStatementController.php | — | ~371 |
+| 21:31 | Edited app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php | added 1 import(s) | ~12 |
+| 21:32 | Edited app/Http/Controllers/Dashboard/Finance/FinanceMonthlyStatementController.php | 3→2 lines | ~24 |
+| 21:32 | Created app/Console/Commands/GenerateRecurringExpensesCommand.php | — | ~245 |
+| 21:32 | Edited routes/console.php | 3→7 lines | ~110 |
+| 21:32 | Edited app/Services/Finance/FinanceExpenseCategoryService.php | added 1 condition(s) | ~159 |
+| 21:32 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseCategoryController.php | added 1 condition(s) | ~106 |
+| 21:32 | Edited app/Http/Controllers/Dashboard/Finance/FinanceDashboardController.php | added 1 condition(s) | ~181 |
+| 21:32 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added 1 import(s) | ~38 |
+| 21:32 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added 1 condition(s) | ~77 |
+| 21:33 | Edited app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php | added 1 import(s) | ~38 |
+| 21:33 | Edited app/Http/Controllers/Dashboard/Finance/FinanceRecurringExpenseController.php | added 1 condition(s) | ~77 |
+| 21:33 | Edited routes/dashboard.php | added 6 import(s) | ~164 |
+| 21:33 | Edited routes/dashboard.php | modified group() | ~1237 |
+| 21:34 | Edited resources/js/Layouts/SaasLayout.jsx | 6→6 lines | ~89 |
+| 21:34 | Edited resources/js/Layouts/SaasLayout.jsx | expanded (+8 lines) | ~223 |
+| 21:34 | Created resources/js/Pages/Dashboard/Finance/Dashboard.jsx | — | ~2145 |
+| 21:34 | Created resources/js/Pages/Dashboard/Finance/Categories/Index.jsx | — | ~1958 |
+| 21:35 | Edited resources/js/Pages/Dashboard/Finance/Categories/Index.jsx | 2→2 lines | ~27 |
+| 21:35 | Edited resources/js/Pages/Dashboard/Finance/Categories/Index.jsx | CSS: preserveScroll | ~164 |
+| 21:35 | Created resources/js/Pages/Dashboard/Finance/Vendors/Index.jsx | — | ~1994 |
+| 21:35 | Created resources/js/Components/Finance/ExpenseForm.jsx | — | ~1598 |
+| 21:35 | Created resources/js/Pages/Dashboard/Finance/Expenses/Create.jsx | — | ~450 |
+| 21:35 | Created resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx | — | ~502 |
+| 21:36 | Created resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | — | ~2464 |
+| 21:36 | Created resources/js/Components/Finance/RecurringExpenseForm.jsx | — | ~1895 |
+| 21:36 | Created resources/js/Pages/Dashboard/Finance/Recurring/Create.jsx | — | ~496 |
+| 21:36 | Created resources/js/Pages/Dashboard/Finance/Recurring/Edit.jsx | — | ~562 |
+| 21:37 | Created resources/js/Pages/Dashboard/Finance/Recurring/Index.jsx | — | ~1359 |
+| 21:37 | Created resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | — | ~2183 |
+| 21:39 | Created tests/Feature/Finance/FinanceAccessTest.php | — | ~938 |
+| 21:40 | Created tests/Feature/Finance/FinanceExpenseCategoryTest.php | — | ~950 |
+| 21:40 | Edited tests/Feature/Finance/FinanceExpenseCategoryTest.php | modified it() | ~253 |
+| 21:40 | Created tests/Feature/Finance/FinanceVendorTest.php | — | ~774 |
+| 21:41 | Created tests/Feature/Finance/FinanceExpenseTest.php | — | ~1957 |
+| 21:41 | Edited tests/Feature/Finance/FinanceExpenseTest.php | modified it() | ~282 |
+| 21:41 | Created tests/Feature/Finance/FinanceRecurringExpenseTest.php | — | ~1745 |
+| 21:42 | Created tests/Feature/Finance/FinanceMonthlyStatementTest.php | — | ~1297 |
+| 21:43 | Edited tests/Feature/Finance/FinanceAccessTest.php | modified financeAccessWorkspace() | ~315 |
+| 21:44 | Edited tests/Feature/Finance/FinanceAccessTest.php | modified it() | ~288 |
+| 21:44 | Edited tests/Feature/Finance/FinanceAccessTest.php | modified financeAddStaffWithRole() | ~53 |
+| 21:47 | Session end: 76 writes across 51 files (2026_08_29_000001_create_finance_expense_categories_table.php, 2026_08_29_000002_create_finance_vendors_table.php, 2026_08_29_000003_create_finance_recurring_expenses_table.php, 2026_08_29_000004_create_finance_expenses_table.php, FinanceExpenseStatus.php) | 40 reads | ~76292 tok |
+| 22:00 | Edited tests/Feature/Finance/FinanceAccessTest.php | 1→4 lines | ~94 |
+| 22:00 | Edited tests/Feature/Finance/FinanceAccessTest.php | 5→5 lines | ~43 |
+| 22:00 | Edited tests/Feature/Finance/FinanceExpenseCategoryTest.php | modified it() | ~397 |
+| 22:02 | Edited tests/Feature/Finance/FinanceRecurringExpenseTest.php | 3→4 lines | ~47 |
+| 22:02 | Edited tests/Feature/Finance/FinanceRecurringExpenseTest.php | 2→5 lines | ~107 |
+| 22:03 | Edited tests/Feature/Finance/FinanceRecurringExpenseTest.php | 5→1 lines | ~30 |
+| 22:04 | Edited app/Services/Finance/FinanceRecurringExpenseService.php | modified use() | ~166 |
+| 22:04 | Edited app/Services/Finance/FinanceDashboardService.php | 10→15 lines | ~292 |
+| 22:04 | Edited app/Services/Finance/FinanceDashboardService.php | 3→3 lines | ~55 |
+| 22:04 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | modified fn() | ~332 |
+| 22:06 | Session end: 86 writes across 51 files (2026_08_29_000001_create_finance_expense_categories_table.php, 2026_08_29_000002_create_finance_vendors_table.php, 2026_08_29_000003_create_finance_recurring_expenses_table.php, 2026_08_29_000004_create_finance_expenses_table.php, FinanceExpenseStatus.php) | 45 reads | ~85000 tok |
+| 22:17 | Edited resources/js/Components/PremiumDashboard/FullNavigationDrawer.jsx | inline fix | ~36 |
+| 22:17 | Edited resources/js/Support/contextualNav.js | expanded (+11 lines) | ~200 |
+| 22:17 | Edited resources/js/Layouts/SaasLayout.jsx | 8→8 lines | ~206 |
+| 22:23 | Edited app/Models/FinanceExpense.php | 4→7 lines | ~99 |
+| 22:23 | Edited app/Models/FinanceRecurringExpense.php | 3→6 lines | ~90 |
+| 22:25 | Edited app/Services/Finance/FinanceDashboardService.php | expanded (+6 lines) | ~215 |
+| 22:26 | Edited resources/js/Pages/Dashboard/Finance/Dashboard.jsx | "flex items-center gap-2 t" → "flex items-center gap-2 t" | ~56 |
+| 22:35 | Created tests/Feature/Finance/FinanceNavigationTest.php | — | ~1663 |
+| 22:36 | Edited tests/Feature/Finance/FinanceNavigationTest.php | modified it() | ~177 |
+| 22:36 | Edited tests/Feature/Finance/FinanceNavigationTest.php | 5→5 lines | ~58 |
+| 22:38 | Session end: 96 writes across 54 files (2026_08_29_000001_create_finance_expense_categories_table.php, 2026_08_29_000002_create_finance_vendors_table.php, 2026_08_29_000003_create_finance_recurring_expenses_table.php, 2026_08_29_000004_create_finance_expenses_table.php, FinanceExpenseStatus.php) | 52 reads | ~101749 tok |
+| 22:56 | Created database/migrations/2026_08_30_000001_create_finance_accounts_table.php | — | ~357 |
+| 22:56 | Created database/migrations/2026_08_30_000002_create_finance_transactions_table.php | — | ~748 |
+| 22:56 | Created app/Enums/FinanceAccountType.php | — | ~169 |
+| 22:56 | Created app/Enums/FinanceTransactionDirection.php | — | ~132 |
+| 22:56 | Created app/Enums/FinanceTransactionType.php | — | ~452 |
+| 22:57 | Created app/Models/FinanceAccount.php | — | ~334 |
+| 22:57 | Created app/Models/FinanceTransaction.php | — | ~446 |
+| 22:57 | Created app/Policies/FinanceAccountPolicy.php | — | ~330 |
+| 22:57 | Created app/Policies/FinanceTransactionPolicy.php | — | ~265 |
+| 22:57 | Edited app/Support/PermissionCatalog.php | 4→7 lines | ~234 |
+| 22:57 | Created app/Services/Finance/FinanceAccountService.php | — | ~1106 |
+| 22:58 | Created app/Services/Finance/FinanceTransactionService.php | — | ~1102 |
+| 23:00 | Created app/Services/Finance/FinanceExpenseService.php | — | ~2393 |
+| 23:00 | Edited app/Services/Finance/FinanceRecurringExpenseService.php | modified __construct() | ~47 |
+| 23:00 | Edited app/Services/Finance/FinanceRecurringExpenseService.php | modified generateExpenseFor() | ~380 |
+| 23:01 | Created app/Services/Finance/FinanceOrderTransactionService.php | — | ~3372 |
+| 23:01 | Edited app/Services/Finance/FinanceOrderTransactionService.php | inline fix | ~16 |
+| 23:02 | Edited app/Services/Finance/FinanceOrderTransactionService.php | inline fix | ~29 |
+| 23:02 | Edited app/Services/Finance/FinanceOrderTransactionService.php | 3→2 lines | ~13 |
+| 23:02 | Created app/Listeners/SyncFinanceOrderTransactions.php | — | ~248 |
+| 23:02 | Edited app/Providers/AppServiceProvider.php | 1→2 lines | ~45 |
+| 23:03 | Edited app/Providers/AppServiceProvider.php | added 4 import(s) | ~143 |
+| 23:03 | Edited app/Providers/AppServiceProvider.php | 1→3 lines | ~63 |
+| 23:03 | Edited app/Services/Pos/OrderProcessingService.php | modified use() | ~33 |
+| 23:03 | Edited app/Services/Pos/OrderProcessingService.php | modified catch() | ~255 |
+| 23:03 | Edited app/Services/Pos/OrderProcessingService.php | added 1 import(s) | ~39 |
+| 23:04 | Edited app/Services/Pos/OrderProcessingService.php | modified __construct() | ~47 |
+| 23:04 | Edited app/Services/Orders/OrderWorkflowService.php | added 1 import(s) | ~43 |
+| 23:04 | Edited app/Services/Orders/OrderWorkflowService.php | 3→4 lines | ~53 |
+| 23:04 | Edited app/Services/Orders/OrderWorkflowService.php | added error handling | ~277 |
+| 23:04 | Edited app/Services/Orders/OrderWorkflowService.php | added 2 import(s) | ~44 |
+| 23:04 | Edited app/Services/Orders/OrderWorkflowService.php | modified catch() | ~33 |
+| 23:05 | Created app/Http/Requests/Finance/FinanceAccountRequest.php | — | ~378 |
+| 23:05 | Created app/Http/Requests/Finance/FinanceCodCollectRequest.php | — | ~265 |
+| 23:05 | Created app/Http/Requests/Finance/FinanceTransactionAdjustmentRequest.php | — | ~363 |
+| 23:05 | Created app/Http/Controllers/Dashboard/Finance/FinanceAccountController.php | — | ~628 |
+| 23:06 | Created app/Http/Controllers/Dashboard/Finance/FinanceTransactionController.php | — | ~926 |
+| 23:06 | Created app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | — | ~756 |
+| 23:06 | Edited app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | modified index() | ~41 |
+| 23:07 | Created app/Services/Finance/FinanceDashboardService.php | — | ~2048 |
+| 23:07 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | expanded (+8 lines) | ~275 |
+| 23:08 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | added nullish coalescing | ~1014 |
+| 23:08 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | expanded (+12 lines) | ~243 |
+| 23:08 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | 3→4 lines | ~107 |
+| 23:09 | Edited routes/dashboard.php | added 3 import(s) | ~176 |
+| 23:09 | Edited routes/dashboard.php | modified group() | ~466 |
+| 23:10 | Edited resources/js/Layouts/SaasLayout.jsx | 5→6 lines | ~97 |
+| 23:10 | Edited resources/js/Layouts/SaasLayout.jsx | 8→11 lines | ~306 |
+| 23:10 | Edited resources/js/Support/contextualNav.js | 11→14 lines | ~276 |
+| 23:11 | Created resources/js/Pages/Dashboard/Finance/Accounts/Index.jsx | — | ~2365 |
+| 23:11 | Created resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx | — | ~3039 |
+| 23:12 | Created resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx | — | ~2179 |
+| 23:12 | Created resources/js/Pages/Dashboard/Finance/Dashboard.jsx | — | ~3083 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | 6→6 lines | ~83 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | CSS: amount | ~860 |
+| 23:13 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | added nullish coalescing | ~787 |
+| 23:48 | Created tests/Feature/Finance/FinanceAccountTest.php | — | ~1669 |
+| 23:48 | Created tests/Feature/Finance/FinanceTransactionTest.php | — | ~1399 |
+| 23:50 | Created tests/Feature/Finance/FinanceCashflowTest.php | — | ~4068 |
+| 23:52 | Edited tests/Feature/Finance/FinanceCashflowTest.php | 5→7 lines | ~140 |
+| 23:55 | Created tests/Feature/Finance/FinanceCodReceivableTest.php | — | ~2019 |
+| 23:56 | Created tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | — | ~1606 |
+| 00:04 | Session end: 158 writes across 80 files (2026_08_29_000001_create_finance_expense_categories_table.php, 2026_08_29_000002_create_finance_vendors_table.php, 2026_08_29_000003_create_finance_recurring_expenses_table.php, 2026_08_29_000004_create_finance_expenses_table.php, FinanceExpenseStatus.php) | 63 reads | ~166898 tok |
+
+## Session: 2026-08-30 21:35
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 21:51 | Edited app/Models/Order.php | modified shipment() | ~124 |
+| 21:51 | Edited app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | added nullish coalescing | ~615 |
+| 21:52 | Created resources/js/Support/formatDate.js | — | ~314 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx | added 1 import(s) | ~55 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/Transactions/Index.jsx | inline fix | ~40 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/Dashboard.jsx | added 1 import(s) | ~31 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/Dashboard.jsx | inline fix | ~57 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | added 1 import(s) | ~35 |
+| 21:52 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | 8→10 lines | ~277 |
+| 21:52 | Edited app/Enums/FinanceTransactionType.php | modified label() | ~779 |
+| 21:53 | Edited app/Services/Finance/FinanceExpenseService.php | modified markUnpaid() | ~351 |
+| 21:53 | Edited app/Services/Finance/FinanceExpenseService.php | 12→12 lines | ~147 |
+| 21:53 | Edited app/Services/Finance/FinanceExpenseService.php | 5→5 lines | ~73 |
+| 21:53 | Edited app/Enums/FinanceTransactionType.php | 5→5 lines | ~141 |
+| 21:53 | Edited app/Services/Finance/FinanceOrderTransactionService.php | modified pendingCodOrderIds() | ~169 |
+| 21:53 | Edited app/Services/Finance/FinanceOrderTransactionService.php | added nullish coalescing | ~462 |
+| 21:53 | Edited tests/Feature/Finance/FinanceCashflowTest.php | inline fix | ~45 |
+| 21:53 | Edited tests/Feature/Finance/FinanceCashflowTest.php | inline fix | ~50 |
+| 21:54 | Created app/Enums/FinanceCodSettlementStatus.php | — | ~107 |
+| 21:54 | Created app/Enums/FinanceCourierDepositStatus.php | — | ~110 |
+| 21:54 | Created database/migrations/2026_08_31_000001_create_finance_cod_settlements_table.php | — | ~695 |
+| 21:54 | Created database/migrations/2026_08_31_000002_create_finance_cod_settlement_items_table.php | — | ~329 |
+| 21:54 | Created database/migrations/2026_08_31_000003_create_finance_courier_deposits_table.php | — | ~646 |
+| 21:54 | Created database/migrations/2026_08_31_000004_create_finance_courier_deposit_items_table.php | — | ~331 |
+| 21:54 | Created app/Models/FinanceCodSettlement.php | — | ~561 |
+| 21:54 | Created app/Models/FinanceCodSettlementItem.php | — | ~192 |
+| 21:55 | Created app/Models/FinanceCourierDeposit.php | — | ~543 |
+| 21:55 | Created app/Models/FinanceCourierDepositItem.php | — | ~192 |
+| 21:55 | Created app/Services/Finance/FinanceCodSettlementService.php | — | ~1876 |
+| 21:56 | Created app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | — | ~1785 |
+| 21:56 | Edited app/Services/Finance/FinanceCodSettlementService.php | 1→4 lines | ~86 |
+| 21:56 | Edited app/Services/Finance/FinanceCodSettlementService.php | modified foreach() | ~93 |
+| 21:56 | Created app/Services/Finance/FinanceCourierDepositService.php | — | ~1942 |
+| 21:57 | Created app/Http/Requests/Finance/FinanceCodSettlementRequest.php | — | ~408 |
+| 21:57 | Created app/Http/Requests/Finance/FinanceCourierDepositRequest.php | — | ~359 |
+| 21:57 | Created app/Policies/FinanceCodSettlementPolicy.php | — | ~306 |
+| 21:57 | Created app/Policies/FinanceCourierDepositPolicy.php | — | ~302 |
+| 21:57 | Created app/Http/Controllers/Dashboard/Finance/FinanceCodSettlementController.php | — | ~450 |
+| 21:57 | Created app/Http/Controllers/Dashboard/Finance/FinanceCourierDepositController.php | — | ~447 |
+| 21:57 | Edited app/Providers/AppServiceProvider.php | added 4 import(s) | ~181 |
+| 21:57 | Edited app/Providers/AppServiceProvider.php | 1→3 lines | ~65 |
+| 21:57 | Edited app/Support/PermissionCatalog.php | 1→2 lines | ~103 |
+| 21:58 | Edited routes/dashboard.php | added 2 import(s) | ~79 |
+| 21:58 | Edited routes/dashboard.php | modified group() | ~478 |
+| 21:58 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | added 4 import(s) | ~110 |
+| 21:59 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | expanded (+7 lines) | ~214 |
+| 21:59 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | modified fn() | ~552 |
+| 21:59 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | modified fn() | ~111 |
+| 21:59 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | expanded (+18 lines) | ~352 |
+| 21:59 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | inline fix | ~56 |
+| 21:59 | Edited app/Services/Finance/FinanceDashboardService.php | 4→8 lines | ~105 |
+| 21:59 | Edited app/Services/Finance/FinanceDashboardService.php | 6→9 lines | ~206 |
+| 22:01 | Created resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx | — | ~7745 |
+| 22:01 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | CSS: sm, xl, sm | ~1121 |
+| 22:03 | Created tests/Feature/Finance/FinanceCodSettlementTest.php | — | ~2542 |
+| 22:03 | Created tests/Feature/Finance/FinanceCourierDepositTest.php | — | ~2418 |
+| 22:04 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | added 2 import(s) | ~111 |
+| 22:04 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | modified it() | ~1069 |
+| 22:05 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | 9→12 lines | ~226 |
+| 22:05 | Edited tests/Feature/Finance/FinanceCashflowTest.php | modified it() | ~786 |
+| 22:06 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | 2→2 lines | ~31 |
+| 22:06 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | 5→5 lines | ~88 |
+| 22:10 | Session end: 62 writes across 36 files (Order.php, FinanceCodReceivableController.php, formatDate.js, Index.jsx, Dashboard.jsx) | 34 reads | ~86309 tok |
+| 22:32 | Edited app/Services/Finance/FinanceExpenseService.php | added 2 import(s) | ~62 |
+| 22:32 | Edited app/Services/Finance/FinanceExpenseService.php | added 2 condition(s) | ~785 |
+| 22:32 | Edited app/Services/Finance/FinanceExpenseService.php | modified delete() | ~331 |
+| 22:33 | Edited tests/Feature/Finance/FinanceCashflowTest.php | modified function() | ~910 |
+| 22:33 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | 11→15 lines | ~298 |
+| 22:33 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | inline fix | ~34 |
+| 22:33 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | 2→6 lines | ~123 |
+| 22:34 | Edited tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | modified it() | ~1106 |
+| 22:34 | Edited tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | inline fix | ~20 |
+| 22:35 | Edited tests/Feature/Finance/FinanceMonthlyStatementTest.php | 1→4 lines | ~85 |
+| 22:35 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | modified destroy() | ~176 |
+| 22:35 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added 1 import(s) | ~42 |
+| 22:35 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | inline fix | ~18 |
+| 22:36 | Edited resources/js/Components/Finance/ExpenseForm.jsx | modified ExpenseForm() | ~1071 |
+| 22:36 | Edited resources/js/Components/Finance/ExpenseForm.jsx | modified Field() | ~442 |
+| 22:36 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx | inline fix | ~58 |
+| 22:37 | Edited app/Services/Finance/FinanceExpenseService.php | modified toDateString() | ~206 |
+| 22:38 | Edited app/Services/Finance/FinanceExpenseService.php | modified toDateString() | ~264 |
+| 22:38 | Session end: 80 writes across 41 files (Order.php, FinanceCodReceivableController.php, formatDate.js, Index.jsx, Dashboard.jsx) | 34 reads | ~92658 tok |
+| 22:42 | Created app/Enums/FinanceCodCollectabilityStatus.php | — | ~577 |
+| 22:43 | Created app/Services/Finance/FinanceCodCollectabilityService.php | — | ~1420 |
+| 22:43 | Edited app/Services/Finance/FinanceOrderTransactionService.php | added 2 import(s) | ~73 |
+| 22:43 | Edited app/Services/Finance/FinanceOrderTransactionService.php | modified __construct() | ~64 |
+| 22:43 | Edited app/Services/Finance/FinanceOrderTransactionService.php | added nullish coalescing | ~638 |
+| 22:43 | Edited app/Services/Finance/FinanceOrderTransactionService.php | added 4 condition(s) | ~759 |
+| 22:43 | Edited app/Services/Finance/FinanceCodSettlementService.php | resolvePendingOrders() → resolveCollectableOrders() | ~60 |
+| 22:43 | Edited app/Services/Finance/FinanceCodSettlementService.php | removed 31 lines | ~1 |
+| 22:44 | Edited app/Services/Finance/FinanceCodSettlementService.php | 3→2 lines | ~20 |
+| 22:44 | Edited app/Services/Finance/FinanceOrderTransactionService.php | added 1 condition(s) | ~349 |
+| 22:44 | Edited app/Services/Finance/FinanceCodSettlementService.php | added 1 import(s) | ~30 |
+| 22:45 | Edited app/Services/Finance/FinanceCodSettlementService.php | modified if() | ~783 |
+| 22:45 | Edited app/Services/Finance/FinanceCodSettlementService.php | 4→3 lines | ~13 |
+| 22:45 | Edited app/Services/Finance/FinanceCourierDepositService.php | 3→3 lines | ~30 |
+| 22:45 | Edited app/Services/Finance/FinanceCourierDepositService.php | modified create() | ~93 |
+| 22:45 | Edited app/Services/Finance/FinanceCourierDepositService.php | added 1 import(s) | ~39 |
+| 22:45 | Edited app/Services/Finance/FinanceCourierDepositService.php | modified if() | ~902 |
+| 22:45 | Edited app/Services/Finance/FinanceCourierDepositService.php | modified assertOrdersMatchCourier() | ~313 |
+| 22:46 | Edited app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | added 1 import(s) | ~44 |
+| 22:46 | Edited app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | modified index() | ~40 |
+| 22:46 | Edited app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php | 21→19 lines | ~324 |
+| 22:46 | Edited resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx | modified StatusChip() | ~491 |
+| 22:46 | Edited resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx | added 1 condition(s) | ~99 |
+| 22:47 | Edited resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx | expanded (+10 lines) | ~641 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | added 1 import(s) | ~32 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | modified it() | ~103 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | modified it() | ~105 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodReceivableTest.php | modified it() | ~102 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodSettlementTest.php | added 1 import(s) | ~42 |
+| 22:48 | Edited tests/Feature/Finance/FinanceCodSettlementTest.php | modified settlementPendingOrder() | ~188 |
+| 22:49 | Edited tests/Feature/Finance/FinanceCourierDepositTest.php | added 1 import(s) | ~43 |
+| 22:49 | Edited tests/Feature/Finance/FinanceCourierDepositTest.php | modified depositPendingOrder() | ~187 |
+| 22:50 | Edited tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | added 5 import(s) | ~160 |
+| 22:51 | Edited tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | 14→14 lines | ~226 |
+| 22:52 | Edited app/Services/Finance/FinanceOrderTransactionService.php | inline fix | ~40 |
+| 22:54 | Session end: 115 writes across 43 files (Order.php, FinanceCodReceivableController.php, formatDate.js, Index.jsx, Dashboard.jsx) | 34 reads | ~107812 tok |
+| 22:58 | Created database/migrations/2026_09_01_000001_add_sequence_to_finance_transactions_table.php | — | ~621 |
+| 22:58 | Edited app/Models/FinanceTransaction.php | 3→4 lines | ~20 |
+| 22:58 | Edited app/Models/FinanceTransaction.php | 3→4 lines | ~47 |
+| 22:58 | Edited app/Services/Finance/FinanceTransactionService.php | modified record() | ~1136 |
+| 22:58 | Edited app/Services/Finance/FinanceTransactionService.php | 1→3 lines | ~57 |
+| 22:59 | Edited app/Services/Finance/FinanceExpenseService.php | added 1 import(s) | ~31 |
+| 22:59 | Edited app/Services/Finance/FinanceExpenseService.php | modified markUnpaid() | ~451 |
+| 22:59 | Edited app/Services/Finance/FinanceExpenseService.php | added 2 condition(s) | ~1329 |
+| 23:00 | Edited tests/Feature/Finance/FinanceCashflowTest.php | 11→16 lines | ~371 |
+| 23:03 | Session end: 124 writes across 46 files (Order.php, FinanceCodReceivableController.php, formatDate.js, Index.jsx, Dashboard.jsx) | 34 reads | ~112164 tok |

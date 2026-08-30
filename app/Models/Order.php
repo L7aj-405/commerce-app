@@ -128,6 +128,12 @@ class Order extends Model implements Invoiceable
         return $this->morphOne(Shipment::class, 'shippable')->latestOfMany();
     }
 
+    /** The most recent internal dispatch-board bookkeeping record (courier or in-house agent), if any. */
+    public function orderShipment(): MorphOne
+    {
+        return $this->morphOne(OrderShipment::class, 'shippable')->latestOfMany();
+    }
+
     public function customerInteractions(): HasMany
     {
         return $this->hasMany(CustomerInteraction::class);

@@ -11,6 +11,17 @@ use App\Http\Controllers\Dashboard\DeliveryNoteController;
 use App\Http\Controllers\Dashboard\DeliveryShipmentController;
 use App\Http\Controllers\Dashboard\DepartmentController;
 use App\Http\Controllers\Dashboard\FacturesController;
+use App\Http\Controllers\Dashboard\Finance\FinanceAccountController;
+use App\Http\Controllers\Dashboard\Finance\FinanceCodReceivableController;
+use App\Http\Controllers\Dashboard\Finance\FinanceCodSettlementController;
+use App\Http\Controllers\Dashboard\Finance\FinanceCourierDepositController;
+use App\Http\Controllers\Dashboard\Finance\FinanceDashboardController;
+use App\Http\Controllers\Dashboard\Finance\FinanceExpenseCategoryController;
+use App\Http\Controllers\Dashboard\Finance\FinanceExpenseController;
+use App\Http\Controllers\Dashboard\Finance\FinanceMonthlyStatementController;
+use App\Http\Controllers\Dashboard\Finance\FinanceRecurringExpenseController;
+use App\Http\Controllers\Dashboard\Finance\FinanceTransactionController;
+use App\Http\Controllers\Dashboard\Finance\FinanceVendorController;
 use App\Http\Controllers\Dashboard\IntegrationsController;
 use App\Http\Controllers\Dashboard\InvoiceController;
 use App\Http\Controllers\Dashboard\OperationsController;
@@ -237,6 +248,107 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/',              [BonDeLivraisonController::class, 'index'])->name('index');
                 Route::patch('/{bon}/status', [BonDeLivraisonController::class, 'updateStatus'])
                     ->middleware('perm:bon.manage')->name('status');
+            });
+
+            // Finance Desk (Phase 1 — expenses, recurring charges, monthly
+            // expense statements). Coarse `finance.view` gates the dashboard
+            // and every read view; each write action needs its own granular
+            // permission, checked again per-record by the Finance policies.
+            Route::middleware('perm:finance.view')->prefix('finance')->name('finance.')->group(function () {
+                Route::get('/', [FinanceDashboardController::class, 'index'])->name('dashboard');
+
+                Route::prefix('categories')->name('categories.')->group(function () {
+                    Route::get('/', [FinanceExpenseCategoryController::class, 'index'])->name('index');
+
+                    Route::middleware('perm:finance.manage_categories')->group(function () {
+                        Route::post('/', [FinanceExpenseCategoryController::class, 'store'])->name('store');
+                        Route::patch('/{category}', [FinanceExpenseCategoryController::class, 'update'])->name('update');
+                        Route::delete('/{category}', [FinanceExpenseCategoryController::class, 'destroy'])->name('destroy');
+                    });
+                });
+
+                Route::prefix('vendors')->name('vendors.')->group(function () {
+                    Route::get('/', [FinanceVendorController::class, 'index'])->name('index');
+
+                    Route::middleware('perm:finance.manage_vendors')->group(function () {
+                        Route::post('/', [FinanceVendorController::class, 'store'])->name('store');
+                        Route::patch('/{vendor}', [FinanceVendorController::class, 'update'])->name('update');
+                        Route::delete('/{vendor}', [FinanceVendorController::class, 'destroy'])->name('destroy');
+                    });
+                });
+
+                Route::prefix('expenses')->name('expenses.')->group(function () {
+                    Route::get('/', [FinanceExpenseController::class, 'index'])->name('index');
+
+                    Route::middleware('perm:finance.manage_expenses')->group(function () {
+                        Route::get('/create', [FinanceExpenseController::class, 'create'])->name('create');
+                        Route::post('/', [FinanceExpenseController::class, 'store'])->name('store');
+                        Route::get('/{expense}/edit', [FinanceExpenseController::class, 'edit'])->name('edit');
+                        Route::patch('/{expense}', [FinanceExpenseController::class, 'update'])->name('update');
+                        Route::delete('/{expense}', [FinanceExpenseController::class, 'destroy'])->name('destroy');
+                        Route::post('/{expense}/mark-paid', [FinanceExpenseController::class, 'markPaid'])->name('mark-paid');
+                        Route::post('/{expense}/mark-unpaid', [FinanceExpenseController::class, 'markUnpaid'])->name('mark-unpaid');
+                        Route::post('/{expense}/cancel', [FinanceExpenseController::class, 'cancel'])->name('cancel');
+                    });
+                });
+
+                Route::prefix('recurring')->name('recurring.')->group(function () {
+                    Route::get('/', [FinanceRecurringExpenseController::class, 'index'])->name('index');
+
+                    Route::middleware('perm:finance.manage_recurring')->group(function () {
+                        Route::get('/create', [FinanceRecurringExpenseController::class, 'create'])->name('create');
+                        Route::post('/', [FinanceRecurringExpenseController::class, 'store'])->name('store');
+                        Route::get('/{recurring}/edit', [FinanceRecurringExpenseController::class, 'edit'])->name('edit');
+                        Route::patch('/{recurring}', [FinanceRecurringExpenseController::class, 'update'])->name('update');
+                        Route::post('/{recurring}/pause', [FinanceRecurringExpenseController::class, 'pause'])->name('pause');
+                        Route::post('/{recurring}/resume', [FinanceRecurringExpenseController::class, 'resume'])->name('resume');
+                        Route::post('/{recurring}/cancel', [FinanceRecurringExpenseController::class, 'cancel'])->name('cancel');
+                    });
+                });
+
+                Route::prefix('accounts')->name('accounts.')->group(function () {
+                    Route::get('/', [FinanceAccountController::class, 'index'])->name('index');
+
+                    Route::middleware('perm:finance.manage_accounts')->group(function () {
+                        Route::post('/', [FinanceAccountController::class, 'store'])->name('store');
+                        Route::patch('/{account}', [FinanceAccountController::class, 'update'])->name('update');
+                        Route::delete('/{account}', [FinanceAccountController::class, 'destroy'])->name('destroy');
+                    });
+                });
+
+                Route::middleware('perm:finance.view_reports')->prefix('transactions')->name('transactions.')->group(function () {
+                    Route::get('/', [FinanceTransactionController::class, 'index'])->name('index');
+
+                    Route::post('/', [FinanceTransactionController::class, 'store'])
+                        ->middleware('perm:finance.manage_cashflow')->name('store');
+                });
+
+                Route::prefix('cod-receivables')->name('cod-receivables.')->group(function () {
+                    Route::get('/', [FinanceCodReceivableController::class, 'index'])->name('index');
+
+                    Route::post('/{order}/mark-collected', [FinanceCodReceivableController::class, 'markCollected'])
+                        ->middleware('perm:finance.mark_collected')->name('mark-collected');
+                });
+
+                // Batch COD workflows: an external carrier's periodic net
+                // settlement, or an internal courier's cash handover. Both
+                // read from (and, when finalized, close) the same pending
+                // COD receivables listed above — see FinanceCodReceivableController::index().
+                Route::middleware('perm:finance.manage_cod_settlements')->prefix('cod-settlements')->name('cod-settlements.')->group(function () {
+                    Route::post('/', [FinanceCodSettlementController::class, 'store'])->name('store');
+                    Route::post('/{settlement}/settle', [FinanceCodSettlementController::class, 'settle'])->name('settle');
+                    Route::post('/{settlement}/cancel', [FinanceCodSettlementController::class, 'cancel'])->name('cancel');
+                });
+
+                Route::middleware('perm:finance.manage_cod_settlements')->prefix('courier-deposits')->name('courier-deposits.')->group(function () {
+                    Route::post('/', [FinanceCourierDepositController::class, 'store'])->name('store');
+                    Route::post('/{deposit}/confirm', [FinanceCourierDepositController::class, 'confirm'])->name('confirm');
+                    Route::post('/{deposit}/cancel', [FinanceCourierDepositController::class, 'cancel'])->name('cancel');
+                });
+
+                Route::middleware('perm:finance.view_reports')->prefix('statement')->name('statement.')->group(function () {
+                    Route::get('/', [FinanceMonthlyStatementController::class, 'index'])->name('index');
+                });
             });
 
             Route::middleware('perm:team.manage')->prefix('team')->name('team.')->group(function () {

@@ -9,7 +9,7 @@ import StoreSwitcher from '@/Components/StoreSwitcher';
 // own `domain` field; an individual item can override that with its own
 // `domain` (used for "Integrations", which lives inside the Settings section
 // but is its own domain in this drawer).
-const DOMAIN_ORDER = ['Overview', 'Commerce', 'Orders', 'Fulfillment', 'Inventory', 'Integrations', 'Settings'];
+const DOMAIN_ORDER = ['Overview', 'Commerce', 'Orders', 'Fulfillment', 'Inventory', 'Finance', 'Integrations', 'Settings'];
 
 function groupByDomain(sections) {
     const buckets = new Map(DOMAIN_ORDER.map((domain) => [domain, []]));
