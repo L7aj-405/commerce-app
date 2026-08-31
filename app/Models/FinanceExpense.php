@@ -10,6 +10,7 @@ use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FinanceExpense extends Model
@@ -81,6 +82,16 @@ class FinanceExpense extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Supporting documents/justificatifs (invoices, receipts, proofs of
+     * payment...). Purely evidentiary — see App\Models\FinanceDocument's
+     * docblock. Never touched by expense payment/cancellation/reversal.
+     */
+    public function documents(): MorphMany
+    {
+        return $this->morphMany(FinanceDocument::class, 'documentable')->latest();
     }
 
     public function isPaid(): bool

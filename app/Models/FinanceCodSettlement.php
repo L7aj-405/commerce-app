@@ -23,6 +23,7 @@ class FinanceCodSettlement extends Model
         'organization_id',
         'store_id',
         'carrier_name',
+        'delivery_provider_id',
         'settlement_date',
         'period_start',
         'period_end',
@@ -30,6 +31,11 @@ class FinanceCodSettlement extends Model
         'delivery_fees',
         'adjustments',
         'net_received',
+        'expected_net_amount',
+        'actual_received_amount',
+        'variance_amount',
+        'received_at',
+        'dispute_note',
         'account_id',
         'reference',
         'notes',
@@ -42,10 +48,14 @@ class FinanceCodSettlement extends Model
         'settlement_date' => 'date:Y-m-d',
         'period_start' => 'date:Y-m-d',
         'period_end' => 'date:Y-m-d',
+        'received_at' => 'date:Y-m-d',
         'gross_cod_amount' => 'decimal:2',
         'delivery_fees' => 'decimal:2',
         'adjustments' => 'decimal:2',
         'net_received' => 'decimal:2',
+        'expected_net_amount' => 'decimal:2',
+        'actual_received_amount' => 'decimal:2',
+        'variance_amount' => 'decimal:2',
         'status' => FinanceCodSettlementStatus::class,
         'settled_at' => 'datetime',
     ];
@@ -65,6 +75,11 @@ class FinanceCodSettlement extends Model
         return $this->belongsTo(FinanceAccount::class, 'account_id');
     }
 
+    public function provider(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryProvider::class, 'delivery_provider_id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -78,5 +93,11 @@ class FinanceCodSettlement extends Model
     public function isDraft(): bool
     {
         return $this->status === FinanceCodSettlementStatus::Draft;
+    }
+
+    /** A provider-period settlement (generated from FinanceCodPayoutPeriodService) vs. a legacy manually-tracked one. */
+    public function isProviderPeriod(): bool
+    {
+        return $this->delivery_provider_id !== null;
     }
 }

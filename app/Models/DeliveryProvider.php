@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DeliveryProvider extends Model
 {
@@ -20,5 +21,15 @@ class DeliveryProvider extends Model
     protected function casts(): array
     {
         return ['is_active' => 'boolean'];
+    }
+
+    /**
+     * Every organization's finance setup for this provider — multiple rows
+     * across different tenants (this catalogue itself is global/org-agnostic).
+     * Callers almost always further filter by organization_id.
+     */
+    public function financeSettings(): HasMany
+    {
+        return $this->hasMany(DeliveryProviderFinanceSetting::class);
     }
 }

@@ -12438,9 +12438,616 @@
         "unique-index",
         "payment-cycle"
       ],
-      "related_bugs": ["bug-733"],
+      "related_bugs": [
+        "bug-733"
+      ],
       "occurrences": 1,
       "last_seen": "2026-08-31T01:00:00.000Z"
+    },
+    {
+      "id": "bug-757",
+      "timestamp": "2026-08-31T09:41:13.163Z",
+      "error_message": "Wrong reference: FinanceExpenseCategoryPolicy should be FinanceDocumentPolicy",
+      "file": "app/Providers/AppServiceProvider.php",
+      "root_cause": "Used \"FinanceExpenseCategoryPolicy\" instead of \"FinanceDocumentPolicy\"",
+      "fix": "Changed FinanceExpenseCategoryPolicy → FinanceDocumentPolicy",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T09:41:13.163Z"
+    },
+    {
+      "id": "bug-758",
+      "timestamp": "2026-08-31T09:43:18.306Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 19→37 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T09:43:18.306Z"
+    },
+    {
+      "id": "bug-759",
+      "timestamp": "2026-08-31T09:43:51.423Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "Had 'date'",
+      "fix": "Changed to 'id'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T09:43:51.423Z"
+    },
+    {
+      "id": "bug-760",
+      "timestamp": "2026-08-31T09:54:54.096Z",
+      "error_message": "SQLSTATE[42000]: Syntax error or access violation: 1059 Identifier name 'finance_documents_organization_id_documentable_type_documentable_id_index' is too long",
+      "file": "database/migrations/2026_09_01_000002_create_finance_documents_table.php",
+      "root_cause": "Auto-generated composite index name for $table->index(['organization_id','documentable_type','documentable_id']) on the new finance_documents table concatenates table+column names past MySQL's 64-char identifier limit (75 chars here). SQLite (the Pest test DB) has no such limit, so this only surfaced when migrating against the real MySQL dev DB, not in the test suite. The failed migration left an orphan finance_documents table (CREATE TABLE succeeded before the failing ALTER TABLE ADD INDEX) without being recorded in the migrations table.",
+      "fix": "Passed an explicit short index name as the 2nd arg: $table->index([...], 'finance_documents_org_documentable_idx'). Had to Schema::dropIfExists('finance_documents') to clear the orphan table before re-running php artisan migrate.",
+      "tags": [
+        "migration",
+        "mysql",
+        "index-name-too-long",
+        "finance",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T09:54:54.096Z"
+    },
+    {
+      "id": "bug-761",
+      "timestamp": "2026-08-31T10:50:13.663Z",
+      "error_message": "Incorrect value in code",
+      "file": "database/migrations/2026_09_02_000001_create_delivery_provider_finance_settings_table.php",
+      "root_cause": "Had 'id'",
+      "fix": "Changed to 'dp_finance_settings_org_fk'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T10:50:13.663Z"
+    },
+    {
+      "id": "bug-762",
+      "timestamp": "2026-08-31T10:52:03.917Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Models/DeliveryProviderFinanceSetting.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 11→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T10:52:03.917Z"
+    },
+    {
+      "id": "bug-763",
+      "timestamp": "2026-08-31T10:52:31.209Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/Shipment.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T10:52:31.209Z"
+    },
+    {
+      "id": "bug-764",
+      "timestamp": "2026-08-31T10:52:55.106Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/FinanceCodSettlement.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T10:52:55.106Z"
+    },
+    {
+      "id": "bug-765",
+      "timestamp": "2026-08-31T10:53:00.148Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Models/FinanceCodSettlementItem.php",
+      "root_cause": "Had 'amount'",
+      "fix": "Changed to 'expected_fee'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T10:53:00.148Z"
+    },
+    {
+      "id": "bug-766",
+      "timestamp": "2026-08-31T10:57:49.661Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceCodSettlementService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * and book ONE cash-in entry. Idempotent — calling this agai; * already-settled/disputed/partial record is a no-op (isDraf",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-31T10:58:25.205Z"
+    },
+    {
+      "id": "bug-767",
+      "timestamp": "2026-08-31T11:07:34.034Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceMonthlyStatementService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:07:34.034Z"
+    },
+    {
+      "id": "bug-768",
+      "timestamp": "2026-08-31T11:18:19.579Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Layouts/SaasLayout.jsx",
+      "root_cause": "Had 'Monthly Statement'",
+      "fix": "Changed to 'Delivery Providers'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:18:19.579Z"
+    },
+    {
+      "id": "bug-769",
+      "timestamp": "2026-08-31T11:20:37.261Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: function PeriodCard({ period, canManage, onVerify }) {; const overdue = period.status === 'overdue';",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-31T11:21:11.671Z"
+    },
+    {
+      "id": "bug-770",
+      "timestamp": "2026-08-31T11:20:42.533Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "Had 'Actual received'",
+      "fix": "Changed to 'Net / actual received'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:20:42.533Z"
+    },
+    {
+      "id": "bug-761",
+      "timestamp": "2026-08-31T11:24:06.241Z",
+      "error_message": "SQLSTATE[42000]: Syntax error or access violation: 1059 Identifier name 'delivery_provider_finance_settings_default_bank_account_id_foreign' is too long",
+      "file": "database/migrations/2026_09_02_000001_create_delivery_provider_finance_settings_table.php",
+      "root_cause": "Same class of bug as bug-760 (finance_documents session): Laravel's auto-generated foreign key constraint name (table_column_foreign) exceeds MySQL's 64-char identifier limit for a long table name (delivery_provider_finance_settings, 35 chars) + default_bank_account_id. SQLite (Pest test DB) has no such limit so it only surfaces against the real MySQL dev DB.",
+      "fix": "Passed explicit short names as the 2nd arg to all three $table->foreign() calls on that migration (dp_finance_settings_org_fk / _provider_fk / _account_fk), even though only the bank-account one was actually over the limit.",
+      "tags": [
+        "migration",
+        "mysql",
+        "index-name-too-long",
+        "finance",
+        "delivery",
+        "php"
+      ],
+      "related_bugs": [
+        "bug-760"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:24:06.241Z"
+    },
+    {
+      "id": "bug-762",
+      "timestamp": "2026-08-31T11:24:06.241Z",
+      "error_message": "IntegrationNavigationTest::it_registers_exactly_one_setup_page_per_delivery_provider failed: expected ['dashboard/delivery-connections','dashboard/delivery-connections/sendit'], got a 3rd entry 'dashboard/finance/delivery-providers'",
+      "file": "routes/dashboard.php",
+      "root_cause": "IntegrationNavigationTest scans Route::getRoutes() for any route named '*.index' whose URI contains the substring 'delivery', to guard against a competing delivery-provider CONNECTION/setup page existing outside the Integrations Center. The new Finance settings page (dashboard.finance.delivery-providers.index) is a semantically unrelated page (fee/payout config, not a connection setup page) but matched the same broad heuristic.",
+      "fix": "Renamed the route from 'dashboard.finance.delivery-providers.index' to '...overview' (URL path unchanged: /dashboard/finance/delivery-providers) so it no longer matches the '*.index' + 'delivery' substring pattern the test scans for.",
+      "tags": [
+        "routing",
+        "test-collision",
+        "finance",
+        "delivery",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:24:06.241Z"
+    },
+    {
+      "id": "bug-773",
+      "timestamp": "2026-08-31T11:47:26.093Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/DeliveryProviderCityFee.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:47:26.093Z"
+    },
+    {
+      "id": "bug-774",
+      "timestamp": "2026-08-31T11:47:43.802Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceDeliveryProviderFeeCalculator.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: * Matching order, per the task spec — an id/code always wins; *   1. `provider_city_id` = Shipment.city_id — the EXACT pro",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-31T11:47:55.255Z"
+    },
+    {
+      "id": "bug-775",
+      "timestamp": "2026-08-31T11:50:40.723Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Finance/DeliveryProviderFeeTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T11:50:40.723Z"
+    },
+    {
+      "id": "bug-776",
+      "timestamp": "2026-08-31T12:47:24.872Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Finance/FinanceCodCollectabilityService.php",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 76→130 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T12:47:24.872Z"
+    },
+    {
+      "id": "bug-777",
+      "timestamp": "2026-08-31T12:49:26.486Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 15→7 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T12:49:26.486Z"
+    },
+    {
+      "id": "bug-778",
+      "timestamp": "2026-08-31T14:45:18.948Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:45:18.948Z"
+    },
+    {
+      "id": "bug-779",
+      "timestamp": "2026-08-31T14:49:06.824Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:49:06.824Z"
+    },
+    {
+      "id": "bug-780",
+      "timestamp": "2026-08-31T14:49:52.715Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 16→19 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:49:52.715Z"
+    },
+    {
+      "id": "bug-781",
+      "timestamp": "2026-08-31T14:52:59.942Z",
+      "error_message": "CSS fix: order",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "order: o, onDirectCollect, onGoToTab → o, onDirectCollect, onViewSettlement, onGoToTab",
+      "fix": "Changed order: o, onDirectCollect, onGoToTab → o, onDirectCollect, onViewSettlement, onGoToTab",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:52:59.942Z"
+    },
+    {
+      "id": "bug-782",
+      "timestamp": "2026-08-31T14:53:40.953Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: function PeriodCard({ period, canManage, highlighted, onVeri; const cardRef = useRef(null); | Also: /**; * Shown instead of silently switching to an empty-looking Ex",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-08-31T14:54:19.057Z"
+    },
+    {
+      "id": "bug-783",
+      "timestamp": "2026-08-31T14:59:02.621Z",
+      "error_message": "PDOException: SQLSTATE[23000]: Integrity constraint violation: 19 NOT NULL constraint failed: shipments.address",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "FinanceCodReceivableController::createShipmentFromOrderShipment() (new local-only recalculate-settlement tool) built a Shipment row from Order::customer_name/customer_phone/confirmed_shipping_address, all of which are nullable on Order but NOT NULL on shipments (receiver_name/phone/address) — a bare factory-created test order has none of them set.",
+      "fix": "Added ?? 'N/A' fallbacks for receiver_name/phone, and address falls back through confirmed_shipping_address -> OrderShipment.delivery_address -> 'N/A'.",
+      "tags": [
+        "finance",
+        "delivery",
+        "not-null-constraint",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:59:02.621Z"
+    },
+    {
+      "id": "bug-784",
+      "timestamp": "2026-08-31T14:59:02.621Z",
+      "error_message": "Expected response status code [404] but received 419 after app()->detectEnvironment(fn () => 'production') in a Pest test",
+      "file": "tests/Feature/Finance/FinanceCodReceivableTest.php",
+      "root_cause": "Illuminate\\Foundation\\Application::runningUnitTests() checks $this['env'] === 'testing'; flipping the detected environment to 'production' to test an environment-gated route also silently re-enables CSRF verification (PreventRequestForgery, the actual class Laravel's web group registers — ValidateCsrfToken/VerifyCsrfToken are deprecated subclass aliases that do NOT match withoutMiddleware() by exact class), which intercepts the POST before the route's own guard runs.",
+      "fix": "Added $this->withoutMiddleware(Illuminate\\Foundation\\Http\\Middleware\\PreventRequestForgery::class) on that one request, and restored the environment via detectEnvironment(fn () => 'testing') in a finally block.",
+      "tags": [
+        "testing",
+        "csrf",
+        "environment",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:59:02.621Z"
+    },
+    {
+      "id": "bug-785",
+      "timestamp": "2026-08-31T14:59:02.621Z",
+      "error_message": "$order->store->organization silently resolved to null instead of finding the organization (no exception)",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceCodReceivableController.php",
+      "root_cause": "The pre-existing Order eager-load used a restricted column list, store:id,name, which omits organization_id — the FK BelongsTo needs to resolve Store::organization(). A restricted select() missing a relation's foreign key makes that relation silently resolve to null rather than lazy-loading or erroring, which broke FinanceCodSettlementDiagnosticsService::diagnose() the moment it was wired into that same order list.",
+      "fix": "Widened the eager-load to store:id,name,organization_id.",
+      "tags": [
+        "eloquent",
+        "eager-loading",
+        "silent-null",
+        "finance",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T14:59:02.621Z"
+    },
+    {
+      "id": "bug-786",
+      "timestamp": "2026-08-31T16:22:37.366Z",
+      "error_message": "Missing error handling in resolvePeriodBounds",
+      "file": "app/Services/Finance/FinanceCodPayoutPeriodService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T16:22:37.366Z"
+    },
+    {
+      "id": "bug-787",
+      "timestamp": "2026-08-31T16:23:30.865Z",
+      "error_message": "CSS fix: value",
+      "file": "resources/js/Pages/Dashboard/Finance/DeliveryProviders/Index.jsx",
+      "root_cause": "value: 'monthly', label: 'Monthly' → 'instant', label: 'Instant / Same day', hint: 'Delivered orders are ready for reconciliation immediately. Cash is recorded only after bank transfer verification.'",
+      "fix": "Changed value: 'monthly', label: 'Monthly' → 'instant', label: 'Instant / Same day', hint: 'Delivered orders are ready for reconciliation immediately. Cash is recorded only after bank transfer verification.'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T16:23:30.865Z"
+    },
+    {
+      "id": "bug-788",
+      "timestamp": "2026-08-31T16:23:45.666Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Finance/DeliveryProviders/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T16:23:45.666Z"
+    },
+    {
+      "id": "bug-789",
+      "timestamp": "2026-08-31T16:24:07.058Z",
+      "error_message": "Significant refactor of ",
+      "file": "resources/js/Pages/Dashboard/Finance/CodReceivables/Index.jsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T16:24:07.058Z"
+    },
+    {
+      "id": "bug-790",
+      "timestamp": "2026-08-31T19:44:13.474Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceDeliveryProviderFeeCalculator.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T19:44:13.474Z"
+    },
+    {
+      "id": "bug-791",
+      "timestamp": "2026-08-31T19:45:42.287Z",
+      "error_message": "Significant refactor of ",
+      "file": "app/Services/Delivery/ShipmentTrackingService.php",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→15 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T19:45:42.287Z"
+    },
+    {
+      "id": "bug-792",
+      "timestamp": "2026-08-31T20:32:40.688Z",
+      "error_message": "Null/undefined access in ",
+      "file": "tests/Feature/Finance/FinanceCodSettlementViewPeriodTest.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T20:32:40.688Z"
+    },
+    {
+      "id": "bug-793",
+      "timestamp": "2026-08-31T20:42:29.765Z",
+      "error_message": "Wrong reference: betweenIncluded should be between",
+      "file": "tests/Feature/Finance/FinanceCodSettlementViewPeriodTest.php",
+      "root_cause": "Used \"betweenIncluded\" instead of \"between\"",
+      "fix": "Changed betweenIncluded → between",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T20:42:29.765Z"
     }
   ]
 }

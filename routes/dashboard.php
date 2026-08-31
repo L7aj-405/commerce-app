@@ -15,9 +15,12 @@ use App\Http\Controllers\Dashboard\Finance\FinanceAccountController;
 use App\Http\Controllers\Dashboard\Finance\FinanceCodReceivableController;
 use App\Http\Controllers\Dashboard\Finance\FinanceCodSettlementController;
 use App\Http\Controllers\Dashboard\Finance\FinanceCourierDepositController;
+use App\Http\Controllers\Dashboard\Finance\DeliveryProviderFinanceSettingController;
 use App\Http\Controllers\Dashboard\Finance\FinanceDashboardController;
+use App\Http\Controllers\Dashboard\Finance\FinanceDocumentController;
 use App\Http\Controllers\Dashboard\Finance\FinanceExpenseCategoryController;
 use App\Http\Controllers\Dashboard\Finance\FinanceExpenseController;
+use App\Http\Controllers\Dashboard\Finance\FinanceExpenseDocumentController;
 use App\Http\Controllers\Dashboard\Finance\FinanceMonthlyStatementController;
 use App\Http\Controllers\Dashboard\Finance\FinanceRecurringExpenseController;
 use App\Http\Controllers\Dashboard\Finance\FinanceTransactionController;
@@ -289,7 +292,25 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                         Route::post('/{expense}/mark-paid', [FinanceExpenseController::class, 'markPaid'])->name('mark-paid');
                         Route::post('/{expense}/mark-unpaid', [FinanceExpenseController::class, 'markUnpaid'])->name('mark-unpaid');
                         Route::post('/{expense}/cancel', [FinanceExpenseController::class, 'cancel'])->name('cancel');
+
+                        // Supporting documents/justificatifs — allowed even on a
+                        // paid expense (see FinanceDocumentUploadRequest). Purely
+                        // evidentiary: never creates a finance_transaction.
+                        Route::post('/{expense}/documents', [FinanceExpenseDocumentController::class, 'store'])->name('documents.store');
                     });
+                });
+
+                // Read/delete a single document by its own id (not nested under
+                // /expenses — FinanceDocument is a generic, reusable store, see
+                // its model docblock). finance.view is enough to
+                // download/preview (inherited from the group above); delete
+                // needs finance.manage_expenses, checked again by the policy.
+                Route::prefix('documents')->name('documents.')->group(function () {
+                    Route::get('/{document}/download', [FinanceDocumentController::class, 'download'])->name('download');
+                    Route::get('/{document}/preview', [FinanceDocumentController::class, 'preview'])->name('preview');
+
+                    Route::delete('/{document}', [FinanceDocumentController::class, 'destroy'])
+                        ->middleware('perm:finance.manage_expenses')->name('destroy');
                 });
 
                 Route::prefix('recurring')->name('recurring.')->group(function () {
@@ -328,6 +349,12 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
 
                     Route::post('/{order}/mark-collected', [FinanceCodReceivableController::class, 'markCollected'])
                         ->middleware('perm:finance.mark_collected')->name('mark-collected');
+
+                    // LOCAL/TESTING ONLY (see the controller's own environment
+                    // guard) — a diagnostic/data-repair tool, never a real
+                    // Finance action.
+                    Route::post('/{order}/recalculate-settlement', [FinanceCodReceivableController::class, 'recalculateSettlement'])
+                        ->middleware('perm:finance.manage_cod_settlements')->name('recalculate-settlement');
                 });
 
                 // Batch COD workflows: an external carrier's periodic net
@@ -336,7 +363,9 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 // COD receivables listed above — see FinanceCodReceivableController::index().
                 Route::middleware('perm:finance.manage_cod_settlements')->prefix('cod-settlements')->name('cod-settlements.')->group(function () {
                     Route::post('/', [FinanceCodSettlementController::class, 'store'])->name('store');
+                    Route::post('/verify-period', [FinanceCodSettlementController::class, 'verifyPeriod'])->name('verify-period');
                     Route::post('/{settlement}/settle', [FinanceCodSettlementController::class, 'settle'])->name('settle');
+                    Route::post('/{settlement}/reconcile', [FinanceCodSettlementController::class, 'reconcile'])->name('reconcile');
                     Route::post('/{settlement}/cancel', [FinanceCodSettlementController::class, 'cancel'])->name('cancel');
                 });
 
@@ -344,6 +373,31 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                     Route::post('/', [FinanceCourierDepositController::class, 'store'])->name('store');
                     Route::post('/{deposit}/confirm', [FinanceCourierDepositController::class, 'confirm'])->name('confirm');
                     Route::post('/{deposit}/cancel', [FinanceCourierDepositController::class, 'cancel'])->name('cancel');
+                });
+
+                // Simple per-organization finance setup for external delivery
+                // providers (default fees + COD payout schedule + city fee
+                // overrides) — see DeliveryProviderFinanceSettingController.
+                // Read-only (finance.view, inherited) for everyone with
+                // Finance access; writes need finance.manage_cod_settlements,
+                // same as everything else COD-related.
+                Route::prefix('delivery-providers')->name('delivery-providers.')->group(function () {
+                    // Named `.overview`, not `.index` — a bare "*.index"
+                    // route whose URI contains "delivery" is what
+                    // IntegrationNavigationTest scans for to guarantee
+                    // there's never a second, competing delivery-provider
+                    // SETUP/connection page outside the Integrations Center.
+                    // This page is a different concern entirely (Finance fee
+                    // & payout settings, no credentials/connection here), so
+                    // it deliberately doesn't match that pattern.
+                    Route::get('/', [DeliveryProviderFinanceSettingController::class, 'index'])->name('overview');
+
+                    Route::middleware('perm:finance.manage_cod_settlements')->group(function () {
+                        Route::patch('/{provider}', [DeliveryProviderFinanceSettingController::class, 'update'])->name('update');
+                        Route::post('/{provider}/city-fees', [DeliveryProviderFinanceSettingController::class, 'storeCityFee'])->name('city-fees.store');
+                        Route::patch('/{provider}/city-fees/{cityFee}', [DeliveryProviderFinanceSettingController::class, 'updateCityFee'])->name('city-fees.update');
+                        Route::delete('/{provider}/city-fees/{cityFee}', [DeliveryProviderFinanceSettingController::class, 'destroyCityFee'])->name('city-fees.destroy');
+                    });
                 });
 
                 Route::middleware('perm:finance.view_reports')->prefix('statement')->name('statement.')->group(function () {

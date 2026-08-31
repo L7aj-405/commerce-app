@@ -67,6 +67,7 @@ const NAV_SECTIONS = [
         { label: 'Accounts', href: '/dashboard/finance/accounts', icon: Landmark, perm: 'finance.view' },
         { label: 'Transactions', href: '/dashboard/finance/transactions', icon: ListOrdered, perm: 'finance.view_reports' },
         { label: 'COD Receivables', href: '/dashboard/finance/cod-receivables', icon: HandCoins, perm: 'finance.view' },
+        { label: 'Delivery Providers', href: '/dashboard/finance/delivery-providers', icon: Navigation, perm: 'finance.view' },
         { label: 'Monthly Statement', href: '/dashboard/finance/statement', icon: FileBarChart, perm: 'finance.view_reports' },
     ]},
     { label: 'Team', domain: 'Settings', items: [

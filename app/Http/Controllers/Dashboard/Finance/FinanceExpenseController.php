@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Dashboard\Finance;
 
+use App\Enums\FinanceDocumentType;
 use App\Enums\FinanceExpenseStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\FinanceExpenseRequest;
 use App\Models\FinanceExpense;
 use App\Models\FinanceExpenseCategory;
 use App\Models\FinanceVendor;
+use App\Services\Finance\FinanceDocumentService;
 use App\Services\Finance\FinanceExpenseCategoryService;
 use App\Services\Finance\FinanceExpenseService;
 use Illuminate\Http\RedirectResponse;
@@ -43,12 +45,27 @@ class FinanceExpenseController extends Controller
         ]);
     }
 
-    public function store(FinanceExpenseRequest $request, FinanceExpenseService $service): RedirectResponse
+    public function store(FinanceExpenseRequest $request, FinanceExpenseService $service, FinanceDocumentService $documents): RedirectResponse
     {
         $store = $request->user()->getActiveStore();
         abort_if($store?->organization === null, 422, 'No active organization.');
 
-        $service->create($store->organization, $request->user(), $request->validated());
+        $expense = $service->create($store->organization, $request->user(), $request->validated());
+
+        // Optional "Documents justificatifs" section on the Create page —
+        // purely evidentiary, attached after the expense already exists;
+        // never affects the expense itself or the ledger.
+        if ($request->hasFile('documents')) {
+            $documents->storeMany(
+                documentable: $expense,
+                organization: $store->organization,
+                files: $request->file('documents'),
+                uploadedBy: $request->user(),
+                documentType: $request->validated('document_type'),
+                description: $request->validated('document_description'),
+                storeId: $expense->store_id,
+            );
+        }
 
         return redirect()->route('dashboard.finance.expenses.index')->with('success', 'Expense recorded.');
     }
@@ -58,7 +75,10 @@ class FinanceExpenseController extends Controller
         $this->authorize('update', $expense);
 
         return Inertia::render('Dashboard/Finance/Expenses/Edit', [
-            'expense' => $expense->load(['category:id,name', 'vendor:id,name', 'store:id,name']),
+            'expense' => $expense->load([
+                'category:id,name', 'vendor:id,name', 'store:id,name',
+                'documents.uploadedBy:id,name',
+            ]),
             'options' => $this->formOptions($request),
         ]);
     }
@@ -128,6 +148,7 @@ class FinanceExpenseController extends Controller
             'categories' => FinanceExpenseCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'vendors' => FinanceVendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'stores' => $organization?->stores()->orderBy('name')->get(['id', 'name']) ?? collect(),
+            'documentTypes' => collect(FinanceDocumentType::cases())->map(fn (FinanceDocumentType $t) => ['value' => $t->value, 'label' => $t->label()])->values(),
         ];
     }
 }

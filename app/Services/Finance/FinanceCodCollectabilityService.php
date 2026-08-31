@@ -27,7 +27,7 @@ use Illuminate\Support\Collection;
 class FinanceCodCollectabilityService
 {
     /**
-     * @return array{order_id:string,is_collectable:bool,collectability_status:string,reason:string,delivery_stage:string,external_carrier:?string,internal_courier:?string}
+     * @return array{order_id:string,is_collectable:bool,is_directly_collectable:bool,collectability_status:string,label:string,reason:string,delivery_stage:string,external_carrier:?string,internal_courier:?string}
      */
     public function assess(Order $order): array
     {
@@ -37,7 +37,13 @@ class FinanceCodCollectabilityService
         return [
             'order_id' => $order->id,
             'is_collectable' => $status->isCollectable(),
+            // Whether the ad-hoc single-order "Mark collected" action may be
+            // used — false whenever an external provider or internal
+            // courier is on file, even though is_collectable is still true
+            // for those (they're closeable via THEIR own workflow instead).
+            'is_directly_collectable' => $status->isDirectlyCollectable(),
             'collectability_status' => $status->value,
+            'label' => $this->label($status, $carriers),
             'reason' => $status->reason(),
             'delivery_stage' => $order->fulfillment_status?->label() ?? 'Unknown',
             'external_carrier' => $carriers['external_carrier'],
@@ -47,7 +53,7 @@ class FinanceCodCollectabilityService
 
     /**
      * @param  Collection<int, Order>  $orders
-     * @return Collection<int, array{order_id:string,is_collectable:bool,collectability_status:string,reason:string,delivery_stage:string,external_carrier:?string,internal_courier:?string}>
+     * @return Collection<int, array{order_id:string,is_collectable:bool,is_directly_collectable:bool,collectability_status:string,label:string,reason:string,delivery_stage:string,external_carrier:?string,internal_courier:?string}>
      */
     public function assessMany(Collection $orders): Collection
     {
@@ -59,9 +65,46 @@ class FinanceCodCollectabilityService
         return $this->status($order)->isCollectable();
     }
 
+    /** True ONLY for a genuine manual/direct-pickup delivery — see FinanceCodCollectabilityStatus::isDirectlyCollectable(). */
+    public function isDirectlyCollectable(Order $order): bool
+    {
+        return $this->status($order)->isDirectlyCollectable();
+    }
+
+    /**
+     * Why the ad-hoc "Mark collected" action is unavailable for this order
+     * right now — carrier-specific wording when that's the reason (an
+     * external provider or internal courier is on file), the plain enum
+     * reason otherwise (not delivered yet / already settled / cancelled).
+     */
+    public function directCollectionBlockedReason(Order $order): string
+    {
+        $status = $this->status($order);
+        $carriers = $this->carriers($order);
+
+        return match ($status) {
+            FinanceCodCollectabilityStatus::DeliveredAwaitingProviderPayout => sprintf(
+                'This COD order is assigned to an external delivery provider%s. Use External Settlements to reconcile the provider payout.',
+                $carriers['external_carrier'] !== null ? " ({$carriers['external_carrier']})" : '',
+            ),
+            default => $status->reason(),
+        };
+    }
+
     public function statusOf(Order $order): FinanceCodCollectabilityStatus
     {
         return $this->status($order);
+    }
+
+    /** Carrier-aware label — a generic FinanceCodCollectabilityStatus::label() can't name the actual provider/courier. */
+    private function label(FinanceCodCollectabilityStatus $status, array $carriers): string
+    {
+        return match ($status) {
+            FinanceCodCollectabilityStatus::DeliveredAwaitingProviderPayout => $carriers['external_carrier'] !== null
+                ? "Delivered — awaiting {$carriers['external_carrier']} payout"
+                : $status->label(),
+            default => $status->label(),
+        };
     }
 
     private function status(Order $order): FinanceCodCollectabilityStatus
@@ -83,15 +126,26 @@ class FinanceCodCollectabilityService
         }
 
         $delivered = in_array($fulfillment, [FulfillmentStatus::Delivered, FulfillmentStatus::Completed], true);
+        $carriers = $this->carriers($order);
 
         if ($delivered) {
+            // Delivered is not the same as "collect it however you like" —
+            // whoever actually carried it decides which workflow can close
+            // it. See FinanceCodCollectabilityStatus::isCollectable() vs
+            // isDirectlyCollectable() for how these two later diverge.
+            if ($carriers['internal_courier'] !== null) {
+                return FinanceCodCollectabilityStatus::DeliveredAwaitingCourierDeposit;
+            }
+
+            if ($carriers['external_carrier'] !== null) {
+                return FinanceCodCollectabilityStatus::DeliveredAwaitingProviderPayout;
+            }
+
             return FinanceCodCollectabilityStatus::DeliveredCollectable;
         }
 
         // Not yet delivered — still surface WHO currently has it, if known,
         // before falling back to the plain "just confirmed" state.
-        $carriers = $this->carriers($order);
-
         if ($carriers['internal_courier'] !== null) {
             return FinanceCodCollectabilityStatus::WithInternalCourier;
         }

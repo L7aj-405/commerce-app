@@ -1,5 +1,5 @@
-import { router } from '@inertiajs/react';
-import { FileBarChart, Info, ListOrdered } from 'lucide-react';
+import { Link, router } from '@inertiajs/react';
+import { FileBarChart, Info, ListOrdered, Paperclip, Truck, AlertTriangle } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import Card from '@/Components/Card';
 import StatsCard from '@/Components/StatsCard';
@@ -71,6 +71,79 @@ export default function MonthlyStatement({ statement, stores }) {
                 </Card>
             )}
 
+            <h2 className="text-sm font-semibold text-content mb-3">External carrier COD (by provider)</h2>
+            <div className="mb-6 flex items-start gap-2 rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-content-muted">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+                <span>Gross COD, expected fees and expected net are never cash — only "Actual received" (a verified bank transfer) is. Non-delivered COD and delivered-but-not-yet-paid-out COD are shown separately below, also never cash.</span>
+            </div>
+            <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                <StatsCard label="Gross COD (settled this month)" value={money(statement.external_cod.gross_cod)} sublabel="Non-cash — informational" />
+                <StatsCard label="Actual received (bank)" value={money(statement.external_cod.actual_received)} color="green" sublabel="Real cash — verified transfers" />
+                <StatsCard label="Expected fees" value={money(statement.external_cod.expected_fees)} color="red" sublabel="From stored fee snapshots" />
+                <StatsCard label="Variance" value={money(statement.external_cod.variance)} color={Math.abs(statement.external_cod.variance) < 0.01 ? 'slate' : 'amber'} sublabel={`${statement.external_cod.disputed_count} disputed · ${statement.external_cod.partial_count} partial`} />
+            </section>
+
+            {statement.external_cod.by_provider.length > 0 && (
+                <Card title="Settled this month, by provider" className="mb-4">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="text-xs uppercase tracking-wider text-content-muted border-b border-line">
+                                <tr>
+                                    <th className="px-3 py-2 text-left">Provider</th>
+                                    <th className="px-3 py-2 text-right">Settlements</th>
+                                    <th className="px-3 py-2 text-right">Gross COD</th>
+                                    <th className="px-3 py-2 text-right">Expected fees</th>
+                                    <th className="px-3 py-2 text-right">Expected net</th>
+                                    <th className="px-3 py-2 text-right">Actual received</th>
+                                    <th className="px-3 py-2 text-right">Variance</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-line">
+                                {statement.external_cod.by_provider.map((row) => (
+                                    <tr key={row.delivery_provider_id}>
+                                        <td className="px-3 py-2 text-content">{row.provider_name}</td>
+                                        <td className="px-3 py-2 text-right text-content-muted tabular-nums">{row.settlements_count}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums text-content">{money(row.gross_cod)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums text-danger">-{money(row.expected_fees)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums text-content">{money(row.expected_net)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums font-semibold text-success">{money(row.actual_received)}</td>
+                                        <td className="px-3 py-2 text-right tabular-nums">{Math.abs(row.variance) < 0.01 ? <span className="text-content-muted">—</span> : <span className={row.variance < 0 ? 'text-danger' : 'text-warning'}>{row.variance > 0 ? '+' : ''}{money(row.variance)}</span>}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            )}
+
+            <Card title="Pending delivered COD (live, not month-scoped)" subtitle="Delivered but not yet even drafted into a settlement — no bank transfer behind it yet" className="mb-6">
+                {statement.external_cod.pending_periods.length === 0 ? (
+                    <EmptyState icon={Truck} title="Nothing pending" description="Every delivered COD order has already been settled or has no external provider." />
+                ) : (
+                    <>
+                        <div className="flex items-center justify-between mb-3 text-sm">
+                            <span className="text-content-muted">{money(statement.external_cod.pending_delivered_unpaid_cod)} across {statement.external_cod.pending_periods.length} period(s)</span>
+                            {statement.external_cod.overdue_periods_count > 0 && (
+                                <span className="inline-flex items-center gap-1 text-danger font-medium"><AlertTriangle className="w-3.5 h-3.5" /> {statement.external_cod.overdue_periods_count} overdue</span>
+                            )}
+                        </div>
+                        <div className="divide-y divide-line">
+                            {statement.external_cod.pending_periods.map((p) => (
+                                <div key={`${p.delivery_provider_id}-${p.period_start}`} className="flex items-center justify-between py-2.5 text-sm">
+                                    <span className="text-content">
+                                        {p.provider_name} <span className="text-content-muted">· {formatDateOnly(p.period_start)} → {formatDateOnly(p.period_end)} · {p.delivered_orders_count} order(s)</span>
+                                    </span>
+                                    <span className="flex items-center gap-3">
+                                        <span className="font-semibold tabular-nums text-content">{money(p.gross_cod)}</span>
+                                        <Link href="/dashboard/finance/cod-receivables" className="text-xs text-primary hover:underline">Verify</Link>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </Card>
+
             <h2 className="text-sm font-semibold text-content mb-3">4. Expenses</h2>
             <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                 <StatsCard label="Total expenses" value={money(statement.totals.total_expenses.amount)} sublabel={`${statement.totals.total_expenses.count} expense(s)`} />
@@ -132,7 +205,15 @@ export default function MonthlyStatement({ statement, stores }) {
                     <div className="divide-y divide-line">
                         {statement.upcoming_unpaid_due.map((e) => (
                             <div key={e.id} className="flex items-center justify-between py-2.5 text-sm">
-                                <span className="text-content">{e.title} <span className="text-content-muted">· due {e.due_date}</span></span>
+                                <span className="text-content">
+                                    <Link href={`/dashboard/finance/expenses/${e.id}/edit`} className="hover:underline">{e.title}</Link>{' '}
+                                    <span className="text-content-muted">· due {e.due_date}</span>
+                                    {e.documents_count > 0 && (
+                                        <span className="inline-flex items-center gap-0.5 ml-1.5 text-xs text-content-muted" title={`${e.documents_count} document(s)`}>
+                                            <Paperclip className="w-3 h-3" />{e.documents_count}
+                                        </span>
+                                    )}
+                                </span>
                                 <span className="font-semibold tabular-nums text-content">{money(e.amount, e.currency)}</span>
                             </div>
                         ))}
@@ -152,6 +233,7 @@ export default function MonthlyStatement({ statement, stores }) {
                                 <th className="px-3 py-2 text-left">Store</th>
                                 <th className="px-3 py-2 text-right">Amount</th>
                                 <th className="px-3 py-2 text-left">Status</th>
+                                <th className="px-3 py-2 text-right">Docs</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-line">
@@ -164,10 +246,17 @@ export default function MonthlyStatement({ statement, stores }) {
                                     <td className="px-3 py-2 text-content-muted">{row.store ?? 'Organization'}</td>
                                     <td className="px-3 py-2 text-right tabular-nums text-content">{money(row.amount, row.currency)}</td>
                                     <td className="px-3 py-2 capitalize text-content-muted">{row.status}</td>
+                                    <td className="px-3 py-2 text-right">
+                                        {row.document_count > 0 ? (
+                                            <Link href={`/dashboard/finance/expenses/${row.id}/edit`} className="inline-flex items-center gap-0.5 text-xs text-content-muted hover:text-content hover:underline">
+                                                <Paperclip className="w-3 h-3" />{row.document_count}
+                                            </Link>
+                                        ) : <span className="text-content-muted">—</span>}
+                                    </td>
                                 </tr>
                             ))}
                             {statement.export_rows.length === 0 && (
-                                <tr><td colSpan={7} className="px-3 py-8 text-center text-content-muted">No expenses this month.</td></tr>
+                                <tr><td colSpan={8} className="px-3 py-8 text-center text-content-muted">No expenses this month.</td></tr>
                             )}
                         </tbody>
                     </table>

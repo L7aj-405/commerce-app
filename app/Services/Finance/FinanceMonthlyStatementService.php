@@ -13,6 +13,7 @@ use App\Models\FinanceCodSettlement;
 use App\Models\FinanceCourierDeposit;
 use App\Models\FinanceExpense;
 use App\Models\FinanceTransaction;
+use App\Models\Organization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -33,7 +34,11 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FinanceMonthlyStatementService
 {
-    public function forMonth(string $month, ?string $storeId = null): array
+    public function __construct(
+        private readonly FinanceCodPayoutPeriodService $payoutPeriods,
+    ) {}
+
+    public function forMonth(string $month, ?string $storeId = null, ?Organization $organization = null): array
     {
         $monthStart = CarbonImmutable::parse($month . '-01')->startOfMonth();
         $monthEnd = $monthStart->endOfMonth();
@@ -44,6 +49,7 @@ class FinanceMonthlyStatementService
         // 'Y-m-d' value wrongly excludes same-day rows (longer string sorts higher).
         $base = fn (): Builder => FinanceExpense::query()
             ->with(['category:id,name', 'vendor:id,name', 'store:id,name'])
+            ->withCount('documents')
             ->whereDate('expense_date', '>=', $monthStart->toDateString())
             ->whereDate('expense_date', '<=', $monthEnd->toDateString())
             ->when($storeId, fn (Builder $q) => $q->where('store_id', $storeId));
@@ -60,6 +66,7 @@ class FinanceMonthlyStatementService
             ->whereDate('due_date', '>=', CarbonImmutable::now()->toDateString())
             ->when($storeId, fn (Builder $q) => $q->where('store_id', $storeId))
             ->with(['category:id,name', 'vendor:id,name'])
+            ->withCount('documents')
             ->orderBy('due_date')
             ->limit(20)
             ->get();
@@ -156,6 +163,50 @@ class FinanceMonthlyStatementService
             ->sortByDesc('sales_created')
             ->values();
 
+        // External carrier COD, broken out clearly per the Finance spec:
+        // gross COD / expected fees / expected net are all NON-CASH
+        // (informational, from stored fee snapshots) — only
+        // actual_received_amount ever became real cash (already counted
+        // once, correctly, inside cashflow.collections above via the ledger's
+        // own cod_settlement_received transactions). This section never adds
+        // a second cash figure, it only explains the one that's already there.
+        $externalCodBase = fn (): Builder => FinanceCodSettlement::query()
+            ->whereNotNull('delivery_provider_id')
+            ->whereIn('status', [
+                FinanceCodSettlementStatus::Settled->value,
+                FinanceCodSettlementStatus::Partial->value,
+                FinanceCodSettlementStatus::Disputed->value,
+            ])
+            ->whereDate('received_at', '>=', $monthStart->toDateString())
+            ->whereDate('received_at', '<=', $monthEnd->toDateString())
+            ->when($storeId, fn (Builder $q) => $q->where('store_id', $storeId));
+
+        $externalCodSettlementsThisMonth = $externalCodBase()->with('provider:id,name')->get();
+
+        $externalCodByProvider = $externalCodSettlementsThisMonth
+            ->groupBy('delivery_provider_id')
+            ->map(fn ($group) => [
+                'delivery_provider_id' => $group->first()->delivery_provider_id,
+                'provider_name' => $group->first()->provider?->name ?? 'Unknown provider',
+                'settlements_count' => $group->count(),
+                'gross_cod' => (float) $group->sum('gross_cod_amount'),
+                'expected_fees' => (float) $group->sum('delivery_fees'),
+                'expected_net' => (float) $group->sum('expected_net_amount'),
+                'actual_received' => (float) $group->sum(fn (FinanceCodSettlement $s) => $s->actual_received_amount ?? $s->net_received),
+                'variance' => (float) $group->sum('variance_amount'),
+                'disputed_count' => $group->where('status', FinanceCodSettlementStatus::Disputed)->count(),
+                'partial_count' => $group->where('status', FinanceCodSettlementStatus::Partial)->count(),
+            ])
+            ->sortByDesc('gross_cod')
+            ->values();
+
+        // Live, org-wide snapshot of what's STILL sitting with a provider
+        // right now (delivered, not yet even drafted into a settlement) —
+        // deliberately NOT month-scoped (a payout period rarely aligns with
+        // a calendar month) and never cash, since none of it has a bank
+        // transfer behind it yet.
+        $pendingProviderPeriods = $organization !== null ? $this->payoutPeriods->pendingPeriods($organization) : collect();
+
         return [
             'month' => $monthStart->format('Y-m'),
             'store_id' => $storeId,
@@ -187,6 +238,20 @@ class FinanceMonthlyStatementService
                     'cash_received' => (float) $codDepositsThisMonth->sum('cash_received'),
                     'difference' => (float) $codDepositsThisMonth->sum('difference'),
                 ],
+            ],
+            'external_cod' => [
+                'by_provider' => $externalCodByProvider,
+                'gross_cod' => (float) $externalCodByProvider->sum('gross_cod'),
+                'expected_fees' => (float) $externalCodByProvider->sum('expected_fees'),
+                'expected_net' => (float) $externalCodByProvider->sum('expected_net'),
+                'actual_received' => (float) $externalCodByProvider->sum('actual_received'),
+                'variance' => (float) $externalCodByProvider->sum('variance'),
+                'disputed_count' => (int) $externalCodByProvider->sum('disputed_count'),
+                'partial_count' => (int) $externalCodByProvider->sum('partial_count'),
+                // Live, not month-scoped — see $pendingProviderPeriods above.
+                'pending_periods' => $pendingProviderPeriods,
+                'pending_delivered_unpaid_cod' => (float) $pendingProviderPeriods->sum('gross_cod'),
+                'overdue_periods_count' => $pendingProviderPeriods->where('status', 'overdue')->count(),
             ],
             'totals' => [
                 // Cancelled expenses are excluded from the ACTIVE total —
@@ -230,6 +295,7 @@ class FinanceMonthlyStatementService
                 ->values(),
             'upcoming_unpaid_due' => $upcomingUnpaidDue,
             'export_rows' => $all->map(fn (FinanceExpense $e) => [
+                'id' => $e->id,
                 'date' => $e->expense_date->toDateString(),
                 'title' => $e->title,
                 'category' => $e->category?->name,
@@ -240,6 +306,7 @@ class FinanceMonthlyStatementService
                 'status' => $e->status->value,
                 'payment_method' => $e->payment_method?->value,
                 'reference' => $e->reference,
+                'document_count' => $e->documents_count,
             ])->values(),
         ];
     }

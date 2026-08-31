@@ -10,7 +10,7 @@ const PAYMENT_METHODS = [
     { value: 'other', label: 'Other' },
 ];
 
-export default function ExpenseForm({ data, setData, errors, processing, options, onSubmit, submitLabel = 'Save', ledgerLocked = false }) {
+export default function ExpenseForm({ data, setData, errors, processing, options, onSubmit, submitLabel = 'Save', ledgerLocked = false, children }) {
     return (
         <form onSubmit={onSubmit} className="bg-surface-2 border border-line rounded-xl p-6 max-w-3xl space-y-6">
             {ledgerLocked && (
@@ -53,6 +53,8 @@ export default function ExpenseForm({ data, setData, errors, processing, options
                     <Field label="Reference" value={data.reference} onChange={(v) => setData('reference', v)} error={errors.reference} placeholder="Invoice #, receipt #…" />
                 </div>
             </Section>
+
+            {children}
 
             <button type="submit" disabled={processing} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50">
                 {processing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <><Save className="w-4 h-4" /> {submitLabel}</>}

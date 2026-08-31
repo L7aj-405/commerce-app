@@ -31,6 +31,7 @@ class FinanceExpenseService
     {
         return FinanceExpense::query()
             ->with(['category:id,name,color,icon', 'vendor:id,name', 'store:id,name'])
+            ->withCount('documents')
             ->when($filters['from'] ?? null, fn (Builder $q, $v) => $q->whereDate('expense_date', '>=', $v))
             ->when($filters['to'] ?? null, fn (Builder $q, $v) => $q->whereDate('expense_date', '<=', $v))
             ->when($filters['category_id'] ?? null, fn (Builder $q, $v) => $q->where('category_id', $v))

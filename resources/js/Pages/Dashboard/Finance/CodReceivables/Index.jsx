@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
-import { HandCoins, CheckCircle2, X, Truck, Users, ListChecks } from 'lucide-react';
+import { HandCoins, CheckCircle2, X, Truck, Users, ListChecks, Landmark, AlertTriangle, Clock, Zap } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DataTable from '@/Components/DataTable';
 import Button from '@/Components/Button';
+import EmptyState from '@/Components/EmptyState';
 import { formatDateTime, formatDateOnly } from '@/Support/formatDate';
 
 function money(amount, currency = 'MAD') {
@@ -15,6 +16,8 @@ const STATUS_STYLE = {
     settled: 'bg-success-soft text-success',
     confirmed: 'bg-success-soft text-success',
     cancelled: 'bg-danger-soft text-danger',
+    partial: 'bg-warning-soft text-warning',
+    disputed: 'bg-danger-soft text-danger',
 };
 
 function StatusChip({ status }) {
@@ -23,33 +26,76 @@ function StatusChip({ status }) {
 
 // Mirrors App\Enums\FinanceCodCollectabilityStatus — a COD receivable can
 // exist (and show up here) well before it's actually collectable; this is
-// what tells the accountant WHY an action is disabled.
+// what tells the accountant WHY an action is disabled. Label text itself
+// comes from the backend (FinanceCodCollectabilityService::assess()'s
+// `label` field, e.g. "Delivered — awaiting Ozon Express payout") since it
+// can name the actual carrier — only the color mapping lives here.
 const COLLECTABILITY_STYLE = {
     not_delivered: 'bg-slate-500/15 text-slate-600 dark:text-slate-300',
     with_internal_courier: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
     with_external_carrier: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
     delivered_collectable: 'bg-success-soft text-success',
+    delivered_awaiting_provider_payout: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+    delivered_awaiting_courier_deposit: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
     settled: 'bg-slate-500/15 text-slate-500',
     cancelled_or_returned: 'bg-danger-soft text-danger',
 };
 
-const COLLECTABILITY_LABEL = {
-    not_delivered: 'Not delivered yet',
-    with_internal_courier: 'With courier',
-    with_external_carrier: 'With carrier',
-    delivered_collectable: 'Delivered — ready to collect',
-    settled: 'Settled',
-    cancelled_or_returned: 'Cancelled / returned',
-};
-
-function CollectabilityChip({ status, reason }) {
+function CollectabilityChip({ status, label, reason }) {
     return (
         <span
             title={reason}
             className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${COLLECTABILITY_STYLE[status] ?? 'bg-slate-500/15 text-slate-500'}`}
         >
-            {COLLECTABILITY_LABEL[status] ?? status}
+            {label ?? status}
         </span>
+    );
+}
+
+/**
+ * The ad-hoc "Mark collected" button is only ever shown ENABLED for a
+ * genuine manual/direct-pickup delivery (o.is_directly_collectable) — the
+ * same rule FinanceOrderTransactionService::markCodCollected() enforces
+ * server-side, so this is a UX shortcut to the right workflow, never the
+ * only thing standing between an external/courier order and a bypass.
+ */
+function CollectAction({ order: o, onDirectCollect, onViewSettlement, onGoToTab }) {
+    if (o.collectability_status === 'delivered_awaiting_provider_payout') {
+        return (
+            <button
+                type="button"
+                onClick={() => onViewSettlement(o)}
+                title={o.reason}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-500/15 text-blue-700 dark:text-blue-300 hover:brightness-95"
+            >
+                <Truck className="w-3.5 h-3.5" /> View settlement period
+            </button>
+        );
+    }
+
+    if (o.collectability_status === 'delivered_awaiting_courier_deposit') {
+        return (
+            <button
+                type="button"
+                onClick={() => onGoToTab('deposits')}
+                title={o.reason}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 hover:brightness-95"
+            >
+                <Users className="w-3.5 h-3.5" /> Go to Courier Deposits
+            </button>
+        );
+    }
+
+    return (
+        <button
+            type="button"
+            onClick={() => o.is_directly_collectable && onDirectCollect()}
+            disabled={! o.is_directly_collectable}
+            title={o.is_directly_collectable ? undefined : o.reason}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-success-soft text-success hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+        >
+            <CheckCircle2 className="w-3.5 h-3.5" /> Mark collected
+        </button>
     );
 }
 
@@ -59,7 +105,19 @@ const TABS = [
     { key: 'deposits', label: 'Courier deposits', icon: Users },
 ];
 
-export default function Index({ orders, settlements, deposits, accounts, stores, couriers, can }) {
+const PERIOD_STATUS_STYLE = {
+    accumulating: 'bg-slate-500/15 text-slate-600 dark:text-slate-300',
+    ready_to_verify: 'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+    overdue: 'bg-danger-soft text-danger',
+};
+
+const PERIOD_STATUS_LABEL = {
+    accumulating: 'Accumulating',
+    ready_to_verify: 'Ready to verify',
+    overdue: 'Overdue',
+};
+
+export default function Index({ orders, settlements, deposits, providerPeriods, accounts, stores, couriers, can }) {
     const permissions = usePage().props.auth?.permissions ?? [];
     const canCollect = permissions.includes('*') || permissions.includes('finance.mark_collected');
     const canManageSettlements = can?.manage_settlements ?? false;
@@ -68,6 +126,22 @@ export default function Index({ orders, settlements, deposits, accounts, stores,
     const [collecting, setCollecting] = useState(null); // ad-hoc single-order collect
     const [selected, setSelected] = useState(() => new Set());
     const [modal, setModal] = useState(null); // 'settlement' | 'deposit' | null
+    const [reconcileTarget, setReconcileTarget] = useState(null); // { mode: 'period', period } | { mode: 'settlement', settlement }
+    const [focusPeriodKey, setFocusPeriodKey] = useState(null); // provider_code + period_start of the period "View settlement period" jumped to
+    const [diagnosingOrder, setDiagnosingOrder] = useState(null); // order whose settlement_diagnostics are being shown
+
+    // "View settlement period" never leads to a silently empty tab: the
+    // order either already belongs to a live period (jump + highlight it),
+    // or the backend already said exactly why not (settlement_diagnostics)
+    // — show that instead of switching to an empty-looking tab.
+    const viewSettlement = (order) => {
+        if (order.settlement_period) {
+            setFocusPeriodKey(`${order.settlement_period.provider_code}-${order.settlement_period.period_start}`);
+            setTab('settlements');
+        } else {
+            setDiagnosingOrder(order);
+        }
+    };
 
     const toggleSelected = (order) => {
         if (! order.is_collectable) return; // can't be included in a settlement/deposit until delivered
@@ -108,33 +182,29 @@ export default function Index({ orders, settlements, deposits, accounts, stores,
         { key: 'created_at', label: 'Order date', render: (o) => <span className="whitespace-nowrap">{formatDateTime(o.created_at)}</span> },
         { key: 'carrier', label: 'Carrier / courier', render: carrierCell },
         { key: 'delivery_stage', label: 'Delivery stage', render: (o) => <span>{o.delivery_stage ?? '—'}</span> },
-        { key: 'collectability', label: 'Collectability', render: (o) => <CollectabilityChip status={o.collectability_status} reason={o.reason} /> },
+        { key: 'collectability', label: 'Collectability', render: (o) => <CollectabilityChip status={o.collectability_status} label={o.label} reason={o.reason} /> },
         { key: 'total', label: 'Amount', align: 'right', render: (o) => <span className="font-semibold tabular-nums text-content">{money(o.total, o.currency)}</span> },
         ...(canCollect ? [{ key: 'actions', label: '', align: 'right', render: (o) => (
-            <button
-                type="button"
-                onClick={() => o.is_collectable && setCollecting(o)}
-                disabled={! o.is_collectable}
-                title={o.is_collectable ? undefined : o.reason}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-success-soft text-success hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
-            >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Mark collected
-            </button>
+            <CollectAction order={o} onDirectCollect={() => setCollecting(o)} onViewSettlement={viewSettlement} onGoToTab={setTab} />
         ) }] : []),
     ];
 
     const settlementColumns = [
         { key: 'settlement_date', label: 'Date', render: (s) => formatDateOnly(s.settlement_date) },
-        { key: 'carrier_name', label: 'Carrier', render: (s) => s.carrier_name ?? '—' },
+        { key: 'carrier_name', label: 'Carrier', render: (s) => s.provider?.name ?? s.carrier_name ?? '—' },
         { key: 'store', label: 'Store', render: (s) => s.store?.name ?? 'Organization' },
         { key: 'gross_cod_amount', label: 'Gross COD', align: 'right', render: (s) => money(s.gross_cod_amount) },
         { key: 'delivery_fees', label: 'Fees', align: 'right', render: (s) => <span className="text-danger">-{money(s.delivery_fees)}</span> },
-        { key: 'net_received', label: 'Net received', align: 'right', render: (s) => <span className="font-semibold text-success">{money(s.net_received)}</span> },
+        { key: 'net_received', label: 'Net / actual received', align: 'right', render: (s) => <span className="font-semibold text-success">{money(s.net_received)}</span> },
+        { key: 'variance_amount', label: 'Variance', align: 'right', render: (s) => s.variance_amount == null || Math.abs(Number(s.variance_amount)) < 0.01 ? <span className="text-content-muted">—</span> : (
+            <span className={Number(s.variance_amount) < 0 ? 'text-danger font-semibold' : 'text-warning font-semibold'}>{Number(s.variance_amount) > 0 ? '+' : ''}{money(s.variance_amount)}</span>
+        ) },
         { key: 'account', label: 'Account', render: (s) => s.account?.name ?? '—' },
         { key: 'status', label: 'Status', render: (s) => <StatusChip status={s.status} /> },
         ...(canManageSettlements ? [{ key: 'actions', label: '', align: 'right', render: (s) => (
             s.status === 'draft' ? (
                 <div className="flex justify-end gap-2">
+                    <Button variant="secondary" onClick={() => setReconcileTarget({ mode: 'settlement', settlement: s })}>Reconcile</Button>
                     <SettleButton settlement={s} />
                     <CancelButton url={`/dashboard/finance/cod-settlements/${s.id}/cancel`} />
                 </div>
@@ -229,7 +299,42 @@ export default function Index({ orders, settlements, deposits, accounts, stores,
             )}
 
             {tab === 'settlements' && (
-                <DataTable columns={settlementColumns} data={settlements} emptyIcon={Truck} emptyMessage="No external carrier settlements yet — select pending COD orders on the Pending tab to create one." />
+                <>
+                    <h3 className="text-sm font-semibold text-content mb-3">Payout periods</h3>
+                    {providerPeriods.length === 0 ? (
+                        <div className="mb-6"><EmptyState icon={Clock} title="Nothing accumulating right now" description="Delivered COD orders for a configured provider will group into a payout period here." /></div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                            {providerPeriods.map((p) => {
+                                const key = `${p.provider_code}-${p.period_start}`;
+                                return (
+                                    <PeriodCard
+                                        key={key}
+                                        period={p}
+                                        canManage={canManageSettlements}
+                                        highlighted={focusPeriodKey === key}
+                                        onVerify={() => setReconcileTarget({ mode: 'period', period: p })}
+                                    />
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <h3 className="text-sm font-semibold text-content mb-3">Settlement history</h3>
+                    <DataTable columns={settlementColumns} data={settlements} emptyIcon={Truck} emptyMessage="No external carrier settlements yet — select pending COD orders on the Pending tab to create one, or verify a payout period above." />
+                </>
+            )}
+
+            {reconcileTarget && (
+                <ReconcileModal target={reconcileTarget} accounts={accounts} onClose={() => setReconcileTarget(null)} onDone={() => setReconcileTarget(null)} />
+            )}
+
+            {diagnosingOrder && (
+                <SettlementDiagnosticsModal
+                    order={diagnosingOrder}
+                    canRecalculate={can?.recalculate_settlement ?? false}
+                    onClose={() => setDiagnosingOrder(null)}
+                />
             )}
 
             {tab === 'deposits' && (
@@ -476,6 +581,176 @@ function DepositModal({ orders, accounts, stores, couriers, onClose, onDone }) {
                 <p className="text-xs text-content-muted">This creates a draft — nothing is posted to the ledger until you "Confirm" it from the Courier deposits tab.</p>
                 <ModalActions onClose={onClose} processing={processing} submitLabel="Create draft deposit" />
             </form>
+        </Modal>
+    );
+}
+
+function PeriodCard({ period, canManage, highlighted, onVerify }) {
+    const overdue = period.status === 'overdue';
+    const cardRef = useRef(null);
+
+    // "View settlement period" jumped here from the Pending tab — scroll it
+    // into view once so the accountant doesn't have to hunt for it among
+    // every provider's periods.
+    useEffect(() => {
+        if (highlighted) cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [highlighted]);
+
+    return (
+        <div ref={cardRef} className={`rounded-xl border p-4 transition ${highlighted ? 'border-primary ring-2 ring-primary/40' : overdue ? 'border-danger/30 bg-danger-soft/30' : 'border-line bg-surface-2'}`}>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                    <p className="text-sm font-semibold text-content flex items-center gap-1.5">
+                        {period.provider_name}
+                        {period.payout_frequency === 'instant' && <Zap className="w-3.5 h-3.5 text-primary" aria-label="Instant payout" />}
+                    </p>
+                    <p className="text-xs text-content-muted">
+                        {period.payout_frequency === 'instant' ? 'Instant payout' : period.payout_frequency === 'daily' ? `Daily payout · ${formatDateOnly(period.period_start)}` : `${formatDateOnly(period.period_start)} → ${formatDateOnly(period.period_end)}`}
+                    </p>
+                </div>
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${PERIOD_STATUS_STYLE[period.status] ?? 'bg-slate-500/15 text-slate-500'}`}>
+                    {PERIOD_STATUS_LABEL[period.status] ?? period.status}
+                </span>
+            </div>
+
+            <div className="space-y-1 text-sm mb-3">
+                <div className="flex justify-between"><span className="text-content-muted">Delivered orders</span><span className="text-content tabular-nums">{period.delivered_orders_count}</span></div>
+                <div className="flex justify-between"><span className="text-content-muted">Gross COD</span><span className="text-content tabular-nums">{money(period.gross_cod)}</span></div>
+                <div className="flex justify-between"><span className="text-content-muted">Expected fees</span><span className="text-danger tabular-nums">-{money(period.expected_fees)}</span></div>
+                <div className="flex justify-between border-t border-line pt-1"><span className="font-medium text-content">Expected net</span><span className="font-semibold text-success tabular-nums">{money(period.expected_net)}</span></div>
+            </div>
+
+            {period.has_manual_required_fees && (
+                <p className="flex items-center gap-1.5 text-xs text-warning mb-3"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Some orders have no fee configured — review Delivery Providers settings.</p>
+            )}
+
+            <p className="text-xs text-content-muted mb-3">
+                Expected payout {formatDateOnly(period.payout_date)}
+                {overdue ? <span className="text-danger font-medium"> · overdue by {Math.abs(period.days_until_payout)} day(s)</span> : period.days_until_payout >= 0 ? ` · in ${period.days_until_payout} day(s)` : null}
+            </p>
+
+            {canManage && <Button className="w-full justify-center" icon={Landmark} onClick={onVerify}>Verify bank transfer</Button>}
+        </div>
+    );
+}
+
+function ReconcileModal({ target, accounts, onClose, onDone }) {
+    const isPeriod = target.mode === 'period';
+    const period = isPeriod ? target.period : null;
+    const settlement = ! isPeriod ? target.settlement : null;
+    const expected = isPeriod ? period.expected_net : Number(settlement.expected_net_amount ?? settlement.net_received);
+
+    const { data, setData, post, processing, errors } = useForm({
+        delivery_provider_id: period?.delivery_provider_id ?? '',
+        period_start: period?.period_start ?? '',
+        period_end: period?.period_end ?? '',
+        order_ids: period?.order_ids ?? [],
+        actual_received_amount: isPeriod ? period.expected_net.toFixed(2) : expected.toFixed(2),
+        account_id: (isPeriod ? period.default_bank_account_id : settlement.account_id) ?? accounts.find((a) => a.type === 'bank')?.id ?? '',
+        received_at: new Date().toISOString().slice(0, 10),
+        reference: '',
+        notes: '',
+    });
+
+    const variance = (Number(data.actual_received_amount) || 0) - expected;
+
+    const submit = (e) => {
+        e.preventDefault();
+        const url = isPeriod ? '/dashboard/finance/cod-settlements/verify-period' : `/dashboard/finance/cod-settlements/${settlement.id}/reconcile`;
+        post(url, { onSuccess: onDone, preserveScroll: true });
+    };
+
+    return (
+        <Modal title={isPeriod ? `Verify bank transfer — ${period.provider_name}` : 'Reconcile settlement'} onClose={onClose} wide>
+            <form onSubmit={submit} className="space-y-4">
+                <div className="rounded-lg bg-surface-3 border border-line px-3 py-2 text-sm text-content-muted space-y-1">
+                    {isPeriod && <div className="flex justify-between"><span>Period</span><span className="text-content">{formatDateOnly(period.period_start)} → {formatDateOnly(period.period_end)}</span></div>}
+                    <div className="flex justify-between"><span>Gross COD</span><span className="text-content tabular-nums">{money(isPeriod ? period.gross_cod : settlement.gross_cod_amount)}</span></div>
+                    <div className="flex justify-between"><span>Expected fees</span><span className="text-content tabular-nums">{money(isPeriod ? period.expected_fees : settlement.delivery_fees)}</span></div>
+                    <div className="flex justify-between font-medium"><span>Expected net</span><span className="text-content tabular-nums">{money(expected)}</span></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <Field label="Actual amount received" required error={errors.actual_received_amount}>
+                        <input type="number" step="0.01" value={data.actual_received_amount} onChange={(e) => setData('actual_received_amount', e.target.value)} className={inputClass(errors.actual_received_amount)} />
+                    </Field>
+                    <Field label="Received into account" required error={errors.account_id}>
+                        <select value={data.account_id} onChange={(e) => setData('account_id', e.target.value)} className={inputClass(errors.account_id)}>
+                            <option value="">Select an account (usually Bank)</option>
+                            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        </select>
+                    </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <Field label="Received on">
+                        <input type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className={inputClass()} />
+                    </Field>
+                    <Field label="Bank reference">
+                        <input value={data.reference} onChange={(e) => setData('reference', e.target.value)} className={inputClass()} />
+                    </Field>
+                </div>
+
+                {Math.abs(variance) > 0.01 && (
+                    <div className={`rounded-lg px-3 py-2 text-sm ${variance < 0 ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning'}`}>
+                        Variance of <span className="font-semibold tabular-nums">{variance > 0 ? '+' : ''}{money(variance)}</span> vs. expected — this will be recorded as {variance < 0 ? 'partial' : 'disputed'}.
+                    </div>
+                )}
+
+                <Field label="Notes" required={Math.abs(variance) > 0.01} error={errors.notes}>
+                    <textarea value={data.notes} onChange={(e) => setData('notes', e.target.value)} rows={2} placeholder={Math.abs(variance) > 0.01 ? 'Explain the variance…' : 'Optional'} className={inputClass(errors.notes)} />
+                </Field>
+
+                {errors.order_ids && <p className="text-xs text-danger">{errors.order_ids}</p>}
+                <ModalActions onClose={onClose} processing={processing} submitLabel="Verify & record" />
+            </form>
+        </Modal>
+    );
+}
+
+/**
+ * Shown instead of silently switching to an empty-looking External
+ * settlements tab — the backend (FinanceCodSettlementDiagnosticsService)
+ * already worked out exactly why this order isn't in a payout period yet.
+ * The "Recalculate" action only ever appears when the backend says it's
+ * actually available (local/testing + owner/admin — see can.recalculate_settlement);
+ * it never creates cash or closes the receivable, only repairs Shipment/fee
+ * data so the real period computation can find the order.
+ */
+function SettlementDiagnosticsModal({ order, canRecalculate, onClose }) {
+    const { post, processing } = useForm({});
+
+    const recalculate = () => {
+        post(`/dashboard/finance/cod-receivables/${order.id}/recalculate-settlement`, {
+            preserveScroll: true,
+            onSuccess: onClose,
+        });
+    };
+
+    return (
+        <Modal title={`Not in a payout period yet — ${order.order_number}`} onClose={onClose}>
+            <div className="space-y-4">
+                <p className="text-sm text-content-muted">This order shows as awaiting an external provider payout, but isn't in a live period yet:</p>
+                <ul className="space-y-1.5">
+                    {(order.settlement_diagnostics ?? []).map((reason, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-content">
+                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-warning" />
+                            {reason}
+                        </li>
+                    ))}
+                </ul>
+
+                {canRecalculate && (
+                    <div className="rounded-lg border border-line bg-surface-3 px-3 py-2.5">
+                        <p className="text-xs text-content-muted mb-2">Local/dev tool — repairs the Shipment record and recomputes its fee snapshot only. Never creates cash transactions or closes the receivable.</p>
+                        <Button variant="secondary" loading={processing} onClick={recalculate}>Recalculate settlement data</Button>
+                    </div>
+                )}
+
+                <div className="flex justify-end pt-2 border-t border-line">
+                    <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
+                </div>
+            </div>
         </Modal>
     );
 }

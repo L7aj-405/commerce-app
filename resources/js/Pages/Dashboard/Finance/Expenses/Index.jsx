@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Plus, Receipt, Pencil, CheckCircle2, RotateCcw, Ban, Trash2 } from 'lucide-react';
+import { Plus, Receipt, Pencil, CheckCircle2, RotateCcw, Ban, Trash2, Paperclip } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DataTable from '@/Components/DataTable';
 import StatusBadge from '@/Components/StatusBadge';
@@ -29,7 +29,14 @@ export default function Index({ expenses, filters, options }) {
         { key: 'expense_date', label: 'Date', render: (e) => e.expense_date },
         { key: 'title', label: 'Title', render: (e) => (
             <div>
-                <p className="font-medium text-content">{e.title}</p>
+                <p className="font-medium text-content flex items-center gap-1.5">
+                    {e.title}
+                    {e.documents_count > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-content-muted" title={`${e.documents_count} document(s)`}>
+                            <Paperclip className="w-3 h-3" />{e.documents_count}
+                        </span>
+                    )}
+                </p>
                 <p className="text-xs text-content-muted">{e.category?.name ?? '—'}{e.vendor ? ` · ${e.vendor.name}` : ''}{e.store ? ` · ${e.store.name}` : ' · Organization-level'}</p>
             </div>
         ) },

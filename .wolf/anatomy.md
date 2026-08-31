@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-30T22:00:24.962Z
-> Files: 623 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-31T20:45:10.325Z
+> Files: 660 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -89,15 +89,18 @@
 ## app/Enums/
 
 - `FinanceAccountType.php` — FinanceAccountType: label (~169 tok)
-- `FinanceCodCollectabilityStatus.php` — Whether a COD order's receivable can actually be acted on right now. (~577 tok)
-- `FinanceCodSettlementStatus.php` — FinanceCodSettlementStatus: label (~107 tok)
+- `FinanceCodCollectabilityStatus.php` — Whether a COD order's receivable can actually be acted on right now. (~1160 tok)
+- `FinanceCodSettlementStatus.php` — actual_received_amount differs from expected_net_amount and needs a note/investigation. (~270 tok)
 - `FinanceCourierDepositStatus.php` — FinanceCourierDepositStatus: label (~110 tok)
+- `FinanceDeliveryFeeSource.php` — Where a Shipment's fee snapshot came from — see FinanceDeliveryProviderFeeCalculator. (~279 tok)
+- `FinanceDocumentType.php` — FinanceDocumentType: label (~183 tok)
 - `FinanceExpenseStatus.php` — FinanceExpenseStatus: label (~103 tok)
 - `FinancePaymentMethod.php` — FinancePaymentMethod: label (~165 tok)
+- `FinancePayoutFrequency.php` — Real providers that pay every ~24h — one period per calendar day. See FinanceCodPayoutPeriodService. (~616 tok)
 - `FinanceRecurringFrequency.php` — Advance a due date to the next occurrence for this frequency. (~245 tok)
 - `FinanceRecurringStatus.php` — FinanceRecurringStatus: label (~106 tok)
 - `FinanceTransactionDirection.php` — Which way cash moves. `Neutral` records a fact (a sale happened, a receivable was created) without m (~132 tok)
-- `FinanceTransactionType.php` — Transaction types that mark a COD order's receivable as CLOSED (no (~854 tok)
+- `FinanceTransactionType.php` — Informational only — the carrier fee this settlement's cash-in amount already nets out. Never moves (~1032 tok)
 
 ## app/Events/
 
@@ -148,14 +151,17 @@
 
 ## app/Http/Controllers/Dashboard/Finance/
 
+- `DeliveryProviderFinanceSettingController.php` — Simple per-organization finance setup for external delivery providers — (~3131 tok)
 - `FinanceAccountController.php` — index, store, update, destroy (~628 tok)
-- `FinanceCodReceivableController.php` — Internal delivery agents (permission `orders.deliver`) available to the active store — the courier d (~1765 tok)
-- `FinanceCodSettlementController.php` — store, settle, cancel (~450 tok)
+- `FinanceCodReceivableController.php` — LOCAL/TESTING ONLY — never reachable in production (see the guard (~4044 tok)
+- `FinanceCodSettlementController.php` — Attach the accountant's bank-transfer verification to an existing draft and finalize it — see Financ (~989 tok)
 - `FinanceCourierDepositController.php` — store, confirm, cancel (~447 tok)
 - `FinanceDashboardController.php` — index (~204 tok)
+- `FinanceDocumentController.php` — Read/delete access to an existing FinanceDocument. Route-model binding on (~555 tok)
 - `FinanceExpenseCategoryController.php` — index, store, update, destroy (~638 tok)
-- `FinanceExpenseController.php` — index, create, store, edit, update + 4 more (~1301 tok)
-- `FinanceMonthlyStatementController.php` — index (~365 tok)
+- `FinanceExpenseController.php` — index, create, store, edit, update + 4 more (~1585 tok)
+- `FinanceExpenseDocumentController.php` — Attaches one or more supporting documents to an expense. Allowed for a (~335 tok)
+- `FinanceMonthlyStatementController.php` — index (~369 tok)
 - `FinanceRecurringExpenseController.php` — index, create, store, edit, update + 3 more (~1105 tok)
 - `FinanceTransactionController.php` — index, store (~926 tok)
 - `FinanceVendorController.php` — index, store, update, destroy (~523 tok)
@@ -184,12 +190,17 @@
 
 ## app/Http/Requests/Finance/
 
+- `DeliveryProviderCityFeeRequest.php` — A city fee must be attached to a real city — never raw text. Exactly one (~814 tok)
+- `DeliveryProviderFinanceSettingRequest.php` — DeliveryProviderFinanceSettingRequest: authorize, rules (~394 tok)
 - `FinanceAccountRequest.php` — FinanceAccountRequest: authorize, rules (~378 tok)
 - `FinanceCodCollectRequest.php` — FinanceCodCollectRequest: authorize, rules (~265 tok)
+- `FinanceCodSettlementReconcileRequest.php` — FinanceCodSettlementReconcileRequest: authorize, rules, messages (~467 tok)
 - `FinanceCodSettlementRequest.php` — FinanceCodSettlementRequest: authorize, rules (~408 tok)
+- `FinanceCodSettlementVerifyPeriodRequest.php` — FinanceCodSettlementVerifyPeriodRequest: authorize, rules (~394 tok)
 - `FinanceCourierDepositRequest.php` — FinanceCourierDepositRequest: authorize, rules (~359 tok)
+- `FinanceDocumentUploadRequest.php` — Uploading is authorized exactly like editing the parent expense (~402 tok)
 - `FinanceExpenseCategoryRequest.php` — FinanceExpenseCategoryRequest: authorize, rules (~326 tok)
-- `FinanceExpenseRequest.php` — FinanceExpenseRequest: authorize, rules (~510 tok)
+- `FinanceExpenseRequest.php` — FinanceExpenseRequest: authorize, rules (~784 tok)
 - `FinanceRecurringExpenseRequest.php` — FinanceRecurringExpenseRequest: authorize, rules (~586 tok)
 - `FinanceTransactionAdjustmentRequest.php` — FinanceTransactionAdjustmentRequest: authorize, rules (~363 tok)
 - `FinanceVendorRequest.php` — FinanceVendorRequest: authorize, rules (~227 tok)
@@ -250,14 +261,17 @@
 - `DeliveryConnection.php` — A store's credentials + settings for one delivery provider (e.g. Ozon (~1287 tok)
 - `DeliveryNote.php` — A carrier handover batch (provider-side BL), distinct from the internal MAN- manifest system. (~317 tok)
 - `DeliveryNoteShipment.php` — Model — 2 fields (~74 tok)
-- `DeliveryProvider.php` — Model — 3 fields (~126 tok)
+- `DeliveryProvider.php` — Every organization's finance setup for this provider — multiple rows (~237 tok)
 - `DeliveryProviderCity.php` — One provider's city, as synced from its API (e.g. Ozon's /cities). (~388 tok)
+- `DeliveryProviderCityFee.php` — A manual, organization-entered fee override for one (provider, city) pair — (~922 tok)
+- `DeliveryProviderFinanceSetting.php` — An organization's own finance setup for one external delivery provider — (~562 tok)
 - `FinanceAccount.php` — Model — 7 fields, 3 rels (~334 tok)
-- `FinanceCodSettlement.php` — A batch settlement from an external delivery company for a set of COD orders it collected on our beh (~561 tok)
-- `FinanceCodSettlementItem.php` — Model — 3 fields, 2 rels (~192 tok)
+- `FinanceCodSettlement.php` — A batch settlement from an external delivery company for a set of COD orders it collected on our beh (~752 tok)
+- `FinanceCodSettlementItem.php` — Model — 5 fields, 2 rels (~208 tok)
 - `FinanceCourierDeposit.php` — A cash handover from an internal delivery agent back to the accountant, for a set of COD orders they (~543 tok)
 - `FinanceCourierDepositItem.php` — Model — 3 fields, 2 rels (~192 tok)
-- `FinanceExpense.php` — Model — 19 fields, 6 rels (~709 tok)
+- `FinanceDocument.php` — A supporting document/justificatif attached to a Finance record (currently (~847 tok)
+- `FinanceExpense.php` — Supporting documents/justificatifs (invoices, receipts, proofs of (~823 tok)
 - `FinanceExpenseCategory.php` — Model — 8 fields, 3 rels (~335 tok)
 - `FinanceRecurringExpense.php` — Model — 17 fields, 5 rels (~748 tok)
 - `FinanceTransaction.php` — Append-only cash/sales ledger. Never updated or deleted by application (~460 tok)
@@ -276,7 +290,7 @@
 - `ProductPublishResult.php` — Model — 10 fields, 4 rels (~383 tok)
 - `ProductSyncBatch.php` — Recompute counts/status from the batch's own result rows. (~625 tok)
 - `ProductSyncResult.php` — One row per (sync batch, platform connection) — a sync operates on a whole connection's catalog, not (~335 tok)
-- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1376 tok)
+- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1787 tok)
 - `ShipmentEvent.php` — Append-only tracking history for one shipment. (~236 tok)
 - `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
 - `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
@@ -294,9 +308,11 @@
 
 ## app/Policies/
 
+- `DeliveryProviderFinanceSettingPolicy.php` — Reuses the existing finance.view / finance.manage_cod_settlements permissions per the task spec — no (~351 tok)
 - `FinanceAccountPolicy.php` — FinanceAccountPolicy: viewAny, view, create, update + 1 more (~330 tok)
 - `FinanceCodSettlementPolicy.php` — FinanceCodSettlementPolicy: viewAny, view, create, update (~306 tok)
 - `FinanceCourierDepositPolicy.php` — FinanceCourierDepositPolicy: viewAny, view, create, update (~302 tok)
+- `FinanceDocumentPolicy.php` — Upload is authorized against the parent documentable's own policy (e.g. (~295 tok)
 - `FinanceExpenseCategoryPolicy.php` — Tenancy + permission rules for expense categories. Every check first (~416 tok)
 - `FinanceExpensePolicy.php` — Marking an already-paid expense back to unpaid is the sensitive direction. (~407 tok)
 - `FinanceRecurringExpensePolicy.php` — FinanceRecurringExpensePolicy: viewAny, view, create, update + 1 more (~343 tok)
@@ -305,7 +321,7 @@
 
 ## app/Providers/
 
-- `AppServiceProvider.php` — Register any application services. (~1708 tok)
+- `AppServiceProvider.php` — Register any application services. (~1801 tok)
 - `FortifyServiceProvider.php` — Register any application services. (~839 tok)
 
 ## app/Repositories/
@@ -342,19 +358,23 @@
 - `SenditShipmentCreationException.php` — Thrown when Sendit rejects POST /deliveries or its response can't be (~228 tok)
 - `SenditShipmentService.php` — Sends a packed order to Sendit and records the result. Mirrors (~2407 tok)
 - `SenditWebhookService.php` — Applies a Sendit webhook payload to the matching shipment. Signature (~929 tok)
-- `ShipmentTrackingService.php` — Refreshes a shipment's tracking state (any provider, via (~1556 tok)
+- `ShipmentTrackingService.php` — Refreshes a shipment's tracking state (any provider, via (~1880 tok)
 
 ## app/Services/Finance/
 
 - `FinanceAccountService.php` — FinanceAccountService: ensureSeeded, create, update, deactivate + 2 more (~1106 tok)
-- `FinanceCodCollectabilityService.php` — Gates every COD cash action (mark collected, external settlement, (~1420 tok)
-- `FinanceCodSettlementService.php` — External carrier COD settlement — a delivery company (Ozon, Sendit, or (~1788 tok)
+- `FinanceCodCollectabilityService.php` — Gates every COD cash action (mark collected, external settlement, (~2183 tok)
+- `FinanceCodPayoutPeriodService.php` — Groups delivered, external-carrier COD orders into payout periods per the (~2426 tok)
+- `FinanceCodSettlementDiagnosticsService.php` — Explains why a delivered, external-carrier COD order does NOT (yet) show (~1010 tok)
+- `FinanceCodSettlementService.php` — External carrier COD settlement — a delivery company (Ozon, Sendit, or (~4025 tok)
 - `FinanceCourierDepositService.php` — Internal courier cash deposit — a company employee/livreur who delivered (~2138 tok)
 - `FinanceDashboardService.php` — Read-only metrics for the Finance Dashboard. (~2132 tok)
+- `FinanceDeliveryProviderFeeCalculator.php` — Resolves what an external delivery provider is expected to charge for one (~3536 tok)
+- `FinanceDocumentService.php` — The single write path for finance_documents. Purely evidentiary storage — (~1002 tok)
 - `FinanceExpenseCategoryService.php` — Tenant-scoped expense category management. Default categories are seeded (~1138 tok)
-- `FinanceExpenseService.php` — FinanceExpenseService: filteredQuery, create, update, markPaid + 4 more (~4071 tok)
-- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~3776 tok)
-- `FinanceOrderTransactionService.php` — Bridges the existing Orders/POS lifecycle into the Finance ledger, without (~5336 tok)
+- `FinanceExpenseService.php` — FinanceExpenseService: filteredQuery, create, update, markPaid + 4 more (~4081 tok)
+- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~4884 tok)
+- `FinanceOrderTransactionService.php` — Bridges the existing Orders/POS lifecycle into the Finance ledger, without (~5541 tok)
 - `FinanceRecurringExpenseService.php` — Safety cap on catch-up iterations per recurring expense in a single run. (~2130 tok)
 - `FinanceTransactionService.php` — The single write path for the finance ledger. Append-only: nothing here (~1281 tok)
 - `FinanceVendorService.php` — A vendor already referenced by an expense/recurring expense is deactivated instead of deleted. (~407 tok)
@@ -390,7 +410,7 @@
 
 ## app/Services/Orders/
 
-- `DispatchService.php` — Handing a packed order to whoever carries it, and recording the outcome. (~4768 tok)
+- `DispatchService.php` — Handing a packed order to whoever carries it, and recording the outcome. (~5131 tok)
 - `OperationsQueueService.php` — Cross-store operational queues, scoped by warehouse OPERATOR rather than the (~8097 tok)
 - `OrderAssignmentService.php` — Who is working which order. (~1642 tok)
 - `OrderWorkflowService.php` — Every fulfillment status change goes through here — the board, the WhatsApp (~4082 tok)
@@ -473,6 +493,7 @@
 
 ## config/
 
+- `finance.php` (~238 tok)
 - `inventory.php` (~265 tok)
 - `sync.php` (~226 tok)
 
@@ -523,6 +544,13 @@
 - `2026_08_31_000003_create_finance_courier_deposits_table.php` — A cash handover from an internal delivery agent (employee/livreur) back (~646 tok)
 - `2026_08_31_000004_create_finance_courier_deposit_items_table.php` — Which pending COD orders are included in one internal courier cash deposit. (~331 tok)
 - `2026_09_01_000001_add_sequence_to_finance_transactions_table.php` — Some transaction types are genuinely repeatable over an entity's (~621 tok)
+- `2026_09_01_000002_create_finance_documents_table.php` — Migration: create finance_documents table (~652 tok)
+- `2026_09_02_000001_create_delivery_provider_finance_settings_table.php` — One row per (organization, delivery_provider) — `delivery_providers` is a (~659 tok)
+- `2026_09_02_000002_create_delivery_provider_city_fees_table.php` — Manual, organization-entered per-city fee override for one delivery (~579 tok)
+- `2026_09_02_000003_add_fee_snapshot_to_shipments_table.php` — Fee snapshot — computed ONCE (App\Services\Finance\ (~758 tok)
+- `2026_09_02_000004_add_reconciliation_to_finance_cod_settlements_table.php` — Extends the existing ad-hoc external settlement (Phase 2) into a (~723 tok)
+- `2026_09_02_000005_add_fee_snapshot_to_finance_cod_settlement_items_table.php` — Per-order fee audit trail — copied from the order's Shipment fee snapshot (~281 tok)
+- `2026_09_03_000001_add_city_references_to_delivery_provider_city_fees_table.php` — Additive only — adds proper city references to `delivery_provider_city_fees` (~1148 tok)
 
 ## database/seeders/
 
@@ -584,7 +612,10 @@
 
 ## resources/js/Components/Finance/
 
-- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~1785 tok)
+- `CitySearchSelect.jsx` — Searchable city dropdown — never a free-text city input. `options` come (~1059 tok)
+- `ExpenseDocumentPicker.jsx` — "Documents justificatifs" section for the Create Expense page. The expense (~1252 tok)
+- `ExpenseDocumentsCard.jsx` — Documents/justificatifs card for the Expense Edit page. Upload/delete are (~1997 tok)
+- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~1794 tok)
 - `RecurringExpenseForm.jsx` — FREQUENCIES — renders form (~1895 tok)
 
 ## resources/js/Components/Onboarding/
@@ -635,7 +666,7 @@
 
 - `AgencyLayout.jsx` — Lightweight shell for the agency workspace — deliberately not a second (~1087 tok)
 - `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
-- `SaasLayout.jsx` — NAV_SECTIONS (~3301 tok)
+- `SaasLayout.jsx` — NAV_SECTIONS (~3338 tok)
 
 ## resources/js/Pages/
 
@@ -685,7 +716,7 @@
 ## resources/js/Pages/Dashboard/Finance/
 
 - `Dashboard.jsx` — money (~3097 tok)
-- `MonthlyStatement.jsx` — money (~4499 tok)
+- `MonthlyStatement.jsx` — money — renders table (~6724 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Accounts/
 
@@ -697,13 +728,17 @@
 
 ## resources/js/Pages/Dashboard/Finance/CodReceivables/
 
-- `Index.jsx` — money — renders table (~8302 tok)
+- `Index.jsx` — The ad-hoc "Mark collected" button is only ever shown ENABLED for a (~13067 tok)
+
+## resources/js/Pages/Dashboard/Finance/DeliveryProviders/
+
+- `Index.jsx` — money — renders form, table, modal (~6651 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Expenses/
 
-- `Create.jsx` — Create (~450 tok)
-- `Edit.jsx` — Edit (~513 tok)
-- `Index.jsx` — money — renders table (~2464 tok)
+- `Create.jsx` — Create (~544 tok)
+- `Edit.jsx` — Edit (~614 tok)
+- `Index.jsx` — money — renders table (~2580 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Recurring/
 
@@ -894,7 +929,7 @@
 - `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~391 tok)
-- `dashboard.php` (~10138 tok)
+- `dashboard.php` (~11268 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -991,17 +1026,22 @@
 
 ## tests/Feature/Finance/
 
+- `DeliveryProviderFeeTest.php` — dpfWorkspace: dpfDeliveredShipment, dpfStaffWithPermissions, dpfProviderCity (~6061 tok)
 - `FinanceAccessTest.php` — financeAccessWorkspace: financeAddStaffWithRole (~1091 tok)
 - `FinanceAccountTest.php` — Declares financeAccountWorkspace (~1669 tok)
 - `FinanceCashflowTest.php` — cashflowWorkspace: cashflowProduct, cashflowPosSession (~6200 tok)
-- `FinanceCodReceivableTest.php` — Declares codWorkspace (~3177 tok)
+- `FinanceCodReceivableTest.php` — Declares codWorkspace (~10654 tok)
+- `FinanceCodSettlementReconciliationTest.php` — fcsrWorkspace: fcsrDeliveredOrder (~3865 tok)
 - `FinanceCodSettlementTest.php` — settlementWorkspace: settlementPendingOrder (~2644 tok)
+- `FinanceCodSettlementViewPeriodTest.php` — "View settlement period should open the instant period directly" — the (~5802 tok)
 - `FinanceCourierDepositTest.php` — depositWorkspace: depositPendingOrder (~2520 tok)
+- `FinanceDocumentTest.php` — fdWorkspace: fdExpense, fdStaffWithPermissions (~3537 tok)
 - `FinanceExpenseCategoryTest.php` — Declares fecWorkspace (~1141 tok)
 - `FinanceExpenseTest.php` — Declares feWorkspace (~1944 tok)
 - `FinanceMonthlyStatementCashflowTest.php` — Declares statementCashflowWorkspace (~2926 tok)
 - `FinanceMonthlyStatementTest.php` — Declares fmsWorkspace (~1357 tok)
 - `FinanceNavigationTest.php` — Regression coverage for the "Finance is not visible in the main sidebar" (~1736 tok)
+- `FinancePayoutFrequencyTest.php` — fpfWorkspace: fpfSettings, fpfDeliveredOrder (~3939 tok)
 - `FinanceRecurringExpenseTest.php` — Declares freWorkspace (~1745 tok)
 - `FinanceTransactionTest.php` — Declares financeTxWorkspace (~1399 tok)
 - `FinanceVendorTest.php` — Declares fvWorkspace (~774 tok)

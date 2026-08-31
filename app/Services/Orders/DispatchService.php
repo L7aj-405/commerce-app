@@ -12,6 +12,7 @@ use App\Models\PosOrder;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\Activity\AgentActivityRecorder;
+use App\Services\Finance\FinanceDeliveryProviderFeeCalculator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +30,7 @@ class DispatchService
     public function __construct(
         private readonly OrderWorkflowService $workflow,
         private readonly AgentActivityRecorder $activity,
+        private readonly FinanceDeliveryProviderFeeCalculator $feeCalculator,
     ) {}
 
     /**
@@ -104,7 +106,7 @@ class DispatchService
      */
     public function markDelivered(OrderShipment $shipment, User $actor, ?float $codCollected = null): OrderShipment
     {
-        return DB::transaction(function () use ($shipment, $actor, $codCollected) {
+        $shipment = DB::transaction(function () use ($shipment, $actor, $codCollected) {
             $shipment->update([
                 'status'        => OrderShipment::STATUS_DELIVERED,
                 'delivered_at'  => now(),
@@ -137,6 +139,28 @@ class DispatchService
 
             return $shipment->refresh();
         });
+
+        // This dispatch-board confirmation (courier/internal alike) never
+        // touches the rich external-provider Shipment record on its own —
+        // that only happens via a real Ozon/Sendit tracking update
+        // (ShipmentTrackingService::apply()). Without this, an order marked
+        // delivered here (e.g. the Delivery Board's manual "Mark delivered"
+        // for a courier-type shipment) would sit "Delivered" at the order
+        // level while Finance's settlement periods still see no
+        // delivered_at/fee snapshot on its Shipment — exactly the gap that
+        // made Instant/Daily payout periods never find it without a manual
+        // recalculate step. AFTER the transaction, never inside it: a
+        // Finance-side issue must never roll back a real delivery
+        // confirmation. Never creates a FinanceTransaction, never closes a
+        // receivable — see FinanceDeliveryProviderFeeCalculator::
+        // prepareShipmentForSettlement().
+        $externalShipment = $shipment->shippable?->shipment;
+
+        if ($externalShipment !== null) {
+            $this->feeCalculator->prepareShipmentForSettlement($externalShipment);
+        }
+
+        return $shipment;
     }
 
     /**

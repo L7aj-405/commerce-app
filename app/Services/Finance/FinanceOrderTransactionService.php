@@ -222,6 +222,17 @@ class FinanceOrderTransactionService
      * action" — an order already closed via a DIFFERENT mechanism (an
      * external settlement or courier deposit) must be rejected here too,
      * or this would double-count cash on top of that other entry.
+     *
+     * ALSO gated on WHO carried it — this is the single-order, ad-hoc,
+     * "cash landed in the drawer right now" action, and must never become a
+     * shortcut around a provider's payout period/reconciliation or a
+     * courier's cash handover. Delivered-but-carried-by-someone-else orders
+     * are still "collectable" in the broader sense (FinanceCodCollectabilityStatus
+     * ::isCollectable(), used by resolveCollectableOrders() below for
+     * settlement/deposit batch inclusion) — just never through THIS method.
+     * Rejects with a ValidationException (a clean redirect-back-with-errors,
+     * never a 500), and — critically — never reaches the code that records
+     * a transaction or closes anything below this check.
      */
     public function markCodCollected(
         Order $order,
@@ -254,9 +265,9 @@ class FinanceOrderTransactionService
             ]);
         }
 
-        if (! $this->collectability->isCollectable($order)) {
+        if (! $this->collectability->isDirectlyCollectable($order)) {
             throw ValidationException::withMessages([
-                'order' => $this->collectability->assess($order)['reason'],
+                'order' => $this->collectability->directCollectionBlockedReason($order),
             ]);
         }
 

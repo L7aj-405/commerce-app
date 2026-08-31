@@ -23,6 +23,10 @@ enum FinanceTransactionType: string
     case CodSettlementReceived = 'cod_settlement_received';
     case CodClearedByCourier = 'cod_cleared_by_courier';
     case CodCourierVariance = 'cod_courier_variance';
+    /** Informational only — the carrier fee this settlement's cash-in amount already nets out. Never moves cash on its own, see FinanceCodSettlementService::settle(). */
+    case CodSettlementFeeIncurred = 'cod_settlement_fee_incurred';
+    /** Informational only — actual_received_amount vs expected_net_amount, for a provider-period settlement. Mirrors CodCourierVariance. */
+    case CodSettlementVariance = 'cod_settlement_variance';
 
     public function label(): string
     {
@@ -42,6 +46,8 @@ enum FinanceTransactionType: string
             self::CodSettlementReceived => 'COD settlement received (bank)',
             self::CodClearedByCourier => 'COD cleared (courier deposit)',
             self::CodCourierVariance => 'Courier cash variance',
+            self::CodSettlementFeeIncurred => 'Carrier delivery fee incurred',
+            self::CodSettlementVariance => 'External settlement variance',
         };
     }
 
@@ -52,7 +58,8 @@ enum FinanceTransactionType: string
             self::ExpensePaid, self::RefundPaid, self::BankFee => FinanceTransactionDirection::Out,
             self::SaleCreated, self::CodReceivableCreated, self::ExpenseUnpaidRecorded,
             self::ReturnAdjustment, self::ManualAdjustment,
-            self::CodSettledExternal, self::CodClearedByCourier, self::CodCourierVariance => FinanceTransactionDirection::Neutral,
+            self::CodSettledExternal, self::CodClearedByCourier, self::CodCourierVariance,
+            self::CodSettlementFeeIncurred, self::CodSettlementVariance => FinanceTransactionDirection::Neutral,
         };
     }
 

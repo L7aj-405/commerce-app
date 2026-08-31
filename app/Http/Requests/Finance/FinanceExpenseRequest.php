@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Finance;
 
+use App\Enums\FinanceDocumentType;
 use App\Enums\FinancePaymentMethod;
 use App\Models\FinanceExpense;
 use Illuminate\Foundation\Http\FormRequest;
@@ -48,6 +49,21 @@ class FinanceExpenseRequest extends FormRequest
             'due_date' => ['nullable', 'date', 'after_or_equal:expense_date'],
             'payment_method' => ['nullable', Rule::enum(FinancePaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:255'],
+
+            // Optional supporting documents attached at creation time (the
+            // Create page's "Documents justificatifs" section). Same
+            // whitelist as the dedicated upload endpoint — see
+            // FinanceDocumentUploadRequest. Purely evidentiary: never read
+            // by FinanceExpenseService::create()/update() itself.
+            'documents' => ['sometimes', 'array', 'max:20'],
+            'documents.*' => [
+                'file',
+                'max:'.config('finance.documents.max_size_kb', 10240),
+                'mimes:'.implode(',', config('finance.documents.allowed_extensions', ['pdf', 'jpg', 'jpeg', 'png', 'webp'])),
+                'mimetypes:'.implode(',', config('finance.documents.allowed_mime_types', ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])),
+            ],
+            'document_type' => ['nullable', Rule::enum(FinanceDocumentType::class)],
+            'document_description' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

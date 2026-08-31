@@ -35,7 +35,7 @@ class FinanceMonthlyStatementController extends Controller
         }
 
         return Inertia::render('Dashboard/Finance/MonthlyStatement', [
-            'statement' => $service->forMonth($month, $storeId),
+            'statement' => $service->forMonth($month, $storeId, $organization),
             'stores' => $stores,
         ]);
     }

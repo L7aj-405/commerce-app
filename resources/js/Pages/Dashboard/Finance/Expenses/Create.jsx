@@ -2,6 +2,7 @@ import { Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import ExpenseForm from '@/Components/Finance/ExpenseForm';
+import ExpenseDocumentPicker from '@/Components/Finance/ExpenseDocumentPicker';
 
 export default function Create({ options }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -9,9 +10,10 @@ export default function Create({ options }) {
         category_id: '', vendor_id: '', store_id: '',
         expense_date: new Date().toISOString().slice(0, 10), due_date: '',
         payment_method: '', reference: '',
+        documents: [], document_type: '', document_description: '',
     });
 
-    const submit = (e) => { e.preventDefault(); post('/dashboard/finance/expenses'); };
+    const submit = (e) => { e.preventDefault(); post('/dashboard/finance/expenses', { forceFormData: true }); };
 
     return (
         <SaasLayout pageHeader={{
@@ -28,7 +30,9 @@ export default function Create({ options }) {
                 </Link>
             ),
         }}>
-            <ExpenseForm data={data} setData={setData} errors={errors} processing={processing} options={options} onSubmit={submit} submitLabel="Record expense" />
+            <ExpenseForm data={data} setData={setData} errors={errors} processing={processing} options={options} onSubmit={submit} submitLabel="Record expense">
+                <ExpenseDocumentPicker data={data} setData={setData} errors={errors} documentTypes={options.documentTypes ?? []} />
+            </ExpenseForm>
         </SaasLayout>
     );
 }

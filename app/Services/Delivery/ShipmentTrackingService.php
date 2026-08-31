@@ -10,6 +10,7 @@ use App\Models\OrderShipment;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\User;
+use App\Services\Finance\FinanceDeliveryProviderFeeCalculator;
 use App\Services\Orders\DispatchService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ class ShipmentTrackingService
 {
     public function __construct(
         private readonly DispatchService $dispatch,
+        private readonly FinanceDeliveryProviderFeeCalculator $feeCalculator,
     ) {}
 
     public function refresh(Shipment $shipment, User $actor): Shipment
@@ -105,7 +107,7 @@ class ShipmentTrackingService
             return $shipment;
         }
 
-        return DB::transaction(function () use ($shipment, $providerStatus, $normalizedStatus, $raw, $actor) {
+        $shipment = DB::transaction(function () use ($shipment, $providerStatus, $normalizedStatus, $raw, $actor) {
             ShipmentEvent::create([
                 'store_id' => $shipment->store_id,
                 'shipment_id' => $shipment->id,
@@ -130,6 +132,24 @@ class ShipmentTrackingService
 
             return $shipment->refresh();
         });
+
+        // Settlement prep — computed AFTER the delivery-status transaction
+        // has committed (never inside it: a Finance-side calculation issue
+        // must never roll back a real delivery status update). Idempotent;
+        // status/delivered_at were already set correctly above, so this
+        // effectively just computes the fee snapshot here — but goes
+        // through the SAME shared method DispatchService::markDelivered()
+        // and the local-only recalculate tool use, so there is exactly one
+        // place that defines "what does it mean to prepare a Shipment for
+        // settlement" (see FinanceDeliveryProviderFeeCalculator::
+        // prepareShipmentForSettlement()). "At latest when delivered" per
+        // the Finance spec — this is the single choke point both polling
+        // and webhook status updates go through (see this method's docblock).
+        if ($normalizedStatus === Shipment::STATUS_DELIVERED) {
+            $this->feeCalculator->prepareShipmentForSettlement($shipment);
+        }
+
+        return $shipment;
     }
 
     private function closeOutOrderShipment(Shipment $shipment, string $normalizedStatus, User $actor): void

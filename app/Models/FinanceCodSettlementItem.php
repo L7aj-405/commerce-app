@@ -15,9 +15,9 @@ class FinanceCodSettlementItem extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $fillable = ['finance_cod_settlement_id', 'order_id', 'amount'];
+    protected $fillable = ['finance_cod_settlement_id', 'order_id', 'amount', 'expected_fee', 'fee_source'];
 
-    protected $casts = ['amount' => 'decimal:2'];
+    protected $casts = ['amount' => 'decimal:2', 'expected_fee' => 'decimal:2'];
 
     public function settlement(): BelongsTo
     {

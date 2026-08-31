@@ -74,6 +74,11 @@ class Shipment extends Model
         'receiver_name', 'phone', 'city_id', 'city_name', 'address',
         'cod_amount', 'delivery_fee', 'raw_payload',
         'sent_at', 'delivered_at', 'returned_at', 'cancelled_at',
+        // Fee snapshot — see FinanceDeliveryProviderFeeCalculator::snapshotForShipment().
+        // Computed once, never silently recalculated.
+        'expected_delivery_fee', 'expected_return_fee', 'expected_refusal_fee',
+        'expected_cod_fee', 'expected_total_carrier_fee', 'fee_source', 'fee_calculated_at', 'fee_metadata',
+        'manual_fee_override', 'manual_fee_override_reason', 'manual_fee_overridden_by', 'manual_fee_overridden_at',
     ];
 
     protected function casts(): array
@@ -86,7 +91,29 @@ class Shipment extends Model
             'delivered_at' => 'datetime',
             'returned_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'expected_delivery_fee' => 'decimal:2',
+            'expected_return_fee' => 'decimal:2',
+            'expected_refusal_fee' => 'decimal:2',
+            'expected_cod_fee' => 'decimal:2',
+            'expected_total_carrier_fee' => 'decimal:2',
+            'fee_calculated_at' => 'datetime',
+            'fee_metadata' => 'array',
+            'manual_fee_override' => 'decimal:2',
+            'manual_fee_overridden_at' => 'datetime',
         ];
+    }
+
+    /** The fee amount settlement math should actually use — a manual override always wins over the computed snapshot. */
+    public function effectiveCarrierFee(): ?float
+    {
+        return $this->manual_fee_override !== null
+            ? (float) $this->manual_fee_override
+            : ($this->expected_total_carrier_fee !== null ? (float) $this->expected_total_carrier_fee : null);
+    }
+
+    public function hasFeeSnapshot(): bool
+    {
+        return $this->fee_calculated_at !== null;
     }
 
     /** @return array<int, string> */
@@ -129,6 +156,11 @@ class Shipment extends Model
     public function providerCity(): BelongsTo
     {
         return $this->belongsTo(DeliveryProviderCity::class, 'city_id');
+    }
+
+    public function manualFeeOverriddenBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manual_fee_overridden_by');
     }
 
     public function scopeActive(Builder $query): Builder

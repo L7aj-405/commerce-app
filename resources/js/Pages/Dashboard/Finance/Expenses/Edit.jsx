@@ -1,9 +1,13 @@
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import ExpenseForm from '@/Components/Finance/ExpenseForm';
+import ExpenseDocumentsCard from '@/Components/Finance/ExpenseDocumentsCard';
 
 export default function Edit({ expense, options }) {
+    const can = usePage().props.auth?.permissions ?? [];
+    const canManage = can.includes('*') || can.includes('finance.manage_expenses');
+
     const { data, setData, patch, processing, errors } = useForm({
         title: expense.title, description: expense.description ?? '', amount: expense.amount, currency: expense.currency,
         category_id: expense.category_id, vendor_id: expense.vendor_id ?? '', store_id: expense.store_id ?? '',
@@ -29,6 +33,8 @@ export default function Edit({ expense, options }) {
             ),
         }}>
             <ExpenseForm data={data} setData={setData} errors={errors} processing={processing} options={options} onSubmit={submit} submitLabel="Save changes" ledgerLocked={expense.status === 'paid'} />
+
+            <ExpenseDocumentsCard expense={expense} canManage={canManage} documentTypes={options.documentTypes ?? []} />
         </SaasLayout>
     );
 }
