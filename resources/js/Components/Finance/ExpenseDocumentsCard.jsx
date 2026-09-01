@@ -51,7 +51,11 @@ export default function ExpenseDocumentsCard({ expense, canManage, documentTypes
                             <div className="flex items-center gap-2.5 min-w-0">
                                 <FileText className="w-4 h-4 flex-shrink-0 text-content-muted" />
                                 <div className="min-w-0">
-                                    <p className="truncate text-content font-medium">{doc.original_name}</p>
+                                    <p className="truncate text-content font-medium flex items-center gap-1.5">
+                                        {doc.original_name}
+                                        {doc.is_official_document && <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-success-soft text-success flex-shrink-0">Official</span>}
+                                        {doc.is_internal_document && <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-700 dark:text-blue-300 flex-shrink-0">Internal only</span>}
+                                    </p>
                                     <p className="text-xs text-content-muted truncate">
                                         {documentTypeLabel(doc.document_type, documentTypes)} · {doc.human_size}
                                         {doc.uploaded_by?.name ? ` · par ${doc.uploaded_by.name}` : ''} · {formatDateTime(doc.created_at)}

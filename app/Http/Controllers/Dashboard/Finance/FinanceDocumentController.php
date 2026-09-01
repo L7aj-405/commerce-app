@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Dashboard\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinanceDocument;
+use App\Models\FinanceExpense;
 use App\Services\Finance\FinanceDocumentService;
+use App\Services\Finance\FinanceExpenseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -43,11 +45,19 @@ class FinanceDocumentController extends Controller
     }
 
     /** Soft-deletes the document row only — see FinanceDocumentService::delete(). */
-    public function destroy(Request $request, FinanceDocument $document, FinanceDocumentService $service): RedirectResponse
+    public function destroy(Request $request, FinanceDocument $document, FinanceDocumentService $service, FinanceExpenseService $expenses): RedirectResponse
     {
         $this->authorize('delete', $document);
 
+        $documentable = $document->documentable;
+
         $service->delete($document, $request->user());
+
+        // Removing the last official document can drop an expense back out
+        // of Documented — see FinanceExpenseService::syncJustificationStatus().
+        if ($documentable instanceof FinanceExpense) {
+            $expenses->syncJustificationStatus($documentable);
+        }
 
         return back()->with('success', 'Document removed.');
     }

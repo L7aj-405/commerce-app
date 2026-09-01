@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Finance;
 
 use App\Enums\FinanceAccountType;
+use App\Enums\FinanceDocumentType;
+use App\Enums\FinanceExpenseJustificationStatus;
+use App\Enums\FinanceExpenseJustificationType;
+use App\Enums\FinanceExpenseOwnerReviewStatus;
 use App\Enums\FinanceExpenseStatus;
 use App\Enums\FinancePaymentMethod;
 use App\Enums\FinanceTransactionDirection;
@@ -17,6 +21,17 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Official invoice/receipt = external legal proof (a FinanceDocument of one
+ * of FinanceDocumentType::officialTypes()). Internal cash voucher = internal
+ * justification for why company money left the business, when no such proof
+ * exists — beneficiary, reason, who paid, payment method, an optional photo,
+ * optional notes. Neither replaces the other; both can affect cashflow
+ * exactly the same way (see recordPaidTransactionIfNeeded()) — the
+ * justification_type/justification_status/owner_review_status fields exist
+ * purely for internal transparency and reporting, never gating whether an
+ * expense can be paid.
+ */
 class FinanceExpenseService
 {
     public function __construct(
@@ -39,6 +54,8 @@ class FinanceExpenseService
             ->when($filters['status'] ?? null, fn (Builder $q, $v) => $q->where('status', $v))
             ->when($filters['payment_method'] ?? null, fn (Builder $q, $v) => $q->where('payment_method', $v))
             ->when($filters['store_id'] ?? null, fn (Builder $q, $v) => $q->where('store_id', $v))
+            ->when($filters['justification_status'] ?? null, fn (Builder $q, $v) => $q->where('justification_status', $v))
+            ->when($filters['owner_review_status'] ?? null, fn (Builder $q, $v) => $q->where('owner_review_status', $v))
             ->orderByDesc('expense_date')
             ->orderByDesc('created_at');
     }
@@ -51,7 +68,14 @@ class FinanceExpenseService
      */
     public function create(Organization $organization, User $createdBy, array $data): FinanceExpense
     {
-        return FinanceExpense::query()->create([
+        // Missing entirely (not merely falsy) defaults to OfficialDocument —
+        // keeps every existing caller that doesn't know about this feature
+        // (older tests, the recurring-expense generator's direct ::create()
+        // call) behaving exactly as before: no justification fields
+        // required, no owner-review flag raised.
+        $justificationType = FinanceExpenseJustificationType::from($data['justification_type'] ?? FinanceExpenseJustificationType::OfficialDocument->value);
+
+        $expense = FinanceExpense::query()->create([
             'organization_id' => $organization->id,
             'store_id' => $data['store_id'] ?? null,
             'category_id' => $data['category_id'],
@@ -66,7 +90,19 @@ class FinanceExpenseService
             'reference' => $data['reference'] ?? null,
             'status' => FinanceExpenseStatus::Unpaid,
             'created_by' => $createdBy->id,
+            'justification_type' => $justificationType,
+            'beneficiary_name' => $data['beneficiary_name'] ?? null,
+            'justification_reason' => $data['justification_reason'] ?? null,
+            'paid_by' => $data['paid_by'] ?? ($justificationType->requiresJustification() ? $createdBy->name : null),
+            'justification_notes' => $data['justification_notes'] ?? null,
+            // Only a non-official-document expense enters the owner-review
+            // workflow at all — see FinanceExpense::requiresOwnerReview().
+            'owner_review_status' => $justificationType->requiresJustification() ? FinanceExpenseOwnerReviewStatus::Pending : null,
         ]);
+
+        $this->syncJustificationStatus($expense);
+
+        return $expense->refresh();
     }
 
     /**
@@ -86,6 +122,14 @@ class FinanceExpenseService
     {
         $this->guardLedgerSensitiveEdit($expense, $data);
 
+        // Justification fields never feed a ledger transaction — unlike
+        // amount/currency/payment_method/expense_date above, they stay
+        // freely editable even on an already-paid expense (same reasoning
+        // as documents: purely evidentiary/internal, see the class docblock).
+        $justificationType = array_key_exists('justification_type', $data) && $data['justification_type'] !== null
+            ? FinanceExpenseJustificationType::from($data['justification_type'])
+            : $expense->justification_type;
+
         $expense->update([
             'store_id' => $data['store_id'] ?? null,
             'category_id' => $data['category_id'],
@@ -98,9 +142,142 @@ class FinanceExpenseService
             'due_date' => $data['due_date'] ?? null,
             'payment_method' => $data['payment_method'] ?? $expense->payment_method,
             'reference' => $data['reference'] ?? null,
+            'justification_type' => $justificationType,
+            'beneficiary_name' => $data['beneficiary_name'] ?? $expense->beneficiary_name,
+            'justification_reason' => $data['justification_reason'] ?? $expense->justification_reason,
+            'paid_by' => $data['paid_by'] ?? $expense->paid_by,
+            'justification_notes' => $data['justification_notes'] ?? $expense->justification_notes,
+        ]);
+
+        $expense = $expense->refresh();
+        $this->syncJustificationStatus($expense);
+
+        return $expense->refresh();
+    }
+
+    /**
+     * Recompute justification_status from the CURRENT state — the type
+     * originally declared plus whatever official documents actually exist
+     * right now. Called after create()/update() and, critically, whenever a
+     * document is attached to or removed from the expense (see
+     * FinanceExpenseDocumentController::store() and
+     * FinanceDocumentController::destroy()) — so attaching an official
+     * invoice to a `no_invoice` expense later immediately upgrades it to
+     * Documented without anyone having to re-save the expense itself.
+     */
+    public function syncJustificationStatus(FinanceExpense $expense): void
+    {
+        // An OfficialDocument-declared expense is trusted at face value —
+        // it's the default for every caller that never engages with this
+        // feature at all, and must never get flagged for review just
+        // because the document upload hasn't happened in this exact
+        // request yet (documents are commonly attached in a follow-up
+        // request, or well after creation). Only a non-official declaration
+        // is ever DERIVED from whether a real official document exists.
+        if ($expense->justification_type === FinanceExpenseJustificationType::OfficialDocument) {
+            $status = FinanceExpenseJustificationStatus::Documented;
+        } else {
+            $hasOfficialDocument = $expense->documents()
+                ->whereIn('document_type', FinanceDocumentType::officialTypes())
+                ->exists();
+
+            // An internal_voucher document type NEVER counts toward
+            // hasOfficialDocument (see FinanceDocumentType::officialTypes())
+            // — a scanned, signed cash voucher is internal transparency,
+            // never external legal proof, no matter how thorough it is.
+            // But it DOES justify InternalOnly on its own, even for an
+            // expense originally declared `no_invoice`: attaching a real
+            // voucher photo is exactly the evidence that upgrades "nothing
+            // at all" to "internally justified" — see the class docblock.
+            $hasInternalVoucher = $expense->justification_type === FinanceExpenseJustificationType::InternalCashVoucher
+                || $expense->documents()->whereIn('document_type', FinanceDocumentType::internalTypes())->exists();
+
+            $status = match (true) {
+                $hasOfficialDocument => FinanceExpenseJustificationStatus::Documented,
+                $hasInternalVoucher => FinanceExpenseJustificationStatus::InternalOnly,
+                default => FinanceExpenseJustificationStatus::NeedsReview,
+            };
+        }
+
+        if ($expense->justification_status !== $status) {
+            $expense->update(['justification_status' => $status]);
+        }
+    }
+
+    /**
+     * Owner/admin approves the internal justification as-is — no cash
+     * impact, no status change on the expense itself, purely a review-trail
+     * entry (FinanceExpensePolicy::review() gates who may call this).
+     */
+    public function approveJustification(FinanceExpense $expense, User $reviewer, ?string $note = null): FinanceExpense
+    {
+        $this->guardReviewable($expense);
+
+        $expense->update([
+            'owner_review_status' => FinanceExpenseOwnerReviewStatus::Approved,
+            'owner_reviewed_by' => $reviewer->id,
+            'owner_reviewed_at' => now(),
+            'owner_review_note' => $note,
         ]);
 
         return $expense->refresh();
+    }
+
+    /**
+     * Owner/admin asks for more information — no cash impact, the expense
+     * stays exactly as it is (still paid/unpaid, still on the books) while
+     * flagged for follow-up.
+     */
+    public function requestMoreInfo(FinanceExpense $expense, User $reviewer, ?string $note = null): FinanceExpense
+    {
+        $this->guardReviewable($expense);
+
+        $expense->update([
+            'owner_review_status' => FinanceExpenseOwnerReviewStatus::NeedsMoreInfo,
+            'owner_reviewed_by' => $reviewer->id,
+            'owner_reviewed_at' => now(),
+            'owner_review_note' => $note,
+        ]);
+
+        return $expense->refresh();
+    }
+
+    /**
+     * Owner/admin rejects the internal justification. If the expense was
+     * never paid, this is a pure status flip — nothing to unwind. If it WAS
+     * already paid, the cash already moved: per the existing expense ledger
+     * rules, that transaction is never deleted — cancel() (the same path
+     * "Cancel" already uses everywhere else) records the reversing
+     * `expense_payment_reversed` entry and moves the expense to Cancelled,
+     * so the paid-then-rejected history stays fully auditable instead of
+     * silently vanishing.
+     */
+    public function rejectJustification(FinanceExpense $expense, User $reviewer, ?string $note = null): FinanceExpense
+    {
+        $this->guardReviewable($expense);
+
+        if ($expense->status === FinanceExpenseStatus::Paid) {
+            $this->cancel($expense);
+            $expense = $expense->refresh();
+        }
+
+        $expense->update([
+            'owner_review_status' => FinanceExpenseOwnerReviewStatus::Rejected,
+            'owner_reviewed_by' => $reviewer->id,
+            'owner_reviewed_at' => now(),
+            'owner_review_note' => $note,
+        ]);
+
+        return $expense->refresh();
+    }
+
+    private function guardReviewable(FinanceExpense $expense): void
+    {
+        if (! $expense->requiresOwnerReview()) {
+            throw ValidationException::withMessages([
+                'justification' => 'This expense has an official document — there is no owner-review workflow for it.',
+            ]);
+        }
     }
 
     private function guardLedgerSensitiveEdit(FinanceExpense $expense, array $data): void

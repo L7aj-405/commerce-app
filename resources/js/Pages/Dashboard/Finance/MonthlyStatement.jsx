@@ -152,6 +152,40 @@ export default function MonthlyStatement({ statement, stores }) {
                 <StatsCard label="Cancelled" value={money(statement.totals.cancelled_expenses.amount)} color="slate" sublabel={`${statement.totals.cancelled_expenses.count} expense(s)`} />
             </section>
 
+            <h2 className="text-sm font-semibold text-content mb-3">4b. Documentation &amp; internal justification</h2>
+            <section className="mb-6">
+                <p className="text-xs text-content-muted mb-3">
+                    Official invoice/receipt = external legal proof. Internal cash voucher / no-invoice = internal justification only —
+                    the fiscal/accountant-ready total below never mixes the two.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                    <StatsCard label="Officially documented" value={money(statement.justification.official_documented.amount)} color="green" sublabel={`${statement.justification.official_documented.count} expense(s)`} />
+                    <StatsCard label="Internal cash voucher" value={money(statement.justification.internal_cash_voucher.amount)} color="blue" sublabel={`${statement.justification.internal_cash_voucher.count} expense(s)`} />
+                    <StatsCard label="Missing / no document" value={money(statement.justification.missing_no_document.amount)} color="amber" sublabel={`${statement.justification.missing_no_document.count} expense(s)`} />
+                    <StatsCard label="Rejected / cancelled" value={money(statement.justification.rejected_or_cancelled.amount)} color="red" sublabel={`${statement.justification.rejected_or_cancelled.count} expense(s)`} />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="rounded-xl border border-line bg-surface-2 p-4">
+                        <p className="text-xs text-content-muted">Fiscal/accountant-ready total (official documents only)</p>
+                        <p className="text-lg font-semibold tabular-nums text-content">{money(statement.justification.fiscal_ready_amount)}</p>
+                    </div>
+                    <div className="rounded-xl border border-line bg-surface-2 p-4">
+                        <p className="text-xs text-content-muted">Internal-only total (vouchers + undocumented — never fiscal proof)</p>
+                        <p className="text-lg font-semibold tabular-nums text-content">{money(statement.justification.internal_only_amount)}</p>
+                    </div>
+                    <div className="rounded-xl border border-line bg-surface-2 p-4">
+                        <p className="text-xs text-content-muted">Cashflow total (real cash paid out this month, all types)</p>
+                        <p className="text-lg font-semibold tabular-nums text-content">{money(statement.justification.cashflow_total)}</p>
+                    </div>
+                </div>
+                {statement.justification.pending_owner_review.count > 0 && (
+                    <p className="mt-3 text-xs text-warning">
+                        {statement.justification.pending_owner_review.count} expense(s) still awaiting owner review
+                        {statement.justification.needs_more_info.count > 0 ? ` · ${statement.justification.needs_more_info.count} flagged as needing more info` : ''} — see the Expenses list.
+                    </p>
+                )}
+            </section>
+
             <h2 className="text-sm font-semibold text-content mb-3">5. Refunds / returns</h2>
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <StatsCard label="Refunds this month" value={money(statement.cashflow.refunds.amount)} color="red" sublabel={`${statement.cashflow.refunds.count} transaction(s)`} />

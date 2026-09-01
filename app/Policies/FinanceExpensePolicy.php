@@ -47,4 +47,11 @@ class FinanceExpensePolicy
         return $this->update($user, $expense)
             && $user->hasStorePermission($user->getActiveStore(), 'finance.manage_expenses');
     }
+
+    /** Approve/reject/request-more-info on an internal cash voucher / no-invoice expense's justification — owner/admin territory, deliberately separate from finance.manage_expenses (which staff who ENTER expenses may hold without being the one who reviews them). */
+    public function review(User $user, FinanceExpense $expense): bool
+    {
+        return $this->inActiveOrganization($user, $expense)
+            && $user->hasStorePermission($user->getActiveStore(), 'finance.review_expenses');
+    }
 }

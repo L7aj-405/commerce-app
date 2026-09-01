@@ -6,6 +6,8 @@ namespace App\Services\Finance;
 
 use App\Enums\FinanceCodSettlementStatus;
 use App\Enums\FinanceCourierDepositStatus;
+use App\Enums\FinanceExpenseJustificationStatus;
+use App\Enums\FinanceExpenseOwnerReviewStatus;
 use App\Enums\FinanceExpenseStatus;
 use App\Enums\FinanceTransactionDirection;
 use App\Enums\FinanceTransactionType;
@@ -293,6 +295,45 @@ class FinanceMonthlyStatementService
                 ])
                 ->sortByDesc('amount')
                 ->values(),
+            // Internal justification / owner-review split (see
+            // FinanceExpenseService's class docblock) — deliberately its own
+            // section so `totals` above (Phase 1, unchanged) never mixes an
+            // official-invoice expense's amount with an internal-only one's.
+            // `fiscal_ready` is the one figure an accountant/fiscal export
+            // should ever sum: everything else here is internal transparency,
+            // not external legal proof.
+            'justification' => (function () use ($all, $expensesPaidTx) {
+                $active = $all->where('status', '!==', FinanceExpenseStatus::Cancelled);
+                $documented = $active->where('justification_status', FinanceExpenseJustificationStatus::Documented);
+                $internalVoucher = $active->where('justification_status', FinanceExpenseJustificationStatus::InternalOnly);
+                $noDocument = $active->where('justification_status', FinanceExpenseJustificationStatus::NeedsReview);
+                $pendingReview = $active->where('owner_review_status', FinanceExpenseOwnerReviewStatus::Pending);
+                $needsMoreInfo = $active->where('owner_review_status', FinanceExpenseOwnerReviewStatus::NeedsMoreInfo);
+                $rejectedOrCancelled = $all->filter(fn (FinanceExpense $e) => $e->status === FinanceExpenseStatus::Cancelled || $e->owner_review_status === FinanceExpenseOwnerReviewStatus::Rejected);
+
+                $sum = fn ($group) => ['count' => $group->count(), 'amount' => (float) $group->sum('amount')];
+
+                return [
+                    'official_documented' => $sum($documented),
+                    'internal_cash_voucher' => $sum($internalVoucher),
+                    'missing_no_document' => $sum($noDocument),
+                    'rejected_or_cancelled' => $sum($rejectedOrCancelled),
+                    'pending_owner_review' => $sum($pendingReview),
+                    'needs_more_info' => $sum($needsMoreInfo),
+                    // The only expense total that belongs in a fiscal/
+                    // accountant export — see the section docblock above.
+                    'fiscal_ready_amount' => (float) $documented->sum('amount'),
+                    'internal_only_amount' => (float) $internalVoucher->sum('amount') + (float) $noDocument->sum('amount'),
+                    // Real cash paid out THIS MONTH, from the ledger — same
+                    // figure as cashflow.expenses_paid above, repeated here
+                    // so the three totals (fiscal-ready / internal-only /
+                    // cashflow) are readable side by side. Deliberately NOT
+                    // fiscal_ready_amount + internal_only_amount: those are
+                    // scoped by expense_date regardless of paid status,
+                    // cashflow_total is scoped by the actual payment date.
+                    'cashflow_total' => (float) $expensesPaidTx->sum('amount'),
+                ];
+            })(),
             'upcoming_unpaid_due' => $upcomingUnpaidDue,
             'export_rows' => $all->map(fn (FinanceExpense $e) => [
                 'id' => $e->id,
@@ -307,6 +348,9 @@ class FinanceMonthlyStatementService
                 'payment_method' => $e->payment_method?->value,
                 'reference' => $e->reference,
                 'document_count' => $e->documents_count,
+                'justification_type' => $e->justification_type?->value,
+                'justification_status' => $e->justification_status?->value,
+                'owner_review_status' => $e->owner_review_status?->value,
             ])->values(),
         ];
     }

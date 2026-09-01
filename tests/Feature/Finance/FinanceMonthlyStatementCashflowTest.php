@@ -99,29 +99,39 @@ it('counts expenses paid by the ledger\'s expense_paid transaction date, not exp
 it('monthly statement cashflow keeps counting a paid expense\'s cash-out even after its finance_expenses row is cancelled', function (): void {
     [$owner, $store, $organization, $category] = statementCashflowWorkspace();
 
-    $expense = app(\App\Services\Finance\FinanceExpenseService::class)->create($organization, $owner, [
-        'title' => 'Then cancelled', 'category_id' => $category->id, 'amount' => 150, 'expense_date' => '2026-08-10',
-    ]);
-    app(\App\Services\Finance\FinanceExpenseService::class)->markPaid($expense, 'cash');
+    // markPaid()/cancel() stamp paid_at/the reversal's occurred_at with the
+    // REAL now() — frozen inside August so this test stays deterministic
+    // regardless of which day it actually runs on (both events must land
+    // inside the '2026-08' month being asserted below).
+    \Illuminate\Support\Carbon::setTestNow('2026-08-15 10:00:00');
 
-    $beforeCancel = app(FinanceMonthlyStatementService::class)->forMonth('2026-08');
-    expect($beforeCancel['cashflow']['expenses_paid'])->toEqual(['count' => 1, 'amount' => 150.0]);
+    try {
+        $expense = app(\App\Services\Finance\FinanceExpenseService::class)->create($organization, $owner, [
+            'title' => 'Then cancelled', 'category_id' => $category->id, 'amount' => 150, 'expense_date' => '2026-08-10',
+        ]);
+        app(\App\Services\Finance\FinanceExpenseService::class)->markPaid($expense, 'cash');
 
-    // Cancel it (the new correct path for a paid expense — never a hard
-    // delete). The expense_paid transaction is append-only and untouched;
-    // a reversal is recorded in the SAME month.
-    app(\App\Services\Finance\FinanceExpenseService::class)->cancel($expense->fresh());
+        $beforeCancel = app(FinanceMonthlyStatementService::class)->forMonth('2026-08');
+        expect($beforeCancel['cashflow']['expenses_paid'])->toEqual(['count' => 1, 'amount' => 150.0]);
 
-    $afterCancel = app(FinanceMonthlyStatementService::class)->forMonth('2026-08');
+        // Cancel it (the new correct path for a paid expense — never a hard
+        // delete). The expense_paid transaction is append-only and untouched;
+        // a reversal is recorded in the SAME month.
+        app(\App\Services\Finance\FinanceExpenseService::class)->cancel($expense->fresh());
 
-    // The ledger-derived cashflow figure is unaffected by the expense's
-    // status changing — it's still what the ledger says was paid out.
-    expect($afterCancel['cashflow']['expenses_paid'])->toEqual(['count' => 1, 'amount' => 150.0]);
-    // The reversal nets the movement back to zero for this expense, and it
-    // no longer inflates the ACTIVE total_expenses figure.
-    expect($afterCancel['cashflow']['net_cash_movement'])->toBe($beforeCancel['cashflow']['net_cash_movement'] + 150.0);
-    expect($afterCancel['totals']['total_expenses']['amount'])->toBe(0.0);
-    expect($afterCancel['totals']['cancelled_expenses'])->toEqual(['count' => 1, 'amount' => 150.0]);
+        $afterCancel = app(FinanceMonthlyStatementService::class)->forMonth('2026-08');
+
+        // The ledger-derived cashflow figure is unaffected by the expense's
+        // status changing — it's still what the ledger says was paid out.
+        expect($afterCancel['cashflow']['expenses_paid'])->toEqual(['count' => 1, 'amount' => 150.0]);
+        // The reversal nets the movement back to zero for this expense, and it
+        // no longer inflates the ACTIVE total_expenses figure.
+        expect($afterCancel['cashflow']['net_cash_movement'])->toBe($beforeCancel['cashflow']['net_cash_movement'] + 150.0);
+        expect($afterCancel['totals']['total_expenses']['amount'])->toBe(0.0);
+        expect($afterCancel['totals']['cancelled_expenses'])->toEqual(['count' => 1, 'amount' => 150.0]);
+    } finally {
+        \Illuminate\Support\Carbon::setTestNow();
+    }
 });
 
 it('keeps the monthly statement tenant-isolated for both expenses and cashflow', function (): void {

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-31T20:45:10.325Z
-> Files: 660 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-01T11:58:36.551Z
+> Files: 668 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -93,7 +93,10 @@
 - `FinanceCodSettlementStatus.php` — actual_received_amount differs from expected_net_amount and needs a note/investigation. (~270 tok)
 - `FinanceCourierDepositStatus.php` — FinanceCourierDepositStatus: label (~110 tok)
 - `FinanceDeliveryFeeSource.php` — Where a Shipment's fee snapshot came from — see FinanceDeliveryProviderFeeCalculator. (~279 tok)
-- `FinanceDocumentType.php` — FinanceDocumentType: label (~183 tok)
+- `FinanceDocumentType.php` — External legal proof — an expense with at least one document of one of (~544 tok)
+- `FinanceExpenseJustificationStatus.php` — Live snapshot of how well-documented an expense currently is — recomputed (~248 tok)
+- `FinanceExpenseJustificationType.php` — What the user declared at creation time about proof of this expense — the (~236 tok)
+- `FinanceExpenseOwnerReviewStatus.php` — Owner/admin review of a non-official-document expense's justification. (~218 tok)
 - `FinanceExpenseStatus.php` — FinanceExpenseStatus: label (~103 tok)
 - `FinancePaymentMethod.php` — FinancePaymentMethod: label (~165 tok)
 - `FinancePayoutFrequency.php` — Real providers that pay every ~24h — one period per calendar day. See FinanceCodPayoutPeriodService. (~616 tok)
@@ -157,10 +160,10 @@
 - `FinanceCodSettlementController.php` — Attach the accountant's bank-transfer verification to an existing draft and finalize it — see Financ (~989 tok)
 - `FinanceCourierDepositController.php` — store, confirm, cancel (~447 tok)
 - `FinanceDashboardController.php` — index (~204 tok)
-- `FinanceDocumentController.php` — Read/delete access to an existing FinanceDocument. Route-model binding on (~555 tok)
+- `FinanceDocumentController.php` — Read/delete access to an existing FinanceDocument. Route-model binding on (~674 tok)
 - `FinanceExpenseCategoryController.php` — index, store, update, destroy (~638 tok)
-- `FinanceExpenseController.php` — index, create, store, edit, update + 4 more (~1585 tok)
-- `FinanceExpenseDocumentController.php` — Attaches one or more supporting documents to an expense. Allowed for a (~335 tok)
+- `FinanceExpenseController.php` — Owner/admin review of an internal cash voucher / no-invoice expense — see FinanceExpensePolicy::revi (~2516 tok)
+- `FinanceExpenseDocumentController.php` — Attaches one or more supporting documents to an expense. Allowed for a (~422 tok)
 - `FinanceMonthlyStatementController.php` — index (~369 tok)
 - `FinanceRecurringExpenseController.php` — index, create, store, edit, update + 3 more (~1105 tok)
 - `FinanceTransactionController.php` — index, store (~926 tok)
@@ -200,7 +203,7 @@
 - `FinanceCourierDepositRequest.php` — FinanceCourierDepositRequest: authorize, rules (~359 tok)
 - `FinanceDocumentUploadRequest.php` — Uploading is authorized exactly like editing the parent expense (~402 tok)
 - `FinanceExpenseCategoryRequest.php` — FinanceExpenseCategoryRequest: authorize, rules (~326 tok)
-- `FinanceExpenseRequest.php` — FinanceExpenseRequest: authorize, rules (~784 tok)
+- `FinanceExpenseRequest.php` — A request that never mentions justification_type at all (every (~1313 tok)
 - `FinanceRecurringExpenseRequest.php` — FinanceRecurringExpenseRequest: authorize, rules (~586 tok)
 - `FinanceTransactionAdjustmentRequest.php` — FinanceTransactionAdjustmentRequest: authorize, rules (~363 tok)
 - `FinanceVendorRequest.php` — FinanceVendorRequest: authorize, rules (~227 tok)
@@ -270,8 +273,8 @@
 - `FinanceCodSettlementItem.php` — Model — 5 fields, 2 rels (~208 tok)
 - `FinanceCourierDeposit.php` — A cash handover from an internal delivery agent back to the accountant, for a set of COD orders they (~543 tok)
 - `FinanceCourierDepositItem.php` — Model — 3 fields, 2 rels (~192 tok)
-- `FinanceDocument.php` — A supporting document/justificatif attached to a Finance record (currently (~847 tok)
-- `FinanceExpense.php` — Supporting documents/justificatifs (invoices, receipts, proofs of (~823 tok)
+- `FinanceDocument.php` — A supporting document/justificatif attached to a Finance record (currently (~988 tok)
+- `FinanceExpense.php` — Whether this expense's amount belongs in a fiscal/accountant-ready (~1319 tok)
 - `FinanceExpenseCategory.php` — Model — 8 fields, 3 rels (~335 tok)
 - `FinanceRecurringExpense.php` — Model — 17 fields, 5 rels (~748 tok)
 - `FinanceTransaction.php` — Append-only cash/sales ledger. Never updated or deleted by application (~460 tok)
@@ -314,7 +317,7 @@
 - `FinanceCourierDepositPolicy.php` — FinanceCourierDepositPolicy: viewAny, view, create, update (~302 tok)
 - `FinanceDocumentPolicy.php` — Upload is authorized against the parent documentable's own policy (e.g. (~295 tok)
 - `FinanceExpenseCategoryPolicy.php` — Tenancy + permission rules for expense categories. Every check first (~416 tok)
-- `FinanceExpensePolicy.php` — Marking an already-paid expense back to unpaid is the sensitive direction. (~407 tok)
+- `FinanceExpensePolicy.php` — Marking an already-paid expense back to unpaid is the sensitive direction. (~542 tok)
 - `FinanceRecurringExpensePolicy.php` — FinanceRecurringExpensePolicy: viewAny, view, create, update + 1 more (~343 tok)
 - `FinanceTransactionPolicy.php` — Manual adjustments only — automatic ledger writes go through the service layer directly. (~265 tok)
 - `FinanceVendorPolicy.php` — FinanceVendorPolicy: viewAny, view, create, update + 1 more (~326 tok)
@@ -372,8 +375,8 @@
 - `FinanceDeliveryProviderFeeCalculator.php` — Resolves what an external delivery provider is expected to charge for one (~3536 tok)
 - `FinanceDocumentService.php` — The single write path for finance_documents. Purely evidentiary storage — (~1002 tok)
 - `FinanceExpenseCategoryService.php` — Tenant-scoped expense category management. Default categories are seeded (~1138 tok)
-- `FinanceExpenseService.php` — FinanceExpenseService: filteredQuery, create, update, markPaid + 4 more (~4081 tok)
-- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~4884 tok)
+- `FinanceExpenseService.php` — Official invoice/receipt = external legal proof (a FinanceDocument of one (~6495 tok)
+- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~5767 tok)
 - `FinanceOrderTransactionService.php` — Bridges the existing Orders/POS lifecycle into the Finance ledger, without (~5541 tok)
 - `FinanceRecurringExpenseService.php` — Safety cap on catch-up iterations per recurring expense in a single run. (~2130 tok)
 - `FinanceTransactionService.php` — The single write path for the finance ledger. Append-only: nothing here (~1281 tok)
@@ -419,7 +422,7 @@
 
 ## app/Services/Pos/
 
-- `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~2978 tok)
+- `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~3391 tok)
 - `OrderProcessingService.php` — Create a POS order with its line items. Runs in a single transaction so (~3783 tok)
 
 ## app/Services/Publishing/
@@ -474,7 +477,7 @@
 - `OrderLineItems.php` — One line-item shape for both order models, for code that has to touch stock. (~1754 tok)
 - `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~4026 tok)
 - `OrderSourceSummary.php` — Phase OST — single source of truth for "where did this order come from", (~1428 tok)
-- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4092 tok)
+- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4147 tok)
 - `WaitingStockState.php` — Single source of truth for "what should a waiting-stock order's badge say" (~979 tok)
 
 ## app/Support/Delivery/
@@ -551,6 +554,8 @@
 - `2026_09_02_000004_add_reconciliation_to_finance_cod_settlements_table.php` — Extends the existing ad-hoc external settlement (Phase 2) into a (~723 tok)
 - `2026_09_02_000005_add_fee_snapshot_to_finance_cod_settlement_items_table.php` — Per-order fee audit trail — copied from the order's Shipment fee snapshot (~281 tok)
 - `2026_09_03_000001_add_city_references_to_delivery_provider_city_fees_table.php` — Additive only — adds proper city references to `delivery_provider_city_fees` (~1148 tok)
+- `2026_09_04_000001_add_justification_to_finance_expenses_table.php` — Internal justification / owner-review workflow for expenses paid without (~1146 tok)
+- `2026_09_05_000001_rename_fuel_receipt_document_type.php` — FinanceDocumentType::FuelReceipt ('fuel_receipt') was renamed to FuelTicket (~213 tok)
 
 ## database/seeders/
 
@@ -614,8 +619,9 @@
 
 - `CitySearchSelect.jsx` — Searchable city dropdown — never a free-text city input. `options` come (~1059 tok)
 - `ExpenseDocumentPicker.jsx` — "Documents justificatifs" section for the Create Expense page. The expense (~1252 tok)
-- `ExpenseDocumentsCard.jsx` — Documents/justificatifs card for the Expense Edit page. Upload/delete are (~1997 tok)
-- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~1794 tok)
+- `ExpenseDocumentsCard.jsx` — Documents/justificatifs card for the Expense Edit page. Upload/delete are (~2151 tok)
+- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~3223 tok)
+- `JustificationBadges.jsx` — Justification/documentation badges for an expense row or the Edit page — (~845 tok)
 - `RecurringExpenseForm.jsx` — FREQUENCIES — renders form (~1895 tok)
 
 ## resources/js/Components/Onboarding/
@@ -716,7 +722,7 @@
 ## resources/js/Pages/Dashboard/Finance/
 
 - `Dashboard.jsx` — money (~3097 tok)
-- `MonthlyStatement.jsx` — money — renders table (~6724 tok)
+- `MonthlyStatement.jsx` — money — renders table (~7647 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Accounts/
 
@@ -736,9 +742,9 @@
 
 ## resources/js/Pages/Dashboard/Finance/Expenses/
 
-- `Create.jsx` — Create (~544 tok)
-- `Edit.jsx` — Edit (~614 tok)
-- `Index.jsx` — money — renders table (~2580 tok)
+- `Create.jsx` — Create (~726 tok)
+- `Edit.jsx` — Edit (~1864 tok)
+- `Index.jsx` — money — renders table (~3371 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Recurring/
 
@@ -861,6 +867,7 @@
 ## resources/views/documents/
 
 - `bon-de-sortie.blade.php` — Blade template (~2277 tok)
+- `internal-voucher.blade.php` — Blade template (~1482 tok)
 - `online-receipt.blade.php` — 80mm thermal receipt for an online Order (delivery slip); reads invoiceLineItems/invoiceTotals (~600 tok)
 - `online-receipt.blade.php` — Blade template (~850 tok)
 
@@ -929,7 +936,7 @@
 - `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~391 tok)
-- `dashboard.php` (~11268 tok)
+- `dashboard.php` (~11640 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -1037,8 +1044,9 @@
 - `FinanceCourierDepositTest.php` — depositWorkspace: depositPendingOrder (~2520 tok)
 - `FinanceDocumentTest.php` — fdWorkspace: fdExpense, fdStaffWithPermissions (~3537 tok)
 - `FinanceExpenseCategoryTest.php` — Declares fecWorkspace (~1141 tok)
+- `FinanceExpenseJustificationTest.php` — Internal justification / owner-review workflow for expenses paid without (~5815 tok)
 - `FinanceExpenseTest.php` — Declares feWorkspace (~1944 tok)
-- `FinanceMonthlyStatementCashflowTest.php` — Declares statementCashflowWorkspace (~2926 tok)
+- `FinanceMonthlyStatementCashflowTest.php` — Declares statementCashflowWorkspace (~3931 tok)
 - `FinanceMonthlyStatementTest.php` — Declares fmsWorkspace (~1357 tok)
 - `FinanceNavigationTest.php` — Regression coverage for the "Finance is not visible in the main sidebar" (~1736 tok)
 - `FinancePayoutFrequencyTest.php` — fpfWorkspace: fpfSettings, fpfDeliveredOrder (~3939 tok)

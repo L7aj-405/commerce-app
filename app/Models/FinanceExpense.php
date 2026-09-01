@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\FinanceExpenseJustificationStatus;
+use App\Enums\FinanceExpenseJustificationType;
+use App\Enums\FinanceExpenseOwnerReviewStatus;
 use App\Enums\FinanceExpenseStatus;
 use App\Enums\FinancePaymentMethod;
 use App\Models\Concerns\BelongsToOrganization;
@@ -40,6 +43,19 @@ class FinanceExpense extends Model
         'source_type',
         'source_id',
         'created_by',
+
+        // Internal justification / owner-review workflow — see
+        // FinanceExpenseService's docblock for the concept.
+        'justification_type',
+        'justification_status',
+        'owner_review_status',
+        'beneficiary_name',
+        'justification_reason',
+        'paid_by',
+        'justification_notes',
+        'owner_reviewed_by',
+        'owner_reviewed_at',
+        'owner_review_note',
     ];
 
     protected $casts = [
@@ -52,7 +68,28 @@ class FinanceExpense extends Model
         'paid_at' => 'datetime',
         'status' => FinanceExpenseStatus::class,
         'payment_method' => FinancePaymentMethod::class,
+        'justification_type' => FinanceExpenseJustificationType::class,
+        'justification_status' => FinanceExpenseJustificationStatus::class,
+        'owner_review_status' => FinanceExpenseOwnerReviewStatus::class,
+        'owner_reviewed_at' => 'datetime',
     ];
+
+    protected $appends = [
+        'fiscal_ready',
+    ];
+
+    /**
+     * Whether this expense's amount belongs in a fiscal/accountant-ready
+     * export — true only once justification_status is Documented (an
+     * official invoice/receipt/fuel ticket/payment proof/supplier invoice
+     * exists). An internal cash voucher, however thorough, is internal
+     * transparency, never external legal proof — see
+     * FinanceExpenseService's class docblock.
+     */
+    public function getFiscalReadyAttribute(): bool
+    {
+        return $this->justification_status === FinanceExpenseJustificationStatus::Documented;
+    }
 
     public function organization(): BelongsTo
     {
@@ -84,6 +121,11 @@ class FinanceExpense extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function ownerReviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_reviewed_by');
+    }
+
     /**
      * Supporting documents/justificatifs (invoices, receipts, proofs of
      * payment...). Purely evidentiary — see App\Models\FinanceDocument's
@@ -109,5 +151,11 @@ class FinanceExpense extends Model
         return $this->status === FinanceExpenseStatus::Unpaid
             && $this->due_date !== null
             && $this->due_date->isPast();
+    }
+
+    /** Whether the owner-review workflow applies to this expense at all — never true for an official-document expense. */
+    public function requiresOwnerReview(): bool
+    {
+        return $this->justification_type !== FinanceExpenseJustificationType::OfficialDocument;
     }
 }

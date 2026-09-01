@@ -67,11 +67,25 @@ class FinanceDocument extends Model
         'human_size',
         'download_url',
         'preview_url',
+        'is_official_document',
+        'is_internal_document',
     ];
 
     public function getHumanSizeAttribute(): string
     {
         return $this->humanSize();
+    }
+
+    /** External legal proof — see FinanceDocumentType::officialTypes(). */
+    public function getIsOfficialDocumentAttribute(): bool
+    {
+        return $this->document_type?->isOfficial() ?? false;
+    }
+
+    /** Internal justification only — never a substitute for official proof, see FinanceDocumentType::internalTypes(). */
+    public function getIsInternalDocumentAttribute(): bool
+    {
+        return $this->document_type?->isInternal() ?? false;
     }
 
     public function getDownloadUrlAttribute(): string

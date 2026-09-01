@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Pos;
 
 use App\Models\Facture;
+use App\Models\FinanceExpense;
 use App\Models\Order;
 use App\Models\PosOrder;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +25,7 @@ class DocumentGenerationService
     private const ONLINE_RECEIPT_VIEW  = 'documents.online-receipt';
     private const MANIFEST_VIEW        = 'documents.manifest';
     private const BON_DE_SORTIE_VIEW   = 'documents.bon-de-sortie';
+    private const INTERNAL_VOUCHER_VIEW = 'documents.internal-voucher';
 
     /**
      * Render a finalized Facture to an A4 PDF and persist it. Returns the
@@ -171,6 +173,38 @@ class DocumentGenerationService
             ]);
 
             throw new RuntimeException('Failed to generate Bon de Sortie PDF: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Render a printable internal cash voucher for an expense with no
+     * official invoice — the internal justification an accountant/owner can
+     * sign, scan, and re-attach as a `internal_voucher` document (see
+     * FinanceExpenseService's class docblock). NOT persisted — always
+     * reflects the expense's CURRENT state (amount, justification fields,
+     * owner-review status), so a re-print after an edit or a review action
+     * is never stale. Never itself a FinanceDocument or a finance_transaction
+     * — printing is purely a paper trail aid, uploading the signed scan back
+     * is a separate, explicit action.
+     */
+    public function renderInternalVoucherPdf(FinanceExpense $expense): string
+    {
+        $expense->loadMissing(['organization', 'store', 'category', 'createdBy', 'ownerReviewedBy']);
+
+        try {
+            $html = View::make(self::INTERNAL_VOUCHER_VIEW, ['expense' => $expense])->render();
+
+            $mpdf = $this->makeMpdf(width: 210, isReceipt: false); // A4
+            $mpdf->WriteHTML($html);
+
+            return $mpdf->Output('', 'S');
+        } catch (Throwable $e) {
+            Log::error('Internal voucher PDF generation failed', [
+                'expense_id' => $expense->id,
+                'error'      => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Failed to generate internal voucher PDF: ' . $e->getMessage(), 0, $e);
         }
     }
 

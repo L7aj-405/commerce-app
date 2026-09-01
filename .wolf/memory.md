@@ -4453,3 +4453,83 @@
 | 21:45 | Edited tests/Feature/Finance/FinanceCodSettlementViewPeriodTest.php | 17→19 lines | ~286 |
 | 22:05 | Fixed occurred_at midnight-truncation for COD settlement verify | app/Services/Finance/FinanceCodSettlementService.php, tests/Feature/Finance/FinanceCodSettlementViewPeriodTest.php | Today's verification now uses real timestamp; backdated dates keep midnight — 2 new tests, 189/189 Finance tests pass | ~6000 |
 | 21:47 | Session end: 8 writes across 2 files (FinanceCodSettlementViewPeriodTest.php, FinanceCodSettlementService.php) | 4 reads | ~29152 tok |
+| 22:15 | Created database/migrations/2026_09_04_000001_add_justification_to_finance_expenses_table.php | — | ~1155 |
+| 22:15 | Edited database/migrations/2026_09_04_000001_add_justification_to_finance_expenses_table.php | 4→3 lines | ~34 |
+| 22:15 | Created app/Enums/FinanceExpenseJustificationType.php | — | ~236 |
+| 22:15 | Created app/Enums/FinanceExpenseJustificationStatus.php | — | ~248 |
+| 22:15 | Created app/Enums/FinanceExpenseOwnerReviewStatus.php | — | ~218 |
+| 22:15 | Edited app/Enums/FinanceDocumentType.php | modified label() | ~319 |
+| 22:15 | Edited app/Models/FinanceExpense.php | added 3 import(s) | ~58 |
+| 22:15 | Edited app/Models/FinanceExpense.php | expanded (+17 lines) | ~344 |
+| 22:15 | Edited app/Models/FinanceExpense.php | modified createdBy() | ~65 |
+| 22:15 | Edited app/Models/FinanceExpense.php | modified isOverdue() | ~127 |
+| 22:16 | Edited app/Services/Finance/FinanceExpenseService.php | expanded (+15 lines) | ~338 |
+| 22:16 | Edited app/Services/Finance/FinanceExpenseService.php | modified create() | ~582 |
+| 22:16 | Edited app/Services/Finance/FinanceExpenseService.php | added 3 condition(s) | ~1617 |
+| 22:16 | Edited app/Policies/FinanceExpensePolicy.php | modified markUnpaid() | ~218 |
+| 22:17 | Edited app/Support/PermissionCatalog.php | 2→3 lines | ~115 |
+| 22:17 | Edited app/Http/Requests/Finance/FinanceExpenseRequest.php | added 1 import(s) | ~32 |
+| 22:17 | Edited app/Http/Requests/Finance/FinanceExpenseRequest.php | expanded (+15 lines) | ~409 |
+| 22:17 | Edited app/Http/Requests/Finance/FinanceExpenseRequest.php | added 1 condition(s) | ~197 |
+| 22:17 | Edited app/Http/Requests/Finance/FinanceExpenseRequest.php | 3→3 lines | ~46 |
+| 22:17 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | expanded (+6 lines) | ~328 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added nullish coalescing | ~474 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | 7→11 lines | ~124 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | 3→4 lines | ~120 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added 1 import(s) | ~32 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | inline fix | ~52 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | 5→8 lines | ~100 |
+| 22:18 | Edited app/Services/Finance/FinanceExpenseService.php | 3→5 lines | ~132 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | inline fix | ~44 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseDocumentController.php | modified store() | ~234 |
+| 22:18 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseDocumentController.php | added 1 import(s) | ~70 |
+| 22:19 | Edited app/Http/Controllers/Dashboard/Finance/FinanceDocumentController.php | added 2 import(s) | ~63 |
+| 22:19 | Edited app/Http/Controllers/Dashboard/Finance/FinanceDocumentController.php | added 1 condition(s) | ~202 |
+| 22:19 | Edited routes/dashboard.php | modified group() | ~376 |
+| 22:19 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | added 2 import(s) | ~58 |
+| 22:19 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | modified use() | ~646 |
+| 22:19 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | 3→6 lines | ~94 |
+| 22:20 | Edited resources/js/Components/Finance/ExpenseForm.jsx | modified ExpenseForm() | ~450 |
+| 22:21 | Edited resources/js/Components/Finance/ExpenseForm.jsx | 2→1 lines | ~18 |
+| 22:21 | Edited resources/js/Components/Finance/ExpenseForm.jsx | added nullish coalescing | ~1331 |
+| 22:21 | Edited resources/js/Components/Finance/ExpenseForm.jsx | CSS: hover | ~152 |
+| 22:21 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Create.jsx | 7→12 lines | ~207 |
+| 22:21 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Create.jsx | 3→6 lines | ~153 |
+| 22:22 | Created resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx | — | ~1680 |
+| 22:22 | Created resources/js/Components/Finance/JustificationBadges.jsx | — | ~761 |
+| 22:22 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | CSS: justification_status, owner_review_status | ~396 |
+| 22:22 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | 13→14 lines | ~245 |
+| 22:23 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | added nullish coalescing | ~440 |
+| 22:23 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | 13→13 lines | ~351 |
+| 22:24 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | 7→9 lines | ~165 |
+| 22:24 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | "mb-4 grid grid-cols-2 sm:" → "mb-4 grid grid-cols-2 sm:" | ~25 |
+| 22:24 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx | CSS: justification_status, owner_review_status | ~393 |
+| 22:24 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | CSS: sm, xl, sm | ~841 |
+| 22:27 | Created tests/Feature/Finance/FinanceExpenseJustificationTest.php | — | ~3742 |
+| 22:27 | Edited app/Services/Finance/FinanceExpenseService.php | added 1 condition(s) | ~390 |
+| 22:43 | Session end: 62 writes across 24 files (FinanceCodSettlementViewPeriodTest.php, FinanceCodSettlementService.php, 2026_09_04_000001_add_justification_to_finance_expenses_table.php, FinanceExpenseJustificationType.php, FinanceExpenseJustificationStatus.php) | 27 reads | ~104074 tok |
+| 12:48 | Created app/Enums/FinanceDocumentType.php | — | ~544 |
+| 12:48 | Created database/migrations/2026_09_05_000001_rename_fuel_receipt_document_type.php | — | ~213 |
+| 12:48 | Edited app/Models/FinanceDocument.php | added nullish coalescing | ~195 |
+| 12:48 | Edited app/Models/FinanceExpense.php | modified getFiscalReadyAttribute() | ~193 |
+| 12:48 | Edited app/Services/Finance/FinanceExpenseService.php | modified if() | ~398 |
+| 12:48 | Edited app/Services/Pos/DocumentGenerationService.php | added 1 import(s) | ~27 |
+| 12:48 | Edited app/Services/Pos/DocumentGenerationService.php | 2→3 lines | ~54 |
+| 12:49 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~439 |
+| 12:49 | Edited app/Services/Pos/DocumentGenerationService.php | "store" → "organization" | ~27 |
+| 12:49 | Created resources/views/documents/internal-voucher.blade.php | — | ~1482 |
+| 12:49 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | added 2 import(s) | ~122 |
+| 12:49 | Edited app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php | modified requestMoreInfo() | ~375 |
+| 12:49 | Edited routes/dashboard.php | modified group() | ~181 |
+| 12:50 | Created resources/js/Components/Finance/JustificationBadges.jsx | — | ~869 |
+| 12:50 | Edited resources/js/Components/Finance/JustificationBadges.jsx | 3→3 lines | ~56 |
+| 12:50 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx | 3→3 lines | ~54 |
+| 12:50 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Edit.jsx | expanded (+8 lines) | ~283 |
+| 12:50 | Edited resources/js/Pages/Dashboard/Finance/Expenses/Create.jsx | inline fix | ~76 |
+| 12:54 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | expanded (+8 lines) | ~267 |
+| 12:54 | Edited app/Services/Finance/FinanceMonthlyStatementService.php | inline fix | ~20 |
+| 12:54 | Edited resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx | 10→14 lines | ~357 |
+| 12:54 | Edited resources/js/Components/Finance/ExpenseDocumentsCard.jsx | CSS: dark | ~294 |
+| 12:57 | Edited tests/Feature/Finance/FinanceMonthlyStatementCashflowTest.php | modified it() | ~611 |
+| 12:58 | Edited tests/Feature/Finance/FinanceExpenseJustificationTest.php | modified it() | ~2103 |
+| 13:00 | Session end: 86 writes across 30 files (FinanceCodSettlementViewPeriodTest.php, FinanceCodSettlementService.php, 2026_09_04_000001_add_justification_to_finance_expenses_table.php, FinanceExpenseJustificationType.php, FinanceExpenseJustificationStatus.php) | 30 reads | ~124428 tok |

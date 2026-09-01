@@ -283,6 +283,12 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::prefix('expenses')->name('expenses.')->group(function () {
                     Route::get('/', [FinanceExpenseController::class, 'index'])->name('index');
 
+                    // Read-only, print-only — anyone who can see the expense
+                    // (finance.view, the outer group's gate) can print its
+                    // internal voucher, not just whoever can edit it. See
+                    // FinanceExpenseController::voucher().
+                    Route::get('/{expense}/voucher', [FinanceExpenseController::class, 'voucher'])->name('voucher');
+
                     Route::middleware('perm:finance.manage_expenses')->group(function () {
                         Route::get('/create', [FinanceExpenseController::class, 'create'])->name('create');
                         Route::post('/', [FinanceExpenseController::class, 'store'])->name('store');
@@ -297,6 +303,18 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                         // paid expense (see FinanceDocumentUploadRequest). Purely
                         // evidentiary: never creates a finance_transaction.
                         Route::post('/{expense}/documents', [FinanceExpenseDocumentController::class, 'store'])->name('documents.store');
+                    });
+
+                    // Owner/admin review of an internal cash voucher / no-invoice
+                    // expense's justification — deliberately its own permission,
+                    // separate from finance.manage_expenses (see
+                    // FinanceExpensePolicy::review()). Never creates a
+                    // finance_transaction on its own; a rejection of an already
+                    // PAID expense reuses the existing cancel()/reversal path.
+                    Route::middleware('perm:finance.review_expenses')->group(function () {
+                        Route::post('/{expense}/approve', [FinanceExpenseController::class, 'approveJustification'])->name('approve');
+                        Route::post('/{expense}/reject', [FinanceExpenseController::class, 'rejectJustification'])->name('reject');
+                        Route::post('/{expense}/request-info', [FinanceExpenseController::class, 'requestMoreInfo'])->name('request-info');
                     });
                 });
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Finance;
 
 use App\Enums\FinanceDocumentType;
+use App\Enums\FinanceExpenseJustificationType;
 use App\Enums\FinancePaymentMethod;
 use App\Models\FinanceExpense;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,6 +20,21 @@ class FinanceExpenseRequest extends FormRequest
         return $expense
             ? $this->user()->can('update', $expense)
             : $this->user()->can('create', FinanceExpense::class);
+    }
+
+    /**
+     * A request that never mentions justification_type at all (every
+     * pre-existing caller — old tests, any future direct API use) must
+     * behave exactly like an explicit official_document choice: normalize
+     * it here BEFORE validation runs, so the required_unless rules below
+     * only ever fire for a request that deliberately picked a non-official
+     * path, never for one that's simply unaware of this field.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('justification_type')) {
+            $this->merge(['justification_type' => FinanceExpenseJustificationType::OfficialDocument->value]);
+        }
     }
 
     public function rules(): array
@@ -47,8 +63,23 @@ class FinanceExpenseRequest extends FormRequest
             ],
             'expense_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:expense_date'],
-            'payment_method' => ['nullable', Rule::enum(FinancePaymentMethod::class)],
+            // required_unless (not just 'nullable') so a plain PATCH that
+            // never sends payment_method at all still fails loudly for a
+            // no-invoice/internal-voucher expense — see rules() note below.
+            'payment_method' => ['nullable', 'required_unless:justification_type,official_document', Rule::enum(FinancePaymentMethod::class)],
             'reference' => ['nullable', 'string', 'max:255'],
+
+            // Justification — see FinanceExpenseService's class docblock.
+            // Missing entirely defaults to official_document (unchanged
+            // Phase-1 behaviour for every existing caller); the moment
+            // anything else is chosen, beneficiary/reason/payer become
+            // required. Never touches paid/unpaid/cancel — only reporting
+            // and the owner-review workflow read these.
+            'justification_type' => ['nullable', Rule::enum(FinanceExpenseJustificationType::class)],
+            'beneficiary_name' => ['required_unless:justification_type,official_document', 'nullable', 'string', 'max:255'],
+            'justification_reason' => ['required_unless:justification_type,official_document', 'nullable', 'string', 'max:2000'],
+            'paid_by' => ['required_unless:justification_type,official_document', 'nullable', 'string', 'max:255'],
+            'justification_notes' => ['nullable', 'string', 'max:2000'],
 
             // Optional supporting documents attached at creation time (the
             // Create page's "Documents justificatifs" section). Same

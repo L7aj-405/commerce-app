@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Dashboard\Finance;
 
 use App\Enums\FinanceDocumentType;
+use App\Enums\FinanceExpenseJustificationType;
 use App\Enums\FinanceExpenseStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\FinanceExpenseRequest;
@@ -14,8 +15,10 @@ use App\Models\FinanceVendor;
 use App\Services\Finance\FinanceDocumentService;
 use App\Services\Finance\FinanceExpenseCategoryService;
 use App\Services\Finance\FinanceExpenseService;
+use App\Services\Pos\DocumentGenerationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,7 +28,7 @@ class FinanceExpenseController extends Controller
     {
         $this->authorize('viewAny', FinanceExpense::class);
 
-        $filters = $request->only(['from', 'to', 'category_id', 'vendor_id', 'status', 'payment_method', 'store_id']);
+        $filters = $request->only(['from', 'to', 'category_id', 'vendor_id', 'status', 'payment_method', 'store_id', 'justification_status', 'owner_review_status']);
 
         $expenses = $service->filteredQuery($filters)->paginate(20)->withQueryString();
 
@@ -33,6 +36,9 @@ class FinanceExpenseController extends Controller
             'expenses' => $expenses,
             'filters' => $filters,
             'options' => $this->formOptions($request),
+            'can' => [
+                'review' => $request->user()->hasStorePermission($request->user()->getActiveStore(), 'finance.review_expenses'),
+            ],
         ]);
     }
 
@@ -65,6 +71,12 @@ class FinanceExpenseController extends Controller
                 description: $request->validated('document_description'),
                 storeId: $expense->store_id,
             );
+
+            // A document attached in this SAME request (e.g. the official
+            // invoice uploaded right alongside "Yes, I have one") must be
+            // reflected immediately — create() alone can't see it yet, it
+            // ran before storeMany() above.
+            $service->syncJustificationStatus($expense);
         }
 
         return redirect()->route('dashboard.finance.expenses.index')->with('success', 'Expense recorded.');
@@ -78,8 +90,12 @@ class FinanceExpenseController extends Controller
             'expense' => $expense->load([
                 'category:id,name', 'vendor:id,name', 'store:id,name',
                 'documents.uploadedBy:id,name',
+                'ownerReviewedBy:id,name',
             ]),
             'options' => $this->formOptions($request),
+            'can' => [
+                'review' => $request->user()->can('review', $expense),
+            ],
         ]);
     }
 
@@ -137,6 +153,58 @@ class FinanceExpenseController extends Controller
         return back()->with('success', 'Expense cancelled.');
     }
 
+    /** Owner/admin review of an internal cash voucher / no-invoice expense — see FinanceExpensePolicy::review(). */
+    public function approveJustification(Request $request, FinanceExpense $expense, FinanceExpenseService $service): RedirectResponse
+    {
+        $this->authorize('review', $expense);
+
+        $validated = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
+        $service->approveJustification($expense, $request->user(), $validated['note'] ?? null);
+
+        return back()->with('success', 'Expense approved internally.');
+    }
+
+    public function rejectJustification(Request $request, FinanceExpense $expense, FinanceExpenseService $service): RedirectResponse
+    {
+        $this->authorize('review', $expense);
+
+        $validated = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
+        $service->rejectJustification($expense, $request->user(), $validated['note'] ?? null);
+
+        return back()->with('success', 'Expense rejected — any recorded payment was reversed, not deleted.');
+    }
+
+    public function requestMoreInfo(Request $request, FinanceExpense $expense, FinanceExpenseService $service): RedirectResponse
+    {
+        $this->authorize('review', $expense);
+
+        $validated = $request->validate(['note' => ['nullable', 'string', 'max:2000']]);
+        $service->requestMoreInfo($expense, $request->user(), $validated['note'] ?? null);
+
+        return back()->with('success', 'More information requested.');
+    }
+
+    /**
+     * Stream a printable internal cash voucher for this expense — the
+     * internal justification an accountant/owner signs and re-attaches as a
+     * `internal_voucher` document (never itself a FinanceDocument or a
+     * finance_transaction). Gated on `view` (read-only), not
+     * finance.manage_expenses — printing is a paper-trail aid anyone who can
+     * see the expense should be able to do. Route-model binding already
+     * 404s a cross-organization expense before the policy is even reached.
+     */
+    public function voucher(Request $request, FinanceExpense $expense, DocumentGenerationService $documents): HttpResponse
+    {
+        $this->authorize('view', $expense);
+
+        $pdf = $documents->renderInternalVoucherPdf($expense);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "inline; filename=\"internal-voucher-{$expense->id}.pdf\"",
+        ]);
+    }
+
     private function formOptions(Request $request): array
     {
         $organization = $request->user()->getActiveStore()?->organization;
@@ -149,6 +217,7 @@ class FinanceExpenseController extends Controller
             'vendors' => FinanceVendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'stores' => $organization?->stores()->orderBy('name')->get(['id', 'name']) ?? collect(),
             'documentTypes' => collect(FinanceDocumentType::cases())->map(fn (FinanceDocumentType $t) => ['value' => $t->value, 'label' => $t->label()])->values(),
+            'justificationTypes' => collect(FinanceExpenseJustificationType::cases())->map(fn (FinanceExpenseJustificationType $t) => ['value' => $t->value, 'label' => $t->label()])->values(),
         ];
     }
 }

@@ -13048,6 +13048,198 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-31T20:42:29.765Z"
+    },
+    {
+      "id": "bug-794",
+      "timestamp": "2026-08-31T21:16:47.161Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Services/Finance/FinanceExpenseService.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:16:47.161Z"
+    },
+    {
+      "id": "bug-795",
+      "timestamp": "2026-08-31T21:17:20.479Z",
+      "error_message": "Wrong reference: FinancePaymentMethod should be FinanceExpenseJustificationType",
+      "file": "app/Http/Requests/Finance/FinanceExpenseRequest.php",
+      "root_cause": "Used \"FinancePaymentMethod\" instead of \"FinanceExpenseJustificationType\"",
+      "fix": "Changed FinancePaymentMethod → FinanceExpenseJustificationType",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:17:20.479Z"
+    },
+    {
+      "id": "bug-796",
+      "timestamp": "2026-08-31T21:18:06.468Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:18:06.468Z"
+    },
+    {
+      "id": "bug-797",
+      "timestamp": "2026-08-31T21:18:23.925Z",
+      "error_message": "Wrong reference: FinanceExpenseStatus should be FinanceExpenseJustificationType",
+      "file": "app/Http/Controllers/Dashboard/Finance/FinanceExpenseController.php",
+      "root_cause": "Used \"FinanceExpenseStatus\" instead of \"FinanceExpenseJustificationType\"",
+      "fix": "Changed FinanceExpenseStatus → FinanceExpenseJustificationType",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:18:23.925Z"
+    },
+    {
+      "id": "bug-798",
+      "timestamp": "2026-08-31T21:21:17.354Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Components/Finance/ExpenseForm.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:21:17.355Z"
+    },
+    {
+      "id": "bug-799",
+      "timestamp": "2026-08-31T21:23:07.345Z",
+      "error_message": "Null/undefined access in ",
+      "file": "resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:23:07.345Z"
+    },
+    {
+      "id": "bug-800",
+      "timestamp": "2026-08-31T21:24:26.871Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Pages/Dashboard/Finance/Expenses/Index.jsx",
+      "root_cause": "Had \"mb-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols",
+      "fix": "Changed to \"mb-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T21:24:26.871Z"
+    },
+    {
+      "id": "bug-801",
+      "timestamp": "2026-09-01T11:48:14.286Z",
+      "error_message": "Null/undefined access in ",
+      "file": "app/Models/FinanceDocument.php",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-01T11:48:14.286Z"
+    },
+    {
+      "id": "bug-802",
+      "timestamp": "2026-09-01T11:49:06.478Z",
+      "error_message": "Missing error handling in renderInternalVoucherPdf",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-01T11:49:06.478Z"
+    },
+    {
+      "id": "bug-803",
+      "timestamp": "2026-09-01T11:49:11.142Z",
+      "error_message": "Incorrect value in code",
+      "file": "app/Services/Pos/DocumentGenerationService.php",
+      "root_cause": "Had 'store'",
+      "fix": "Changed to 'organization'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "php"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-01T11:49:11.142Z"
+    },
+    {
+      "id": "bug-804",
+      "timestamp": "2026-09-01T11:50:26.936Z",
+      "error_message": "Incorrect value in code",
+      "file": "resources/js/Components/Finance/JustificationBadges.jsx",
+      "root_cause": "Had 'official_document'",
+      "fix": "Changed to \"slate\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-01T11:50:26.936Z"
+    },
+    {
+      "id": "bug-805",
+      "timestamp": "2026-09-01T11:54:33.246Z",
+      "error_message": "CSS fix: sm",
+      "file": "resources/js/Pages/Dashboard/Finance/MonthlyStatement.jsx",
+      "root_cause": "sm: grid-cols-2 gap-4\"> → grid-cols-3 gap-4\">",
+      "fix": "Changed sm: grid-cols-2 gap-4\"> → grid-cols-3 gap-4\">",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "jsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-01T11:54:33.246Z"
     }
   ]
 }
