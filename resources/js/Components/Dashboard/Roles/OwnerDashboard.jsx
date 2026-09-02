@@ -12,6 +12,7 @@ import StatusPill from '@/Components/PremiumDashboard/StatusPill';
 import QuickActionButton from '@/Components/PremiumDashboard/QuickActionButton';
 import DashboardSkeleton from '@/Components/PremiumDashboard/DashboardSkeleton';
 import EmptyMetricState from '@/Components/PremiumDashboard/EmptyMetricState';
+import Select from '@/Components/Select';
 
 /**
  * The business-overview dashboard — byte-for-byte the same content that used
@@ -127,15 +128,19 @@ function Hero({ userName, storeName, range, onRangeChange, canPos, canViewOrders
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-                <label className="relative inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 shadow-premium">
-                    <CalendarDays className="h-4 w-4 text-content-muted" strokeWidth={1.8} />
-                    <span className="sr-only">Dashboard date range</span>
-                    <select value={range} onChange={(event) => onRangeChange(event.target.value)} className="appearance-none bg-transparent pr-5 text-xs font-semibold text-content focus:outline-none">
-                        <option value="today">Today · {formatDay(new Date())}</option>
-                        <option value="month">This month · {formatMonth(new Date())}</option>
-                    </select>
-                    <span className="pointer-events-none absolute right-3 text-[10px] text-content-muted">⌄</span>
-                </label>
+                <Select
+                    value={range}
+                    onChange={onRangeChange}
+                    icon={CalendarDays}
+                    ariaLabel="Dashboard date range"
+                    className="w-auto"
+                    buttonClassName="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold text-content shadow-premium transition hover:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+                    menuClassName="whitespace-nowrap"
+                    options={[
+                        { value: 'today', label: `Today · ${formatDay(new Date())}` },
+                        { value: 'month', label: `This month · ${formatMonth(new Date())}` },
+                    ]}
+                />
 
                 {canPos ? (
                     <QuickActionButton href="/pos" icon={Monitor}>New POS sale</QuickActionButton>

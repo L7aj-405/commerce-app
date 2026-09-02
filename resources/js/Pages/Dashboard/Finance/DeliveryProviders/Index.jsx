@@ -7,6 +7,7 @@ import EmptyState from '@/Components/EmptyState';
 import DataTable from '@/Components/DataTable';
 import StatusBadge from '@/Components/StatusBadge';
 import CitySearchSelect from '@/Components/Finance/CitySearchSelect';
+import Select from '@/Components/Select';
 import { formatDateOnly } from '@/Support/formatDate';
 
 function money(amount) {
@@ -136,9 +137,7 @@ function ConfigureModal({ provider, initialTab, accounts, canManage, canCustomCi
                                     error={errors.payout_frequency}
                                     hint={FREQUENCIES.find((f) => f.value === data.payout_frequency)?.hint}
                                 >
-                                    <select disabled={! canManage} value={data.payout_frequency} onChange={(e) => setData('payout_frequency', e.target.value)} className={inputClass(errors.payout_frequency)}>
-                                        {FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                                    </select>
+                                    <Select disabled={! canManage} value={data.payout_frequency} onChange={(v) => setData('payout_frequency', v)} options={FREQUENCIES} error={Boolean(errors.payout_frequency)} />
                                 </Field>
                                 <Field
                                     label="Period anchor date"
@@ -152,10 +151,13 @@ function ConfigureModal({ provider, initialTab, accounts, canManage, canCustomCi
                             </div>
 
                             <Field label="Bank account (reconciliation default)">
-                                <select disabled={! canManage} value={data.default_bank_account_id} onChange={(e) => setData('default_bank_account_id', e.target.value)} className={inputClass(errors.default_bank_account_id)}>
-                                    <option value="">Not set</option>
-                                    {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                </select>
+                                <Select
+                                    disabled={! canManage}
+                                    value={data.default_bank_account_id}
+                                    onChange={(v) => setData('default_bank_account_id', v)}
+                                    options={[{ value: '', label: 'Not set' }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+                                    error={Boolean(errors.default_bank_account_id)}
+                                />
                                 {errors.default_bank_account_id && <p className="mt-1 text-xs text-danger">{errors.default_bank_account_id}</p>}
                             </Field>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { CircleDot, Grid2X2, Menu, Plus, Zap } from 'lucide-react';
 import NotificationBell from '@/Components/NotificationBell';
@@ -18,10 +18,22 @@ export default function FloatingTopbar({
     quickActions = [],
 }) {
     const [actionsOpen, setActionsOpen] = useState(false);
+    // Sticky header (see PremiumAppShell — its ancestor uses overflow-clip
+    // specifically so this can stay pinned instead of scrolling away). A
+    // slightly stronger shadow/border once the page has actually scrolled
+    // gives a subtle "lifted above the content" cue without changing
+    // anything while at the top of the page.
+    const [scrolled, setScrolled] = useState(false);
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     return (
         <header className="sticky top-0 z-30 px-3 pt-3 sm:px-5 sm:pt-5">
-            <div className="flex h-[74px] items-center gap-3 rounded-[26px] border border-border bg-glass px-3 shadow-premium backdrop-blur-xl sm:px-4">
+            <div className={`flex h-[74px] items-center gap-3 rounded-[26px] border border-border bg-glass px-3 backdrop-blur-xl transition-shadow duration-200 sm:px-4 ${scrolled ? 'shadow-[0_26px_60px_-32px_rgba(0,0,0,0.45)]' : 'shadow-premium'}`}>
                 <button type="button" onClick={onOpenNavigation} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-soft text-text-muted lg:hidden" aria-label="Open navigation">
                     <Menu className="h-[18px] w-[18px]" />
                 </button>

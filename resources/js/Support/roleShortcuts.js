@@ -12,13 +12,23 @@
  * inspector, administrator, or any custom role a store owner created).
  */
 
+// The Settings destination is deliberately absent from every list below —
+// it always gets its own fixed slot at the bottom of the rail (the
+// `utilityItem` in SaasLayout.jsx/PermissionAwareRail.jsx), so including it
+// here too would render the gear icon twice. PermissionAwareRail also
+// defensively filters it out even if a future edit reintroduces it.
+// Owner/admin gets one icon per important domain — Dashboard, Orders,
+// Products, Inventory, Delivery, Finance, Integrations (+ Settings, always
+// the separate utility slot). Finance in particular must never be missing
+// here: it's core to what an owner/admin checks daily.
 const OWNER_TIER_HREFS = [
     '/dashboard',
     '/dashboard/orders/manage',
     '/dashboard/products',
     '/dashboard/stock',
+    '/dashboard/departments/dispatch', // Delivery Board — the ops-facing "Delivery" destination.
+    '/dashboard/finance',
     '/dashboard/integrations',
-    '/dashboard/settings',
 ];
 
 export const ROLE_SHORTCUT_HREFS = {
@@ -82,21 +92,17 @@ export const ROLE_SHORTCUT_HREFS = {
     ],
 };
 
-export const DEFAULT_SHORTCUT_HREFS = [
-    '/dashboard',
-    '/dashboard/orders/manage',
-    '/dashboard/products',
-    '/dashboard/stock',
-    '/dashboard/integrations',
-    '/dashboard/settings',
-];
+// Same href set as the owner tier — kept as one source of truth (see
+// Task 5's navigation-consistency goal) rather than two literal copies that
+// could silently drift apart.
+export const DEFAULT_SHORTCUT_HREFS = OWNER_TIER_HREFS;
 
 /**
  * @param {Array<{href: string}>} allItems Already permission-filtered nav items.
  * @param {string|null} roleSlug
  * @param {number} max
  */
-export function curateRailItems(allItems, roleSlug, max = 6) {
+export function curateRailItems(allItems, roleSlug, max = 7) {
     const byHref = new Map(allItems.map((item) => [item.href, item]));
     const candidates = ROLE_SHORTCUT_HREFS[roleSlug] ?? DEFAULT_SHORTCUT_HREFS;
 

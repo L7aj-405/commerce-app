@@ -25,6 +25,10 @@ use App\Http\Controllers\Dashboard\Finance\FinanceMonthlyStatementController;
 use App\Http\Controllers\Dashboard\Finance\FinanceRecurringExpenseController;
 use App\Http\Controllers\Dashboard\Finance\FinanceTransactionController;
 use App\Http\Controllers\Dashboard\Finance\FinanceVendorController;
+use App\Http\Controllers\Dashboard\Finance\PayrollController;
+use App\Http\Controllers\Dashboard\Finance\PayrollItemController;
+use App\Http\Controllers\Dashboard\Payroll\EmployeeAdvanceController;
+use App\Http\Controllers\Dashboard\Payroll\EmployeeController;
 use App\Http\Controllers\Dashboard\IntegrationsController;
 use App\Http\Controllers\Dashboard\InvoiceController;
 use App\Http\Controllers\Dashboard\OperationsController;
@@ -421,6 +425,37 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::middleware('perm:finance.view_reports')->prefix('statement')->name('statement.')->group(function () {
                     Route::get('/', [FinanceMonthlyStatementController::class, 'index'])->name('index');
                 });
+
+                // Payroll — salary due (calculate/approve) vs salary PAID
+                // (pay) are deliberately separate steps; see PayrollService's
+                // class docblock. finance.view is enough to browse (inherited
+                // from the group above), every write action needs
+                // finance.manage_payroll, checked again per-record by the
+                // PayrollPeriod/PayrollItem policies.
+                Route::prefix('payroll')->name('payroll.')->group(function () {
+                    Route::get('/', [PayrollController::class, 'index'])->name('index');
+
+                    // /create MUST be registered before the /{period} wildcard
+                    // below, or "create" itself would be swallowed as a
+                    // {period} route-model-binding attempt and 404.
+                    Route::middleware('perm:finance.manage_payroll')->group(function () {
+                        Route::get('/create', [PayrollController::class, 'create'])->name('create');
+                        Route::post('/', [PayrollController::class, 'store'])->name('store');
+                    });
+
+                    Route::get('/{period}', [PayrollController::class, 'show'])->name('show');
+
+                    Route::middleware('perm:finance.manage_payroll')->group(function () {
+                        Route::post('/{period}/calculate', [PayrollController::class, 'calculate'])->name('calculate');
+                        Route::post('/{period}/approve', [PayrollController::class, 'approve'])->name('approve');
+                        Route::post('/{period}/pay-all', [PayrollController::class, 'payAll'])->name('pay-all');
+
+                        Route::patch('/items/{item}', [PayrollItemController::class, 'update'])->name('items.update');
+                        Route::post('/items/{item}/apply-advance', [PayrollItemController::class, 'applyAdvance'])->name('items.apply-advance');
+                        Route::post('/items/{item}/pay', [PayrollItemController::class, 'pay'])->name('items.pay');
+                        Route::post('/items/{item}/cancel', [PayrollItemController::class, 'cancel'])->name('items.cancel');
+                    });
+                });
             });
 
             Route::middleware('perm:team.manage')->prefix('team')->name('team.')->group(function () {
@@ -433,6 +468,38 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::patch('/members/{member}',            [TeamController::class, 'updateMember'])->name('members.update');
                 Route::delete('/members/{member}',           [TeamController::class, 'removeMember'])->name('remove');
                 Route::delete('/invitations/{invitation}',   [TeamController::class, 'revokeInvitation'])->name('revoke');
+            });
+
+            // Employees — a PAYROLL concept, deliberately separate from Team
+            // (dashboard access/permissions) above; see Employee's class
+            // docblock. employees.view is enough to browse, every write
+            // action needs employees.manage.
+            Route::middleware('perm:employees.view')->prefix('employees')->name('employees.')->group(function () {
+                Route::get('/', [EmployeeController::class, 'index'])->name('index');
+
+                Route::middleware('perm:employees.manage')->group(function () {
+                    Route::get('/create', [EmployeeController::class, 'create'])->name('create');
+                    Route::post('/', [EmployeeController::class, 'store'])->name('store');
+                    Route::get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
+                    Route::patch('/{employee}', [EmployeeController::class, 'update'])->name('update');
+                    Route::delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
+                    Route::post('/{employee}/link-user', [EmployeeController::class, 'linkUser'])->name('link-user');
+                    Route::post('/{employee}/unlink-user', [EmployeeController::class, 'unlinkUser'])->name('unlink-user');
+                    Route::post('/{employee}/salary-profiles', [EmployeeController::class, 'storeSalaryProfile'])->name('salary-profiles.store');
+                    Route::post('/{employee}/advances', [EmployeeAdvanceController::class, 'store'])->name('advances.store');
+                });
+            });
+
+            // Advance actions by the advance's own id — separate from the
+            // /employees/{employee}/advances create route above (same
+            // "generic sub-resource by its own id" shape as Finance
+            // documents). approve()/cancel() only need employees.manage;
+            // pay() additionally checks finance.manage_payroll itself (real
+            // cash), see EmployeeAdvanceController::pay().
+            Route::middleware('perm:employees.manage')->prefix('employee-advances')->name('employee-advances.')->group(function () {
+                Route::post('/{advance}/approve', [EmployeeAdvanceController::class, 'approve'])->name('approve');
+                Route::post('/{advance}/pay', [EmployeeAdvanceController::class, 'pay'])->name('pay');
+                Route::post('/{advance}/cancel', [EmployeeAdvanceController::class, 'cancel'])->name('cancel');
             });
 
             Route::middleware('perm:roles.manage')->prefix('roles')->name('roles.')->group(function () {

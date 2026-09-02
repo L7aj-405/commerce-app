@@ -70,6 +70,14 @@ const TYPE_MAPS = {
         failed_attempt: 'amber', returned: 'red', refused: 'red', cancelled: 'slate', unknown: 'slate',
         provider_unverified: 'amber',
     },
+    // App\Enums\PayrollPeriodStatus
+    payroll_period: { draft: 'slate', calculated: 'blue', approved: 'indigo', paid: 'emerald', cancelled: 'red' },
+    // App\Enums\PayrollItemStatus
+    payroll_item: { pending: 'amber', approved: 'indigo', paid: 'emerald', cancelled: 'red' },
+    // App\Enums\EmployeeAdvanceStatus
+    employee_advance: { pending: 'amber', approved: 'indigo', paid: 'emerald', deducted: 'slate', cancelled: 'red' },
+    // App\Enums\EmployeeEmploymentStatus
+    employment: { active: 'emerald', inactive: 'slate', suspended: 'amber', left: 'red' },
 };
 
 export default function StatusBadge({ status, type = 'invoice', label }) {

@@ -4,14 +4,32 @@ import { Grid2X2 } from 'lucide-react';
 /**
  * Compact floating icon dock — quick access only, curated per role by
  * curateRailItems() (see Support/roleShortcuts.js). The complete
- * permission-aware navigation lives in FullNavigationDrawer, opened by the
- * top launcher icon here.
+ * permission-aware navigation lives in FullNavigationDrawer, opened by
+ * either the top launcher icon here (click) or SidebarHoverTrigger (hover
+ * on the dedicated far-left edge strip — see SaasLayout.jsx).
+ *
+ * IMPORTANT: this rail deliberately has NO hover-open wiring of its own —
+ * no mouse-enter/leave handlers on the <aside> at all. An earlier version
+ * opened the drawer the moment the cursor entered the whole dock, which
+ * meant simply moving across a rail icon on the way to clicking it could
+ * pop the drawer open on top of/around it — interfering with the click.
+ * Hovering a rail icon here only ever shows its tooltip/active styling;
+ * the ONLY hover-opens-the-drawer surfaces are SidebarHoverTrigger's thin
+ * edge strip and the open drawer's own panel.
  *
  * Deliberately NOT a full-height sidebar: it's a small pill-shaped dock,
  * sized to its own content, vertically centered in the viewport (`fixed
  * top-1/2 -translate-y-1/2`) rather than stretched/pinned high.
  */
 export default function PermissionAwareRail({ items, currentUrl, badges = {}, onOpenDrawer, utilityItem = null }) {
+    // Defensive dedup: the utility slot (Settings) always gets its own fixed
+    // spot below the curated list — never let it ALSO appear inside `items`
+    // (e.g. because a role's shortcut list happens to include the same
+    // href), or Settings would render twice. See Support/roleShortcuts.js,
+    // which is the primary place this is kept from happening in the first
+    // place; this is the belt-and-suspenders backstop.
+    const railItems = utilityItem ? items.filter((item) => item.href !== utilityItem.href) : items;
+
     return (
         <aside className="fixed left-5 top-1/2 z-20 hidden w-14 -translate-y-1/2 flex-col items-center gap-1.5 rounded-[22px] border border-border bg-card px-0 py-2.5 shadow-premium lg:flex">
             <button
@@ -24,16 +42,16 @@ export default function PermissionAwareRail({ items, currentUrl, badges = {}, on
                 <Tooltip>All modules</Tooltip>
             </button>
 
-            {items.length > 0 && (
+            {railItems.length > 0 && (
                 <nav className="mt-1.5 flex w-full flex-col items-center gap-1.5">
-                    {items.map((item) => {
+                    {railItems.map((item) => {
                         const Icon = item.icon;
                         const active = isItemActive(currentUrl, item);
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`group relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-200 ${active ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-soft hover:text-text'}`}
+                                className={`group relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-200 hover:translate-x-0.5 ${active ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-soft hover:text-text'}`}
                                 aria-label={item.label}
                             >
                                 <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
@@ -51,9 +69,9 @@ export default function PermissionAwareRail({ items, currentUrl, badges = {}, on
                 <Link
                     href={utilityItem.href}
                     aria-label={utilityItem.label}
-                    className="group relative mt-1 flex h-10 w-10 items-center justify-center rounded-2xl text-text-muted transition hover:bg-surface-soft hover:text-text"
+                    className={`group relative mt-1 flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-200 ${isActive(currentUrl, utilityItem.href) ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-soft hover:text-text'}`}
                 >
-                    <utilityItem.icon className="h-4 w-4" />
+                    <utilityItem.icon className="h-4 w-4" strokeWidth={1.8} />
                     <Tooltip>{utilityItem.label}</Tooltip>
                 </Link>
             )}

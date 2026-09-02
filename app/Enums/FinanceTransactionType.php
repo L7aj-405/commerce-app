@@ -28,6 +28,14 @@ enum FinanceTransactionType: string
     /** Informational only — actual_received_amount vs expected_net_amount, for a provider-period settlement. Mirrors CodCourierVariance. */
     case CodSettlementVariance = 'cod_settlement_variance';
 
+    // --- Payroll / employee advances — see App\Services\Payroll ---
+    /** Booked only when a payroll item is actually PAID (net_amount) — calculating/approving a period never touches the ledger. */
+    case SalaryPaid = 'salary_paid';
+    case SalaryPaymentReversed = 'salary_payment_reversed';
+    /** Booked only when an advance is actually PAID out — requesting/approving an advance never touches the ledger. */
+    case EmployeeAdvancePaid = 'employee_advance_paid';
+    case EmployeeAdvancePaymentReversed = 'employee_advance_payment_reversed';
+
     public function label(): string
     {
         return match ($this) {
@@ -48,14 +56,19 @@ enum FinanceTransactionType: string
             self::CodCourierVariance => 'Courier cash variance',
             self::CodSettlementFeeIncurred => 'Carrier delivery fee incurred',
             self::CodSettlementVariance => 'External settlement variance',
+            self::SalaryPaid => 'Salary paid',
+            self::SalaryPaymentReversed => 'Salary payment reversed',
+            self::EmployeeAdvancePaid => 'Employee advance paid',
+            self::EmployeeAdvancePaymentReversed => 'Employee advance payment reversed',
         };
     }
 
     public function defaultDirection(): FinanceTransactionDirection
     {
         return match ($this) {
-            self::PaymentCollected, self::CodCollected, self::CodSettlementReceived, self::ExpensePaymentReversed => FinanceTransactionDirection::In,
-            self::ExpensePaid, self::RefundPaid, self::BankFee => FinanceTransactionDirection::Out,
+            self::PaymentCollected, self::CodCollected, self::CodSettlementReceived, self::ExpensePaymentReversed,
+            self::SalaryPaymentReversed, self::EmployeeAdvancePaymentReversed => FinanceTransactionDirection::In,
+            self::ExpensePaid, self::RefundPaid, self::BankFee, self::SalaryPaid, self::EmployeeAdvancePaid => FinanceTransactionDirection::Out,
             self::SaleCreated, self::CodReceivableCreated, self::ExpenseUnpaidRecorded,
             self::ReturnAdjustment, self::ManualAdjustment,
             self::CodSettledExternal, self::CodClearedByCourier, self::CodCourierVariance,

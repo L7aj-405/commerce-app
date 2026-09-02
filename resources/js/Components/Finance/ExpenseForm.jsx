@@ -1,4 +1,5 @@
 import { AlertTriangle, Loader2, Save } from 'lucide-react';
+import DesignSelect from '@/Components/Select';
 
 const PAYMENT_METHODS = [
     { value: '', label: 'Not specified' },
@@ -146,10 +147,7 @@ function Select({ label, value, onChange, error, required, options, disabled }) 
     return (
         <div>
             <label className="block text-sm font-medium text-content-muted mb-1">{label} {required && <span className="text-danger">*</span>}</label>
-            <select value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={disabled}
-                className={`w-full px-3 py-2 rounded-lg bg-surface-3 border ${error ? 'border-danger' : 'border-line'} text-content focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed`}>
-                {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <DesignSelect value={value ?? ''} onChange={onChange} options={options} disabled={disabled} error={Boolean(error)} />
             {error && <p className="mt-1 text-xs text-danger">{error}</p>}
         </div>
     );

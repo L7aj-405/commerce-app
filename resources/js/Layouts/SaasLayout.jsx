@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import {
     Home, ShoppingCart, Package, Layers, Monitor, FileText, Truck,
     Settings, Plug, Users, Building2, ShieldCheck, Undo2,
     ClipboardCheck, PackageCheck, Navigation, LifeBuoy, ClipboardList,
     PackageSearch, ArrowLeftRight, Wallet, Receipt, RefreshCw, Tags, FileBarChart,
-    Landmark, ListOrdered, HandCoins,
+    Landmark, ListOrdered, HandCoins, Banknote, Contact,
 } from 'lucide-react';
 import PageHeader from '@/Components/PageHeader';
 import ToastNotification from '@/Components/ToastNotification';
@@ -14,6 +14,7 @@ import PremiumAppShell from '@/Components/PremiumDashboard/PremiumAppShell';
 import FloatingTopbar from '@/Components/PremiumDashboard/FloatingTopbar';
 import PermissionAwareRail from '@/Components/PremiumDashboard/PermissionAwareRail';
 import FullNavigationDrawer from '@/Components/PremiumDashboard/FullNavigationDrawer';
+import SidebarHoverTrigger from '@/Components/PremiumDashboard/SidebarHoverTrigger';
 import CommandPalette from '@/Components/PremiumDashboard/CommandPalette';
 import { curateRailItems } from '@/Support/roleShortcuts';
 import { resolveContextualTabs } from '@/Support/contextualNav';
@@ -69,10 +70,12 @@ const NAV_SECTIONS = [
         { label: 'COD Receivables', href: '/dashboard/finance/cod-receivables', icon: HandCoins, perm: 'finance.view' },
         { label: 'Delivery Providers', href: '/dashboard/finance/delivery-providers', icon: Navigation, perm: 'finance.view' },
         { label: 'Monthly Statement', href: '/dashboard/finance/statement', icon: FileBarChart, perm: 'finance.view_reports' },
+        { label: 'Payroll', href: '/dashboard/finance/payroll', icon: Banknote, perm: 'finance.view' },
     ]},
     { label: 'Team', domain: 'Settings', items: [
         { label: 'Team Members', href: '/dashboard/team', icon: Users, perm: 'team.manage' },
         { label: 'Roles', href: '/dashboard/roles', icon: ShieldCheck, perm: 'roles.manage' },
+        { label: 'Employees', href: '/dashboard/employees', icon: Contact, perm: 'employees.view' },
     ]},
     { label: 'Settings', domain: 'Settings', items: [
         { label: 'My Stores', href: '/dashboard/stores', icon: Building2, perm: 'stores.manage' },
@@ -90,6 +93,28 @@ export default function SaasLayout({ children, pageHeader }) {
     const { url, props } = usePage();
     const [navigationOpen, setNavigationOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
+    // Hover-to-expand: entering the icon rail OR the open drawer's own panel
+    // opens/keeps it open; leaving either schedules a close after a short
+    // delay (cancelled if the cursor re-enters either area in time), so
+    // moving from the rail into the drawer never flickers shut. A CLICK
+    // (onOpenDrawer / the X / the backdrop) still works exactly as before —
+    // this only ADDS hover as another way in, it never replaces click.
+    const closeTimerRef = useRef(null);
+    const clearCloseTimer = useCallback(() => {
+        if (closeTimerRef.current !== null) {
+            window.clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = null;
+        }
+    }, []);
+    const openDrawerOnHover = useCallback(() => {
+        clearCloseTimer();
+        setNavigationOpen(true);
+    }, [clearCloseTimer]);
+    const scheduleDrawerClose = useCallback(() => {
+        clearCloseTimer();
+        closeTimerRef.current = window.setTimeout(() => setNavigationOpen(false), 250);
+    }, [clearCloseTimer]);
+    useEffect(() => clearCloseTimer, [clearCloseTimer]);
     const permissions = props.auth?.permissions ?? [];
     const roleSlug = props.auth?.access?.roleSlug ?? null;
     const orderNotif = useOrderNotifications();
@@ -127,9 +152,10 @@ export default function SaasLayout({ children, pageHeader }) {
         : null;
 
     useEffect(() => {
+        clearCloseTimer();
         setNavigationOpen(false);
         setSearchOpen(false);
-    }, [url]);
+    }, [url, clearCloseTimer]);
 
     useEffect(() => {
         const onKeyDown = (event) => {
@@ -157,14 +183,32 @@ export default function SaasLayout({ children, pageHeader }) {
             )}
             sidebar={(
                 <>
+                    {/*
+                        The ONLY hover-open surface besides the drawer's own
+                        panel — a thin strip pinned to the true left edge
+                        (left:0), entirely to the LEFT of the rail (which
+                        starts at left-5/20px). The two never overlap, so
+                        hovering a rail icon can never also be "inside" this
+                        trigger — that overlap was exactly what made hovering
+                        icons pop the drawer open before and interfere with
+                        clicking them. See SidebarHoverTrigger's own docblock
+                        and PermissionAwareRail's.
+                    */}
+                    <SidebarHoverTrigger
+                        onMouseEnter={openDrawerOnHover}
+                        onMouseLeave={scheduleDrawerClose}
+                        active={navigationOpen}
+                    />
                     <PermissionAwareRail
                         items={railItems}
                         currentUrl={url}
                         badges={badges}
-                        onOpenDrawer={() => setNavigationOpen(true)}
+                        onOpenDrawer={() => { clearCloseTimer(); setNavigationOpen(true); }}
                         utilityItem={utilityItem}
                     />
                     <FullNavigationDrawer
+                        onMouseEnter={openDrawerOnHover}
+                        onMouseLeave={scheduleDrawerClose}
                         sections={sections}
                         currentUrl={url}
                         badges={badges}

@@ -115,6 +115,7 @@ final class PermissionCatalog
                     ['key' => 'finance.mark_collected',   'label' => 'Mark COD collected',        'description' => 'Confirm a COD order\'s cash has been physically collected.'],
                     ['key' => 'finance.manage_cod_settlements', 'label' => 'Manage COD settlements', 'description' => 'Create and confirm external carrier settlements and internal courier cash deposits.'],
                     ['key' => 'finance.review_expenses',  'label' => 'Review internal expenses',  'description' => 'Approve, reject or request more info on internal cash voucher / no-invoice expenses.'],
+                    ['key' => 'finance.manage_payroll',   'label' => 'Manage payroll',            'description' => 'Calculate, approve and pay payroll periods, and pay/reverse employee advances.'],
                 ],
             ],
             [
@@ -122,6 +123,8 @@ final class PermissionCatalog
                 'label' => 'Administration',
                 'permissions' => [
                     ['key' => 'team.manage',         'label' => 'Manage team',         'description' => 'Invite and remove members.'],
+                    ['key' => 'employees.view',      'label' => 'View employees',      'description' => 'See employee records, salary profiles and advances.'],
+                    ['key' => 'employees.manage',    'label' => 'Manage employees',    'description' => 'Create/edit employees, link user accounts, set salaries and request advances.'],
                     ['key' => 'roles.manage',        'label' => 'Manage roles',        'description' => 'Create and edit custom roles and permissions.'],
                     ['key' => 'stores.manage',       'label' => 'Manage stores',       'description' => 'Create, edit and delete stores.'],
                     ['key' => 'settings.manage',     'label' => 'Manage settings',     'description' => 'Change store settings.'],

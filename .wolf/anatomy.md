@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-01T11:58:36.551Z
-> Files: 668 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-01T15:50:29.350Z
+> Files: 718 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -31,6 +31,10 @@
 
 - `fix_dispatch.js` — Declares fs (~2754 tok)
 - `fix_dispatch.py` — Declares inputCls (~2733 tok)
+
+## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/6f9a7a58-c73e-4236-80b8-4aaf138b3204/scratchpad/
+
+- `sticky-test.html` — Declares html (~584 tok)
 
 ## ../../../../AppData/Local/Temp/claude/C--Users-toshiba-Desktop-Work-Laravel-claude-saas-commerce/8ec56ea9-1d30-4eb0-9da3-38a9027103e0/scratchpad/
 
@@ -88,6 +92,9 @@
 
 ## app/Enums/
 
+- `EmployeeAdvanceStatus.php` — EmployeeAdvanceStatus: label (~150 tok)
+- `EmployeeEmploymentStatus.php` — EmployeeEmploymentStatus: label (~124 tok)
+- `EmployeeRoleType.php` — EmployeeRoleType: label (~237 tok)
 - `FinanceAccountType.php` — FinanceAccountType: label (~169 tok)
 - `FinanceCodCollectabilityStatus.php` — Whether a COD order's receivable can actually be acted on right now. (~1160 tok)
 - `FinanceCodSettlementStatus.php` — actual_received_amount differs from expected_net_amount and needs a note/investigation. (~270 tok)
@@ -103,7 +110,11 @@
 - `FinanceRecurringFrequency.php` — Advance a due date to the next occurrence for this frequency. (~245 tok)
 - `FinanceRecurringStatus.php` — FinanceRecurringStatus: label (~106 tok)
 - `FinanceTransactionDirection.php` — Which way cash moves. `Neutral` records a fact (a sale happened, a receivable was created) without m (~132 tok)
-- `FinanceTransactionType.php` — Informational only — the carrier fee this settlement's cash-in amount already nets out. Never moves (~1032 tok)
+- `FinanceTransactionType.php` — Informational only — the carrier fee this settlement's cash-in amount already nets out. Never moves (~1285 tok)
+- `PayrollItemStatus.php` — PayrollItemStatus: label (~123 tok)
+- `PayrollPeriodStatus.php` — PayrollPeriodStatus: label (~144 tok)
+- `SalaryPaymentFrequency.php` — SalaryPaymentFrequency: label (~107 tok)
+- `SalaryType.php` — SalaryType: label (~162 tok)
 
 ## app/Events/
 
@@ -168,6 +179,13 @@
 - `FinanceRecurringExpenseController.php` — index, create, store, edit, update + 3 more (~1105 tok)
 - `FinanceTransactionController.php` — index, store (~926 tok)
 - `FinanceVendorController.php` — index, store, update, destroy (~523 tok)
+- `PayrollController.php` — index, create, store, show, calculate + 2 more (~1135 tok)
+- `PayrollItemController.php` — update, applyAdvance, pay, cancel (~684 tok)
+
+## app/Http/Controllers/Dashboard/Payroll/
+
+- `EmployeeAdvanceController.php` — Creating an advance request never touches the ledger — see EmployeeAdvanceService::create(). (~695 tok)
+- `EmployeeController.php` — index, create, store, edit, update + 4 more (~1571 tok)
 
 ## app/Http/Controllers/Onboarding/
 
@@ -207,6 +225,14 @@
 - `FinanceRecurringExpenseRequest.php` — FinanceRecurringExpenseRequest: authorize, rules (~586 tok)
 - `FinanceTransactionAdjustmentRequest.php` — FinanceTransactionAdjustmentRequest: authorize, rules (~363 tok)
 - `FinanceVendorRequest.php` — FinanceVendorRequest: authorize, rules (~227 tok)
+
+## app/Http/Requests/Payroll/
+
+- `EmployeeAdvanceRequest.php` — EmployeeAdvanceRequest: authorize, rules (~189 tok)
+- `EmployeeRequest.php` — EmployeeRequest: authorize, rules (~528 tok)
+- `EmployeeSalaryProfileRequest.php` — EmployeeSalaryProfileRequest: authorize, rules (~280 tok)
+- `PayrollItemUpdateRequest.php` — PayrollItemUpdateRequest: authorize, rules (~159 tok)
+- `PayrollPeriodRequest.php` — PayrollPeriodRequest: authorize, rules (~226 tok)
 
 ## app/Jobs/
 
@@ -268,6 +294,9 @@
 - `DeliveryProviderCity.php` — One provider's city, as synced from its API (e.g. Ozon's /cities). (~388 tok)
 - `DeliveryProviderCityFee.php` — A manual, organization-entered fee override for one (provider, city) pair — (~922 tok)
 - `DeliveryProviderFinanceSetting.php` — An organization's own finance setup for one external delivery provider — (~562 tok)
+- `Employee.php` — A person the business pays — with or without a system login (`user_id` (~799 tok)
+- `EmployeeAdvance.php` — Available to be deducted from a future payroll run — paid out, not yet absorbed into a payslip, not (~580 tok)
+- `EmployeeSalaryProfile.php` — One row per salary change — history, not a mutable "current salary" (~456 tok)
 - `FinanceAccount.php` — Model — 7 fields, 3 rels (~334 tok)
 - `FinanceCodSettlement.php` — A batch settlement from an external delivery company for a set of COD orders it collected on our beh (~752 tok)
 - `FinanceCodSettlementItem.php` — Model — 5 fields, 2 rels (~208 tok)
@@ -284,6 +313,8 @@
 - `OrderNotification.php` — Per-user "new order" notification row — one per (user, order, type), see the migration's own doc com (~364 tok)
 - `OrderSyncBatch.php` — Mirrors ProductSyncBatch — one row per queued "Sync orders now"/"Full order resync" action, summed f (~735 tok)
 - `OrderSyncResult.php` — One row per (order sync batch, platform connection) — mirrors ProductSyncResult. (~390 tok)
+- `PayrollItem.php` — One employee's salary-due line for one payroll period. Calculating a (~628 tok)
+- `PayrollPeriod.php` — Model — 10 fields, 5 rels (~466 tok)
 - `PlatformConnection.php` — The secret Shopify's HMAC signature must be verified against, no (~1351 tok)
 - `PosOrderItem.php` — Model — 13 fields, 3 rels (~369 tok)
 - `Product.php` — Platform-specific identities for this canonical catalog product. (~1797 tok)
@@ -312,6 +343,8 @@
 ## app/Policies/
 
 - `DeliveryProviderFinanceSettingPolicy.php` — Reuses the existing finance.view / finance.manage_cod_settlements permissions per the task spec — no (~351 tok)
+- `EmployeeAdvancePolicy.php` — Approving/cancelling an advance request is an employees.manage action; PAYING one additionally needs (~296 tok)
+- `EmployeePolicy.php` — EmployeePolicy: viewAny, view, create, update + 1 more (~314 tok)
 - `FinanceAccountPolicy.php` — FinanceAccountPolicy: viewAny, view, create, update + 1 more (~330 tok)
 - `FinanceCodSettlementPolicy.php` — FinanceCodSettlementPolicy: viewAny, view, create, update (~306 tok)
 - `FinanceCourierDepositPolicy.php` — FinanceCourierDepositPolicy: viewAny, view, create, update (~302 tok)
@@ -321,10 +354,12 @@
 - `FinanceRecurringExpensePolicy.php` — FinanceRecurringExpensePolicy: viewAny, view, create, update + 1 more (~343 tok)
 - `FinanceTransactionPolicy.php` — Manual adjustments only — automatic ledger writes go through the service layer directly. (~265 tok)
 - `FinanceVendorPolicy.php` — FinanceVendorPolicy: viewAny, view, create, update + 1 more (~326 tok)
+- `PayrollItemPolicy.php` — PayrollItemPolicy: view, update (~202 tok)
+- `PayrollPeriodPolicy.php` — PayrollPeriodPolicy: viewAny, view, create, update (~286 tok)
 
 ## app/Providers/
 
-- `AppServiceProvider.php` — Register any application services. (~1801 tok)
+- `AppServiceProvider.php` — Register any application services. (~1941 tok)
 - `FortifyServiceProvider.php` — Register any application services. (~839 tok)
 
 ## app/Repositories/
@@ -376,7 +411,7 @@
 - `FinanceDocumentService.php` — The single write path for finance_documents. Purely evidentiary storage — (~1002 tok)
 - `FinanceExpenseCategoryService.php` — Tenant-scoped expense category management. Default categories are seeded (~1138 tok)
 - `FinanceExpenseService.php` — Official invoice/receipt = external legal proof (a FinanceDocument of one (~6495 tok)
-- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~5767 tok)
+- `FinanceMonthlyStatementService.php` — Builds the monthly finance statement. (~6720 tok)
 - `FinanceOrderTransactionService.php` — Bridges the existing Orders/POS lifecycle into the Finance ledger, without (~5541 tok)
 - `FinanceRecurringExpenseService.php` — Safety cap on catch-up iterations per recurring expense in a single run. (~2130 tok)
 - `FinanceTransactionService.php` — The single write path for the finance ledger. Append-only: nothing here (~1281 tok)
@@ -419,6 +454,13 @@
 - `OrderWorkflowService.php` — Every fulfillment status change goes through here — the board, the WhatsApp (~4082 tok)
 - `ReturnInspectionService.php` — Reverse logistics: receiving returned goods and routing each line to active or (~3895 tok)
 - `StockMovementWriter.php` — The single place stock quantities are mutated by the order lifecycle. (~1156 tok)
+
+## app/Services/Payroll/
+
+- `EmployeeAdvanceService.php` — Requesting/approving an advance never touches the ledger — only actually (~2070 tok)
+- `EmployeeSalaryService.php` — Salary is HISTORY, never a mutable "current amount" field — see (~788 tok)
+- `EmployeeService.php` — Employees are a payroll concept, deliberately separate from (~1659 tok)
+- `PayrollService.php` — Payroll periods/items are salary DUE, never cash on their own — (~3523 tok)
 
 ## app/Services/Pos/
 
@@ -477,7 +519,7 @@
 - `OrderLineItems.php` — One line-item shape for both order models, for code that has to touch stock. (~1754 tok)
 - `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~4026 tok)
 - `OrderSourceSummary.php` — Phase OST — single source of truth for "where did this order come from", (~1428 tok)
-- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4147 tok)
+- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4292 tok)
 - `WaitingStockState.php` — Single source of truth for "what should a waiting-stock order's badge say" (~979 tok)
 
 ## app/Support/Delivery/
@@ -556,6 +598,11 @@
 - `2026_09_03_000001_add_city_references_to_delivery_provider_city_fees_table.php` — Additive only — adds proper city references to `delivery_provider_city_fees` (~1148 tok)
 - `2026_09_04_000001_add_justification_to_finance_expenses_table.php` — Internal justification / owner-review workflow for expenses paid without (~1146 tok)
 - `2026_09_05_000001_rename_fuel_receipt_document_type.php` — FinanceDocumentType::FuelReceipt ('fuel_receipt') was renamed to FuelTicket (~213 tok)
+- `2026_09_06_000001_create_employees_table.php` — Migration: create employees table (~627 tok)
+- `2026_09_06_000002_create_employee_salary_profiles_table.php` — Salary HISTORY, not a single mutable row per employee — see (~555 tok)
+- `2026_09_06_000003_create_payroll_periods_table.php` — Migration: create payroll_periods table (~434 tok)
+- `2026_09_06_000004_create_payroll_items_table.php` — One salary-due line per employee per payroll period. Calculating a period (~824 tok)
+- `2026_09_06_000005_create_employee_advances_table.php` — Migration: create employee_advances table (~605 tok)
 
 ## database/seeders/
 
@@ -568,7 +615,7 @@
 
 ## resources/css/
 
-- `app.css` — Styles: 15 rules, 100 vars (~4669 tok)
+- `app.css` — Styles: 15 rules, 100 vars (~4789 tok)
 
 ## resources/js/
 
@@ -581,8 +628,9 @@
 - `DataTable.jsx` — DataTable — renders table (~1061 tok)
 - `NotificationBell.jsx` — `notifications` is the live, server-polled list from (~1574 tok)
 - `SearchFilterBar.jsx` — isMac — renders form (~1497 tok)
+- `Select.jsx` — Design-system replacement for a native select element — a fully custom, (~2530 tok)
 - `StatsCard.jsx` — Tinted icon chips — subtle in light, vivid in dark. Text darkens in light for contrast. (~628 tok)
-- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~1410 tok)
+- `StatusBadge.jsx` — Tinted status chips. Background tint works in both modes; text darkens in (~1573 tok)
 - `StoreSwitcher.jsx` — StoreSwitcher (~1755 tok)
 - `SyncProductsModal.jsx` — DONE_STATUSES (~3480 tok)
 - `ThemeToggle.jsx` — Clean icon toggle that flips between light and dark. (~284 tok)
@@ -620,7 +668,7 @@
 - `CitySearchSelect.jsx` — Searchable city dropdown — never a free-text city input. `options` come (~1059 tok)
 - `ExpenseDocumentPicker.jsx` — "Documents justificatifs" section for the Create Expense page. The expense (~1252 tok)
 - `ExpenseDocumentsCard.jsx` — Documents/justificatifs card for the Expense Edit page. Upload/delete are (~2151 tok)
-- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~3223 tok)
+- `ExpenseForm.jsx` — PAYMENT_METHODS — renders form (~3144 tok)
 - `JustificationBadges.jsx` — Justification/documentation badges for an expense row or the Edit page — (~845 tok)
 - `RecurringExpenseForm.jsx` — FREQUENCIES — renders form (~1895 tok)
 
@@ -631,6 +679,10 @@
 - `Select.jsx` — Extracted from the original onboarding Wizard so every onboarding page shares one input style. (~404 tok)
 - `WizardFooter.jsx` — Back / Skip / Continue row shared by every onboarding step. (~552 tok)
 
+## resources/js/Components/Payroll/
+
+- `EmployeeForm.jsx` — EmployeeForm — renders form (~1465 tok)
+
 ## resources/js/Components/PremiumDashboard/
 
 - `CommandPalette.jsx` — Cmd/Ctrl+K search over every nav item the current user can access (~984 tok)
@@ -638,14 +690,15 @@
 - `ContextualModuleNav.jsx` — Module-scoped tabs for the topbar center — replaces the old fixed (~349 tok)
 - `DashboardSkeleton.jsx` — Reduced-motion-aware loading skeleton for the premium dashboard composition. (~260 tok)
 - `EmptyMetricState.jsx` — Honest empty state for metrics or series the backend does not provide. (~170 tok)
-- `FloatingTopbar.jsx` — FloatingTopbar (~1465 tok)
-- `FullNavigationDrawer.jsx` — Display grouping only — every underlying section/item label stays exactly (~1939 tok)
+- `FloatingTopbar.jsx` — FloatingTopbar (~1682 tok)
+- `FullNavigationDrawer.jsx` — Display grouping only — every underlying section/item label stays exactly (~3158 tok)
 - `MiniChartCard.jsx` — Real-series mini chart renderer that falls back to an explicit unavailable-data state instead of invented values. (~520 tok)
-- `PermissionAwareRail.jsx` — Compact floating icon dock — quick access only, curated per role by (~1131 tok)
-- `PremiumAppShell.jsx` — PremiumAppShell (~180 tok)
+- `PermissionAwareRail.jsx` — Compact floating icon dock — quick access only, curated per role by (~1519 tok)
+- `PremiumAppShell.jsx` — PremiumAppShell (~401 tok)
 - `PremiumMetricCard.jsx` — Green credit-card-inspired metric panel with reduced-motion-safe count-up behavior. (~780 tok)
 - `QuickActionButton.jsx` — Reusable Inertia quick-action pill for existing routes. (~190 tok)
 - `RecentOrdersCard.jsx` — Responsive recent-orders table using only DashboardController order props. (~850 tok)
+- `SidebarHoverTrigger.jsx` — The ONLY hover-open surface for the full navigation drawer (besides the (~635 tok)
 - `SoftCard.jsx` — Shared white soft-shadow dashboard surface. (~90 tok)
 - `StatusPill.jsx` — Accessible order-status badge mapped to the existing backend statuses. (~280 tok)
 
@@ -672,7 +725,7 @@
 
 - `AgencyLayout.jsx` — Lightweight shell for the agency workspace — deliberately not a second (~1087 tok)
 - `AuthLayout.jsx` — Shared shell for the secondary auth screens (verify email, two-factor (~436 tok)
-- `SaasLayout.jsx` — NAV_SECTIONS (~3338 tok)
+- `SaasLayout.jsx` — NAV_SECTIONS (~4063 tok)
 
 ## resources/js/Pages/
 
@@ -738,13 +791,19 @@
 
 ## resources/js/Pages/Dashboard/Finance/DeliveryProviders/
 
-- `Index.jsx` — money — renders form, table, modal (~6651 tok)
+- `Index.jsx` — money — renders form, table, modal (~6637 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Expenses/
 
 - `Create.jsx` — Create (~726 tok)
 - `Edit.jsx` — Edit (~1864 tok)
 - `Index.jsx` — money — renders table (~3371 tok)
+
+## resources/js/Pages/Dashboard/Finance/Payroll/
+
+- `Create.jsx` — Create — renders form (~1350 tok)
+- `Index.jsx` — money — renders table (~839 tok)
+- `Show.jsx` — money — renders form, table, modal (~3986 tok)
 
 ## resources/js/Pages/Dashboard/Finance/Recurring/
 
@@ -794,6 +853,12 @@
 
 - `Index.jsx` — REASON_LABELS — renders table (~2264 tok)
 - `Inspect.jsx` — CONDITIONS (~4199 tok)
+
+## resources/js/Pages/Dashboard/Payroll/Employees/
+
+- `Create.jsx` — Create (~426 tok)
+- `Edit.jsx` — money — renders form (~4507 tok)
+- `Index.jsx` — Index — renders table (~1558 tok)
 
 ## resources/js/Pages/Dashboard/Products/
 
@@ -855,7 +920,7 @@
 - `contextualNav.js` — Contextual topbar tabs, keyed by the current URL's prefix. Replaces the old (~2260 tok)
 - `formatDate.js` — "2026-08-30T14:05:00Z" -> "30/08/2026 14:05" (~314 tok)
 - `formatDuration.js` — Formats a duration in seconds as a short human string — "45s", "3m 20s", "1h 12m". (~173 tok)
-- `roleShortcuts.js` — Curates the compact icon rail's contents per role, on top of the existing (~1037 tok)
+- `roleShortcuts.js` — Curates the compact icon rail's contents per role, on top of the existing (~1256 tok)
 
 ## resources/views/
 
@@ -936,7 +1001,7 @@
 - `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~391 tok)
-- `dashboard.php` (~11640 tok)
+- `dashboard.php` (~12971 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -1050,6 +1115,7 @@
 - `FinanceMonthlyStatementTest.php` — Declares fmsWorkspace (~1357 tok)
 - `FinanceNavigationTest.php` — Regression coverage for the "Finance is not visible in the main sidebar" (~1736 tok)
 - `FinancePayoutFrequencyTest.php` — fpfWorkspace: fpfSettings, fpfDeliveredOrder (~3939 tok)
+- `FinancePayrollTest.php` — fpyWorkspace: fpyEmployee (~2863 tok)
 - `FinanceRecurringExpenseTest.php` — Declares freWorkspace (~1745 tok)
 - `FinanceTransactionTest.php` — Declares financeTxWorkspace (~1399 tok)
 - `FinanceVendorTest.php` — Declares fvWorkspace (~774 tok)
@@ -1091,6 +1157,7 @@
 - `IntegrationsCenterTest.php` — Declares icOwnerWorkspace (~1336 tok)
 - `IntegrationsTabsTest.php` — itOwnerWorkspace: itManager, itViewer (~986 tok)
 - `InventoryEngineTest.php` — inventoryMerchant: inventoryProduct (~4304 tok)
+- `NavigationRefinementTest.php` — nrtWorkspace: nrtRoleShortcutsSource, nrtRailSource, nrtDrawerSource + 3 more (~2394 tok)
 - `NewOrderNotificationTest.php` — nonWorkspace: nonMember, nonShopifyWebhook (~1854 tok)
 - `OnlineOrderLineInventoryResolverTest.php` — OrderLineInventoryResolver — the single, platform-agnostic resolver for (~2807 tok)
 - `OnlineOrderReservationPolicyTest.php` — Phase O2 — online order reservation policy. Default: a pending (~2205 tok)
@@ -1166,6 +1233,8 @@
 - `ShopifyWebhookOrderImportTest.php` — ShopifyWebhookController must return quickly: verify HMAC → resolve (~2037 tok)
 - `ShopifyWebhookSignatureTest.php` — The root-cause fix: a Shopify connection using admin_client_credentials (~1582 tok)
 - `ShopifyWebhookTest.php` — shopifyWebhookWorkspace: shopifyWebhookHeaders, shopifyProductPayload, shopifyOrderPayload (~2169 tok)
+- `SidebarHoverClickSeparationTest.php` — shcsWorkspace: shcsRailSource, shcsTriggerSource, shcsLayoutSource, shcsRoleShortcutsSource (~1369 tok)
+- `SidebarNavigationPolishTest.php` — snptWorkspace: snptRailSource, snptDrawerSource, snptSaasLayoutSource, snptRoleShortcutsSource, snpt (~1758 tok)
 - `StoreCreationFoundationTest.php` — A real Store + membership under $organization, so the owner can actually (~1977 tok)
 - `SupervisorDashboardMetricsTest.php` — supervisorDashboardMetricsWorkspace: supervisorDashboardMetricsMember (~1996 tok)
 - `ThemeModeTest.php` — themeAppCss: themeShellSource, themeTopbarSource (~718 tok)
@@ -1199,6 +1268,11 @@
 - `OrderWorkflowServiceTest.php` (~4353 tok)
 - `PosDeliveryRoutingTest.php` (~1315 tok)
 - `ZZDebugTest.php` (~310 tok)
+
+## tests/Feature/Payroll/
+
+- `EmployeeTest.php` — Employees are a PAYROLL concept, deliberately separate from (~1375 tok)
+- `PayrollTest.php` — pyrWorkspace: pyrEmployee (~2306 tok)
 
 ## tests/Feature/Roles/
 

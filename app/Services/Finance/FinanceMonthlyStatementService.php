@@ -11,11 +11,13 @@ use App\Enums\FinanceExpenseOwnerReviewStatus;
 use App\Enums\FinanceExpenseStatus;
 use App\Enums\FinanceTransactionDirection;
 use App\Enums\FinanceTransactionType;
+use App\Enums\PayrollItemStatus;
 use App\Models\FinanceCodSettlement;
 use App\Models\FinanceCourierDeposit;
 use App\Models\FinanceExpense;
 use App\Models\FinanceTransaction;
 use App\Models\Organization;
+use App\Models\PayrollItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -141,6 +143,15 @@ class FinanceMonthlyStatementService
         // by expense_date regardless of when/whether it was paid.
         $expensesPaidTx = $transactions->where('type', FinanceTransactionType::ExpensePaid);
 
+        // Payroll — same ledger-based rule as expenses_paid above: this must
+        // only ever reflect finance_transactions (real cash), never a live
+        // query against payroll_items.status, so a later-cancelled/reversed
+        // item doesn't retroactively erase a real historical payment. Salary
+        // DUE (not yet paid) is a completely separate, live, NOT month-scoped
+        // snapshot — see `payroll` below — never mixed into this figure.
+        $salariesPaidTx = $transactions->where('type', FinanceTransactionType::SalaryPaid);
+        $advancesPaidTx = $transactions->where('type', FinanceTransactionType::EmployeeAdvancePaid);
+
         $byAccount = $transactions
             ->groupBy(fn (FinanceTransaction $t) => $t->account_id ?? '__unassigned')
             ->map(fn ($group) => [
@@ -217,6 +228,8 @@ class FinanceMonthlyStatementService
                 'collections' => ['count' => $collections->count(), 'amount' => (float) $collections->sum('amount')],
                 'pending_receivables_at_month_end' => $pendingReceivablesAtMonthEnd,
                 'expenses_paid' => ['count' => $expensesPaidTx->count(), 'amount' => (float) $expensesPaidTx->sum('amount')],
+                'salaries_paid' => ['count' => $salariesPaidTx->count(), 'amount' => (float) $salariesPaidTx->sum('amount')],
+                'advances_paid' => ['count' => $advancesPaidTx->count(), 'amount' => (float) $advancesPaidTx->sum('amount')],
                 'refunds' => ['count' => $refunds->count(), 'amount' => (float) $refunds->sum('amount')],
                 'net_cash_movement' => $cashIn - $cashOut,
                 'by_account' => $byAccount,
@@ -332,6 +345,47 @@ class FinanceMonthlyStatementService
                     // scoped by expense_date regardless of paid status,
                     // cashflow_total is scoped by the actual payment date.
                     'cashflow_total' => (float) $expensesPaidTx->sum('amount'),
+                ];
+            })(),
+            // Payroll — salary DUE (calculated/approved, not yet paid) is
+            // NEVER cash and is deliberately a LIVE, org-wide snapshot (like
+            // external_cod.pending_periods above), not month-scoped: a
+            // payroll period rarely aligns with a calendar month. Salary/
+            // advance PAID totals above (cashflow.salaries_paid/advances_paid)
+            // are the only payroll figures that ever count as cash — this
+            // section explains them, never adds a second cash number.
+            'payroll' => (function () use ($organization, $storeId, $salariesPaidTx, $advancesPaidTx) {
+                $dueItems = PayrollItem::query()
+                    ->whereIn('status', [PayrollItemStatus::Pending->value, PayrollItemStatus::Approved->value])
+                    ->when($organization, fn (Builder $q) => $q->where('organization_id', $organization->id))
+                    ->when($storeId, fn (Builder $q) => $q->whereHas('payrollPeriod', fn (Builder $p) => $p->where('store_id', $storeId)))
+                    ->with('employee:id,display_name,store_id')
+                    ->get();
+
+                $byEmployee = $dueItems->groupBy('employee_id')
+                    ->map(fn ($group) => [
+                        'employee_id' => $group->first()->employee_id,
+                        'employee_name' => $group->first()->employee?->display_name,
+                        'count' => $group->count(),
+                        'net_amount' => (float) $group->sum('net_amount'),
+                    ])
+                    ->sortByDesc('net_amount')
+                    ->values();
+
+                $byStore = $dueItems->groupBy(fn (PayrollItem $item) => $item->employee?->store_id ?? '__organization')
+                    ->map(fn ($group) => [
+                        'store_id' => $group->first()->employee?->store_id,
+                        'count' => $group->count(),
+                        'net_amount' => (float) $group->sum('net_amount'),
+                    ])
+                    ->values();
+
+                return [
+                    'salary_due' => ['count' => $dueItems->count(), 'amount' => (float) $dueItems->sum('net_amount')],
+                    'salaries_paid_this_month' => ['count' => $salariesPaidTx->count(), 'amount' => (float) $salariesPaidTx->sum('amount')],
+                    'advances_paid_this_month' => ['count' => $advancesPaidTx->count(), 'amount' => (float) $advancesPaidTx->sum('amount')],
+                    'by_employee' => $byEmployee,
+                    'by_store' => $byStore,
                 ];
             })(),
             'upcoming_unpaid_due' => $upcomingUnpaidDue,
