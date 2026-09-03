@@ -40,4 +40,9 @@ class DeliveryNote extends Model
     {
         return $this->belongsToMany(Shipment::class, 'delivery_note_shipments');
     }
+
+    public function fulfillmentDocuments(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(FulfillmentDocument::class, 'documentable');
+    }
 }

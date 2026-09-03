@@ -8,6 +8,8 @@ use App\Enums\FulfillmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\DeliveryConnection;
+use App\Models\DeliveryNote;
+use App\Models\FulfillmentDocument;
 use App\Models\AgentActivityEvent;
 use App\Models\Order;
 use App\Models\PosOrder;
@@ -399,7 +401,62 @@ class OrderController extends Controller
             'canInvoice' => Gate::allows('invoices.issue'),
             'shipment'   => $this->shipmentProp($order),
             'ozon_city_resolution' => $this->ozonCityResolutionProp($order, $store),
+            'fulfillment_documents' => $this->fulfillmentDocumentsProp($order),
+            'can_view_fulfillment_documents' => Gate::allows('fulfillment.documents.view') || Gate::allows('orders.manage'),
         ]);
+    }
+
+    /**
+     * Carrier labels / BL / fallback labels stored for this order's Ozon (or
+     * any provider) shipment and its Bon de Livraison — read-only, for the
+     * order-detail Documents card. Never triggers any provider call.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fulfillmentDocumentsProp(Order $order): array
+    {
+        $shipment = $order->shipment;
+
+        if ($shipment === null) {
+            return [];
+        }
+
+        $noteId = null;
+
+        if (filled($shipment->delivery_note_ref)) {
+            $noteId = DeliveryNote::query()
+                ->where('store_id', $order->store_id)
+                ->where('provider_ref', $shipment->delivery_note_ref)
+                ->value('id');
+        }
+
+        $shipmentMorph = $shipment->getMorphClass();
+        $noteMorph = (new DeliveryNote)->getMorphClass();
+
+        return FulfillmentDocument::query()
+            ->where('store_id', $order->store_id)
+            ->where(function ($q) use ($shipment, $noteId, $shipmentMorph, $noteMorph) {
+                $q->where(fn ($q2) => $q2->where('documentable_type', $shipmentMorph)->where('documentable_id', $shipment->id));
+
+                if ($noteId !== null) {
+                    $q->orWhere(fn ($q2) => $q2->where('documentable_type', $noteMorph)->where('documentable_id', $noteId));
+                }
+            })
+            ->latest()
+            ->get()
+            ->map(fn (FulfillmentDocument $d) => [
+                'id' => $d->id,
+                'type' => $d->document_type?->value,
+                'label' => $d->label,
+                'variant' => data_get($d->metadata, 'variant'),
+                'provider_code' => $d->provider_code,
+                'status' => $d->status?->value,
+                'status_label' => $d->status?->label(),
+                'downloadable' => $d->is_downloadable,
+                'download_url' => $d->download_url,
+                'created_at' => $d->created_at?->toIso8601String(),
+            ])
+            ->all();
     }
 
     /**

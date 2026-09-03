@@ -133,9 +133,25 @@ class Shipment extends Model
         return $this->morphTo();
     }
 
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
     public function connection(): BelongsTo
     {
         return $this->belongsTo(DeliveryConnection::class, 'delivery_connection_id');
+    }
+
+    /** The provider-side Bon de Livraison this parcel was added to, if any (matched on `delivery_note_ref`). */
+    public function deliveryNote(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryNote::class, 'delivery_note_ref', 'provider_ref');
+    }
+
+    public function fulfillmentDocuments(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(FulfillmentDocument::class, 'documentable');
     }
 
     public function provider(): BelongsTo

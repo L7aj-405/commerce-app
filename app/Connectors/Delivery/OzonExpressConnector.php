@@ -844,7 +844,18 @@ class OzonExpressConnector implements DeliveryProviderConnectorInterface
         return $this->post('/save-delivery-note', ['Ref' => $ref]);
     }
 
-    /** @return array{pdf_url: string, labels_pdf_url: string, labels_4a3_pdf_url: string} */
+    /**
+     * The BL PDF endpoints on client.ozonexpress.ma. These are URL strings
+     * only — never fetched here; the caller decides whether to pull the
+     * bytes server-side (see FulfillmentDocumentService).
+     *
+     * The 4-up ticket sheet's real path is UNVERIFIED: existing code used
+     * `-4A3`, an Ozon screenshot shows `-4-4`. Both candidates are returned
+     * so the caller can try each and keep whichever returns a real PDF —
+     * neither is removed until one is confirmed against the live API.
+     *
+     * @return array{pdf_url: string, labels_pdf_url: string, labels_4x4_pdf_url: string, labels_4a3_pdf_url: string}
+     */
     public function getDeliveryNotePdfUrls(string $ref): array
     {
         $encoded = urlencode($ref);
@@ -852,6 +863,7 @@ class OzonExpressConnector implements DeliveryProviderConnectorInterface
         return [
             'pdf_url' => self::CLIENT_HOST . "/pdf-delivery-note?dn-ref={$encoded}",
             'labels_pdf_url' => self::CLIENT_HOST . "/pdf-delivery-note-tickets?dn-ref={$encoded}",
+            'labels_4x4_pdf_url' => self::CLIENT_HOST . "/pdf-delivery-note-tickets-4-4?dn-ref={$encoded}",
             'labels_4a3_pdf_url' => self::CLIENT_HOST . "/pdf-delivery-note-tickets-4A3?dn-ref={$encoded}",
         ];
     }

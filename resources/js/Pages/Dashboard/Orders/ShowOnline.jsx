@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail, Warehouse, AlertTriangle, Truck, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail, Warehouse, AlertTriangle, Truck, RefreshCw, FileDown } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
 
-export default function ShowOnline({ order, store, invoice = null, canInvoice = false, shipment = null, ozon_city_resolution: ozonCityResolution = null }) {
+export default function ShowOnline({ order, store, invoice = null, canInvoice = false, shipment = null, ozon_city_resolution: ozonCityResolution = null, fulfillment_documents: fulfillmentDocuments = [], can_view_fulfillment_documents: canViewFulfillmentDocuments = false }) {
     const currency = store?.currency ?? 'MAD';
     const [generating, setGenerating] = useState(false);
 
@@ -158,6 +158,10 @@ export default function ShowOnline({ order, store, invoice = null, canInvoice = 
                     {shipment && <DeliveryCard shipment={shipment} />}
                     {!shipment && ozonCityResolution && <OzonCityCard resolution={ozonCityResolution} />}
 
+                    {(fulfillmentDocuments.length > 0 || shipment) && (
+                        <DocumentsCard documents={fulfillmentDocuments} canView={canViewFulfillmentDocuments} />
+                    )}
+
                     <Card>
                         <CardHeader title="Origin" />
                         <dl className="px-5 py-4 space-y-2 text-sm">
@@ -245,6 +249,53 @@ function DeliveryCard({ shipment }) {
                 >
                     {refreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Refresh tracking
                 </button>
+            </div>
+        </Card>
+    );
+}
+
+const DOC_STATUS_TONE = {
+    stored: 'text-emerald-600 dark:text-emerald-400',
+    generated: 'text-amber-600 dark:text-amber-400',
+    external_url_unavailable: 'text-amber-600 dark:text-amber-400',
+    fetch_failed: 'text-red-600 dark:text-red-400',
+};
+
+/** Carrier labels, Bon de Livraison and fallback labels stored for this order. Read-only. */
+function DocumentsCard({ documents = [], canView = false }) {
+    return (
+        <Card>
+            <CardHeader title="Documents" />
+            <div className="px-5 py-4 space-y-2 text-sm">
+                {documents.length === 0 ? (
+                    <p className="text-content-muted text-xs">
+                        No carrier labels yet. Generate the Ozon BL / labels from the Delivery Board once this order has a shipment.
+                    </p>
+                ) : (
+                    documents.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-1.5 text-content-muted">
+                                <FileText className="w-3.5 h-3.5" />
+                                {d.label}{d.variant === '4up' ? ' (4-up)' : ''}
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <span className={`text-xs ${DOC_STATUS_TONE[d.status] ?? 'text-content-muted'}`}>
+                                    {d.status_label ?? d.status}
+                                </span>
+                                {canView && d.downloadable && d.download_url && (
+                                    <a
+                                        href={d.download_url}
+                                        target="_blank"
+                                        rel="noopener"
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg bg-surface-3 border border-line text-content hover:bg-surface-1"
+                                    >
+                                        <FileDown className="w-3.5 h-3.5" /> Download
+                                    </a>
+                                )}
+                            </span>
+                        </div>
+                    ))
+                )}
             </div>
         </Card>
     );

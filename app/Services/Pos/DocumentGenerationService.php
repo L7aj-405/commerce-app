@@ -26,6 +26,7 @@ class DocumentGenerationService
     private const MANIFEST_VIEW        = 'documents.manifest';
     private const BON_DE_SORTIE_VIEW   = 'documents.bon-de-sortie';
     private const INTERNAL_VOUCHER_VIEW = 'documents.internal-voucher';
+    private const CARRIER_LABEL_VIEW   = 'documents.carrier-label';
 
     /**
      * Render a finalized Facture to an A4 PDF and persist it. Returns the
@@ -147,6 +148,47 @@ class DocumentGenerationService
             ]);
 
             throw new RuntimeException('Failed to generate manifest PDF: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Render an A6 internal fallback carrier label and return the raw PDF
+     * bytes. Used ONLY when the official provider label PDF cannot be
+     * fetched — it carries a clear "not official" badge. Not persisted here;
+     * FulfillmentDocumentService stores the bytes.
+     *
+     * @param  array<string, mixed>  $label  payload from DeliveryNoteService::fallbackLabelPayload()
+     */
+    public function renderCarrierFallbackLabel(array $label): string
+    {
+        try {
+            $html = View::make(self::CARRIER_LABEL_VIEW, ['label' => $label])->render();
+
+            $tempDir = storage_path('app/mpdf-tmp');
+            if (! is_dir($tempDir)) {
+                @mkdir($tempDir, 0775, true);
+            }
+
+            $mpdf = new Mpdf([
+                'tempDir'       => $tempDir,
+                'mode'          => 'utf-8',
+                'format'        => [105, 148], // A6 portrait
+                'margin_left'   => 6,
+                'margin_right'  => 6,
+                'margin_top'    => 6,
+                'margin_bottom' => 6,
+                'default_font'  => 'dejavusans',
+            ]);
+            $mpdf->WriteHTML($html);
+
+            return $mpdf->Output('', 'S');
+        } catch (Throwable $e) {
+            Log::error('Carrier fallback label generation failed', [
+                'tracking_number' => $label['tracking_number'] ?? null,
+                'error'           => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Failed to generate carrier fallback label: ' . $e->getMessage(), 0, $e);
         }
     }
 

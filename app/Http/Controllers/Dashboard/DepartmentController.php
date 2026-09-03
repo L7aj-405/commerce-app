@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Dashboard;
 use App\Enums\FulfillmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\City;
+use App\Models\DeliveryNote;
+use App\Models\FulfillmentDocument;
 use App\Models\Order;
 use App\Models\OrderShipment;
 use App\Models\PosOrder;
@@ -137,6 +139,36 @@ class DepartmentController extends Controller
         $ozonByOrderShipment = $providerShipments->whereNotNull('order_shipment_id')->keyBy('order_shipment_id');
         $ozonByOrder = $providerShipments->where('provider_code', 'ozon')->keyBy(fn (Shipment $s) => $s->shippable_type . ':' . $s->shippable_id);
 
+        // Ozon Bon de Livraison + stored fulfilment PDFs for this board's
+        // provider shipments — one batch each, keyed for the per-row lookup
+        // below. Labels attach to the DeliveryNote (BL sheet + tickets) and
+        // to the Shipment itself (fallback labels).
+        $deliveryNoteRefs = $providerShipments->pluck('delivery_note_ref')->filter()->unique()->values();
+        $deliveryNotesByRef = $deliveryNoteRefs->isEmpty()
+            ? collect()
+            : DeliveryNote::query()
+                ->where('store_id', $store->id)
+                ->whereIn('provider_ref', $deliveryNoteRefs)
+                ->get()
+                ->keyBy('provider_ref');
+
+        $shipmentMorph = (new Shipment)->getMorphClass();
+        $noteMorph = (new DeliveryNote)->getMorphClass();
+
+        $fulfilDocs = FulfillmentDocument::query()
+            ->where('store_id', $store->id)
+            ->where(function ($q) use ($providerShipments, $deliveryNotesByRef, $shipmentMorph, $noteMorph) {
+                $q->where(fn ($q2) => $q2->where('documentable_type', $shipmentMorph)
+                    ->whereIn('documentable_id', $providerShipments->pluck('id')));
+
+                if ($deliveryNotesByRef->isNotEmpty()) {
+                    $q->orWhere(fn ($q2) => $q2->where('documentable_type', $noteMorph)
+                        ->whereIn('documentable_id', $deliveryNotesByRef->pluck('id')));
+                }
+            })
+            ->latest()
+            ->get();
+
         $ozonConnection = DeliveryConnection::query()->where('store_id', $store->id)->where('provider_code', 'ozon')->first();
         $senditConnection = DeliveryConnection::query()->where('store_id', $store->id)->where('provider_code', 'sendit')->first();
 
@@ -152,6 +184,7 @@ class DepartmentController extends Controller
         $orders = array_map(function (array $o) use (
             $byOrder, $ozonByOrderShipment, $ozonByOrder,
             $ozonConnection, $senditConnection, $onlineOrdersById, $ozonShipments, $senditShipments,
+            $deliveryNotesByRef, $fulfilDocs, $shipmentMorph, $noteMorph,
         ) {
             $model = $o['type'] === 'pos' ? PosOrder::class : Order::class;
             $s     = $byOrder->get($model . ':' . $o['id']);
@@ -197,6 +230,46 @@ class DepartmentController extends Controller
                 ];
             }
 
+            // Ozon carrier-label state for the in-flight row: BL status +
+            // which PDFs are stored / need a fallback. Only for a real Ozon
+            // provider shipment (never PROVIDER_UNVERIFIED — that has its own
+            // banner).
+            $ozonShipment = $ozonByOrder->get($model . ':' . $o['id']);
+            $o['ozon_labels'] = null;
+
+            if ($ozonShipment !== null && $ozonShipment->status !== Shipment::STATUS_PROVIDER_UNVERIFIED) {
+                $note = $ozonShipment->delivery_note_ref
+                    ? $deliveryNotesByRef->get($ozonShipment->delivery_note_ref)
+                    : null;
+
+                $docs = $fulfilDocs->filter(function (FulfillmentDocument $d) use ($ozonShipment, $note, $shipmentMorph, $noteMorph) {
+                    if ($d->documentable_type === $shipmentMorph && $d->documentable_id === $ozonShipment->id) {
+                        return true;
+                    }
+
+                    return $note !== null
+                        && $d->documentable_type === $noteMorph
+                        && $d->documentable_id === $note->id;
+                })->values();
+
+                $o['ozon_labels'] = [
+                    'shipment_id' => $ozonShipment->id,
+                    'tracking_number' => $ozonShipment->tracking_number,
+                    'bl_ref' => $note?->provider_ref,
+                    'bl_status' => $note?->status,
+                    'status' => $this->deriveLabelStatus($ozonShipment, $note, $docs),
+                    'documents' => $docs->map(fn (FulfillmentDocument $d) => [
+                        'id' => $d->id,
+                        'type' => $d->document_type?->value,
+                        'label' => $d->label,
+                        'variant' => data_get($d->metadata, 'variant'),
+                        'status' => $d->status?->value,
+                        'downloadable' => $d->is_downloadable,
+                        'download_url' => $d->download_url,
+                    ])->all(),
+                ];
+            }
+
             return $o;
         }, $orders);
 
@@ -210,6 +283,8 @@ class DepartmentController extends Controller
             'manifests' => app(DispatchService::class)->manifests($store),
             'ozon_connected' => $ozonConnection?->status === DeliveryConnection::STATUS_CONNECTED,
             'sendit_connected' => $senditConnection?->status === DeliveryConnection::STATUS_CONNECTED,
+            'can_generate_labels' => $this->can($user, $store, 'fulfillment.documents.print'),
+            'can_view_labels' => $this->can($user, $store, 'fulfillment.documents.view'),
             'stats'    => [
                 'awaiting'   => count(array_filter($orders, fn ($o) => $o['shipment'] === null)),
                 'in_flight'  => $shipments->where('status', OrderShipment::STATUS_DISPATCHED)->count(),
@@ -448,6 +523,44 @@ class DepartmentController extends Controller
     {
         return $user->hasStorePermission($store, $permission)
             || $user->hasStorePermission($store, 'orders.manage');
+    }
+
+    /**
+     * The 8-way label state the Dispatch board shows for an Ozon shipment.
+     *
+     * @param  \Illuminate\Support\Collection<int, FulfillmentDocument>  $docs
+     */
+    private function deriveLabelStatus(Shipment $shipment, ?DeliveryNote $note, $docs): string
+    {
+        if (blank($shipment->tracking_number)) {
+            return 'shipment_created';
+        }
+
+        if ($note === null) {
+            return 'bl_not_created';
+        }
+
+        $carrierLabels = $docs->filter(fn (FulfillmentDocument $d) => $d->document_type?->value === 'carrier_label');
+        $hasStoredLabel = $carrierLabels->contains(fn (FulfillmentDocument $d) => $d->is_downloadable);
+        $hasFallback = $docs->contains(fn (FulfillmentDocument $d) => $d->document_type?->value === 'fallback_label' && $d->is_downloadable);
+
+        if ($hasStoredLabel) {
+            return 'labels_ready';
+        }
+
+        if ($hasFallback) {
+            return 'fallback_ready';
+        }
+
+        if ($carrierLabels->isNotEmpty()) {
+            return 'pdf_fetch_failed';
+        }
+
+        if ($note->status === DeliveryNote::STATUS_SAVED) {
+            return 'bl_saved';
+        }
+
+        return 'bl_created';
     }
 
     private function authorizePhase(User $user, Store $store, string $phase): void

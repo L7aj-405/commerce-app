@@ -3,6 +3,7 @@ import { usePage, Link } from '@inertiajs/react';
 import {
     Truck, User, Package, Loader2, CheckCircle2, XCircle, ExternalLink,
     MapPin, Clock, Send, FileText, Copy, Building2, Printer, RefreshCw, AlertTriangle,
+    FileDown, Tag,
 } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import DepartmentNav from '@/Components/Departments/DepartmentNav';
@@ -26,7 +27,7 @@ const FAILURE_REASONS = [
     { value: 'other',              label: 'Other…' },
 ];
 
-export default function Dispatch({ store, orders = [], agents = [], couriers = [], manifests = [], stats = {}, departments = [], ozon_connected: ozonConnected = false, sendit_connected: senditConnected = false }) {
+export default function Dispatch({ store, orders = [], agents = [], couriers = [], manifests = [], stats = {}, departments = [], ozon_connected: ozonConnected = false, sendit_connected: senditConnected = false, can_generate_labels: canGenerateLabels = false, can_view_labels: canViewLabels = false }) {
     const currency = store?.currency ?? 'MAD';
     const page     = usePage();
     const userId   = page.props.auth?.user?.id ?? null;
@@ -289,6 +290,16 @@ export default function Dispatch({ store, orders = [], agents = [], couriers = [
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {o.ozon_labels && (canGenerateLabels || canViewLabels) && (
+                                                <OzonLabelPanel
+                                                    labels={o.ozon_labels}
+                                                    busy={busy}
+                                                    canGenerate={canGenerateLabels}
+                                                    canView={canViewLabels}
+                                                    onGenerate={() => post(o, '/dashboard/delivery-notes/ozon/generate-labels', { shipment_ids: [o.ozon_labels.shipment_id] })}
+                                                />
+                                            )}
                                         </li>
                                     );
                                 })}
@@ -406,6 +417,83 @@ function OzonUnverifiedBanner({ info, busy, onRetryVerification }) {
                     Retry verification
                 </button>
             </div>
+        </div>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/* Ozon carrier labels — Bon de Livraison + stored/fallback PDFs       */
+/* ------------------------------------------------------------------ */
+
+const LABEL_STATUS_META = {
+    shipment_created:  { label: 'Shipment created',        tone: 'text-content-muted' },
+    bl_not_created:    { label: 'Tracking available · BL not created', tone: 'text-content-muted' },
+    bl_created:        { label: 'BL created',              tone: 'text-blue-600 dark:text-blue-300' },
+    bl_saved:          { label: 'BL saved',                tone: 'text-blue-600 dark:text-blue-300' },
+    labels_ready:      { label: 'Labels ready',            tone: 'text-emerald-600 dark:text-emerald-300' },
+    fallback_ready:    { label: 'Fallback label ready',    tone: 'text-warning' },
+    pdf_fetch_failed:  { label: 'Ozon PDF fetch failed',   tone: 'text-danger' },
+};
+
+function OzonLabelPanel({ labels, busy, canGenerate, canView, onGenerate }) {
+    const meta = LABEL_STATUS_META[labels.status] ?? { label: labels.status, tone: 'text-content-muted' };
+    const downloadable = (labels.documents ?? []).filter((d) => d.downloadable && d.download_url);
+    const needsGenerate = ['shipment_created', 'bl_not_created', 'pdf_fetch_failed'].includes(labels.status);
+    const generateLabel = labels.status === 'pdf_fetch_failed'
+        ? 'Retry Ozon BL / labels'
+        : (labels.bl_ref ? 'Regenerate Ozon BL / labels' : 'Generate Ozon BL / labels');
+
+    return (
+        <div className="mt-3 px-3 py-2.5 rounded-[var(--radius-card)] bg-surface-2 border border-line">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    <Tag className="w-3.5 h-3.5" /> Ozon labels
+                </span>
+                <span className={`text-xs font-semibold ${meta.tone}`}>{meta.label}</span>
+                {labels.bl_ref && (
+                    <span className="font-mono text-[11px] text-content-muted">{labels.bl_ref}</span>
+                )}
+
+                <div className="ml-auto flex flex-wrap items-center gap-2">
+                    {canView && downloadable.map((d) => (
+                        <a
+                            key={d.id}
+                            href={d.download_url}
+                            target="_blank"
+                            rel="noopener"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-surface border border-line text-content hover:bg-surface-3 transition"
+                        >
+                            <FileDown className="w-3.5 h-3.5" />
+                            {d.type === 'delivery_note' ? 'Download BL'
+                                : d.type === 'fallback_label' ? 'Fallback label'
+                                : d.variant === '4up' ? 'Tickets (4-up)'
+                                : 'Download tickets'}
+                        </a>
+                    ))}
+                    {canGenerate && (needsGenerate || labels.status === 'bl_saved' || labels.status === 'fallback_ready') && (
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={onGenerate}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-[var(--radius-button)] bg-primary text-primary-contrast hover:bg-primary-strong disabled:opacity-40 transition"
+                        >
+                            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
+                            {generateLabel}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {labels.status === 'fallback_ready' && (
+                <p className="mt-1.5 text-[11px] text-warning/90">
+                    Ozon&apos;s official label PDF could not be fetched — an internal fallback label was generated per parcel. Retry once Ozon is reachable.
+                </p>
+            )}
+            {labels.status === 'pdf_fetch_failed' && (
+                <p className="mt-1.5 text-[11px] text-danger/90">
+                    The BL was saved on Ozon, but no label PDF could be fetched or generated. Retry to produce a fallback label.
+                </p>
+            )}
         </div>
     );
 }

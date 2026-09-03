@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Shipment;
 use App\Models\User;
+use App\Services\Finance\FinanceDeliveryProviderFeeCalculator;
 use App\Services\Orders\DispatchService;
 use App\Support\OrderLineItems;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,7 @@ class OzonShipmentService
     public function __construct(
         private readonly DispatchService $dispatch,
         private readonly DeliveryCityMappingResolver $cityResolver,
+        private readonly FinanceDeliveryProviderFeeCalculator $feeCalculator,
     ) {}
 
     /** @throws ValidationException */
@@ -293,7 +295,7 @@ class OzonShipmentService
         $verification = $result['verification'] ?? ['verified' => false, 'verification_error' => 'Verification was not attempted.'];
         $verified = (bool) ($verification['verified'] ?? false);
 
-        return DB::transaction(function () use ($order, $connection, $resolution, $codAmount, $result, $verification, $verified, $actor) {
+        $shipment = DB::transaction(function () use ($order, $connection, $resolution, $codAmount, $result, $verification, $verified, $actor) {
             $shipment = Shipment::updateOrCreate(
                 [
                     'store_id' => $order->store_id,
@@ -337,6 +339,15 @@ class OzonShipmentService
 
             return $shipment->refresh();
         });
+
+        // Freeze the carrier fee snapshot at hand-off. Idempotent (a no-op
+        // once fee_calculated_at is set — see snapshotForShipment()) and
+        // never throws. Resolves the fee from the provider-city tariff /
+        // city override / provider default / manual ladder — NEVER an Ozon
+        // add-parcel response fee (unconfirmed; see the delivery audit).
+        $this->feeCalculator->snapshotForShipment($shipment);
+
+        return $shipment->refresh();
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Http\Controllers\Dashboard\DeliveryNoteController;
 use App\Http\Controllers\Dashboard\DeliveryShipmentController;
 use App\Http\Controllers\Dashboard\DepartmentController;
 use App\Http\Controllers\Dashboard\FacturesController;
+use App\Http\Controllers\Dashboard\FulfillmentDocumentController;
 use App\Http\Controllers\Dashboard\Finance\FinanceAccountController;
 use App\Http\Controllers\Dashboard\Finance\FinanceCodReceivableController;
 use App\Http\Controllers\Dashboard\Finance\FinanceCodSettlementController;
@@ -623,6 +624,13 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::post('/ozon',                         [DeliveryNoteController::class, 'create'])->name('create');
                 Route::post('/{deliveryNote}/add-shipments',  [DeliveryNoteController::class, 'addShipments'])->name('add-shipments');
                 Route::post('/{deliveryNote}/save',           [DeliveryNoteController::class, 'save'])->name('save');
+                // One-click "Create Ozon BL + fetch/store label PDFs" for selected shipments.
+                Route::middleware('perm:fulfillment.documents.print')
+                    ->post('/ozon/generate-labels', [FulfillmentDocumentController::class, 'generateOzonLabels'])->name('generate-labels');
             });
+
+            Route::middleware('perm:fulfillment.documents.view')
+                ->get('/fulfillment-documents/{document}/download', [FulfillmentDocumentController::class, 'download'])
+                ->name('fulfillment-documents.download');
         });
     });

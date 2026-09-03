@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-01T15:50:29.350Z
-> Files: 718 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-03T20:31:44.051Z
+> Files: 729 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../../../laragon/bin/php/php-8.4.12-nts-Win32-vs17-x64/
 
@@ -71,7 +71,7 @@
 
 ## app/Connectors/Delivery/
 
-- `OzonExpressConnector.php` — Ozon Express Morocco (https://api.ozonexpress.ma). Auth is embedded in the (~10523 tok)
+- `OzonExpressConnector.php` — Ozon Express Morocco (https://api.ozonexpress.ma). Auth is embedded in the (~10701 tok)
 - `OzonStatusMapper.php` — Maps Ozon's raw tracking status strings to the shared normalized set. (~608 tok)
 - `SenditConnector.php` — Sendit (https://app.sendit.ma/api/v1). Token auth: POST /login with (~7494 tok)
 - `SenditStatusMapper.php` — Maps Sendit's documented raw status vocabulary to the shared normalized (~598 tok)
@@ -111,6 +111,8 @@
 - `FinanceRecurringStatus.php` — FinanceRecurringStatus: label (~106 tok)
 - `FinanceTransactionDirection.php` — Which way cash moves. `Neutral` records a fact (a sale happened, a receivable was created) without m (~132 tok)
 - `FinanceTransactionType.php` — Informational only — the carrier fee this settlement's cash-in amount already nets out. Never moves (~1285 tok)
+- `FulfillmentDocumentStatus.php` — Lifecycle of one `fulfillment_documents` row — did we actually get bytes on disk? (~335 tok)
+- `FulfillmentDocumentType.php` — Kind of fulfilment paperwork stored in `fulfillment_documents`. (~323 tok)
 - `PayrollItemStatus.php` — PayrollItemStatus: label (~123 tok)
 - `PayrollPeriodStatus.php` — PayrollPeriodStatus: label (~144 tok)
 - `SalaryPaymentFrequency.php` — SalaryPaymentFrequency: label (~107 tok)
@@ -148,10 +150,11 @@
 - `DeliveryConnectionController.php` — Delivery provider connection settings — Ozon Express first. (~2962 tok)
 - `DeliveryNoteController.php` — create, addShipments, save (~707 tok)
 - `DeliveryShipmentController.php` — Sending a packed order to an external delivery provider, and refreshing its tracking. (~1966 tok)
-- `DepartmentController.php` — Focused work queues, one per operational department. (~5985 tok)
+- `DepartmentController.php` — Focused work queues, one per operational department. (~7336 tok)
+- `FulfillmentDocumentController.php` — Generating and downloading fulfilment paperwork (Ozon BL + carrier (~958 tok)
 - `IntegrationsController.php` — Topics currently wired up end to end (Shopify Integration Workflow Upgrade). (~6435 tok)
 - `OperationsController.php` — Focused, single-station queues layered over the existing department (~1642 tok)
-- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~5887 tok)
+- `OrderController.php` — Unified orders list — POS and online in one filterable, paginated table. (~6503 tok)
 - `OrderNotificationController.php` — Lightweight polling endpoint for order badges/toasts — no websockets/ (~1054 tok)
 - `ProductCleanupController.php` — Safe bulk cleanup for imported products — archive, unlink a platform (~1768 tok)
 - `ProductController.php` — index, syncFromPlatform, create, store (~10548 tok)
@@ -288,7 +291,7 @@
 - `AgentScoreRule.php` — Configurable points-per-event-type rule — points/bonus system FOUNDATION (~437 tok)
 - `CityDeliveryProviderMapping.php` — Links an internal City to one provider's city (e.g. Ozon). (~198 tok)
 - `DeliveryConnection.php` — A store's credentials + settings for one delivery provider (e.g. Ozon (~1287 tok)
-- `DeliveryNote.php` — A carrier handover batch (provider-side BL), distinct from the internal MAN- manifest system. (~317 tok)
+- `DeliveryNote.php` — A carrier handover batch (provider-side BL), distinct from the internal MAN- manifest system. (~366 tok)
 - `DeliveryNoteShipment.php` — Model — 2 fields (~74 tok)
 - `DeliveryProvider.php` — Every organization's finance setup for this provider — multiple rows (~237 tok)
 - `DeliveryProviderCity.php` — One provider's city, as synced from its API (e.g. Ozon's /cities). (~388 tok)
@@ -308,6 +311,7 @@
 - `FinanceRecurringExpense.php` — Model — 17 fields, 5 rels (~748 tok)
 - `FinanceTransaction.php` — Append-only cash/sales ledger. Never updated or deleted by application (~460 tok)
 - `FinanceVendor.php` — Model — 7 fields, 3 rels (~334 tok)
+- `FulfillmentDocument.php` — One piece of fulfilment paperwork — a fetched Ozon BL/label PDF, or a (~677 tok)
 - `InventoryReservation.php` — Model — 13 fields, 4 rels (~383 tok)
 - `Order.php` — Model — 47 fields, 4 rels (~2601 tok)
 - `OrderNotification.php` — Per-user "new order" notification row — one per (user, order, type), see the migration's own doc com (~364 tok)
@@ -324,7 +328,7 @@
 - `ProductPublishResult.php` — Model — 10 fields, 4 rels (~383 tok)
 - `ProductSyncBatch.php` — Recompute counts/status from the batch's own result rows. (~625 tok)
 - `ProductSyncResult.php` — One row per (sync batch, platform connection) — a sync operates on a whole connection's catalog, not (~335 tok)
-- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1787 tok)
+- `Shipment.php` — The rich, provider-specific shipment record (Ozon first). Separate from (~1933 tok)
 - `ShipmentEvent.php` — Append-only tracking history for one shipment. (~236 tok)
 - `StockLedger.php` — Model — table: stock_ledger, 12 fields, 5 rels (~368 tok)
 - `StockTransfer.php` — A Stock Transfer / Bon de Sortie (exit slip): the authoritative record of goods (~816 tok)
@@ -388,13 +392,14 @@
 
 - `DeliveryCityMappingResolver.php` — Resolves which Ozon (or any provider) city a packed order should ship to, (~2880 tok)
 - `DeliveryCityMappingSuggestionService.php` — Conservative internal-city -> provider-city matching, for the "Map all (~1873 tok)
-- `DeliveryNoteService.php` — Orchestrates Ozon's Bon de Livraison (delivery note) flow: create, add parcels, save, get PDFs. (~890 tok)
+- `DeliveryNoteService.php` — Orchestrates Ozon's Bon de Livraison (delivery note) flow: create, add parcels, save, get PDFs. (~2765 tok)
+- `FulfillmentDocumentService.php` — The single write path for `fulfillment_documents`. Purely operational (~2050 tok)
 - `OzonCityMappingService.php` — OzonCityMappingService: syncCities, mapCity, mapAllSuggested, unmappedCities (~1160 tok)
 - `OzonShipmentCreationException.php` — Thrown when Ozon rejects add-parcel or its response can't be parsed for a (~198 tok)
-- `OzonShipmentService.php` — Sends a packed order to Ozon Express and records the result. (~4913 tok)
+- `OzonShipmentService.php` — Sends a packed order to Ozon Express and records the result. (~5079 tok)
 - `SenditDistrictMappingService.php` — Sendit's district-sync + internal-city mapping — mirrors (~2604 tok)
 - `SenditShipmentCreationException.php` — Thrown when Sendit rejects POST /deliveries or its response can't be (~228 tok)
-- `SenditShipmentService.php` — Sends a packed order to Sendit and records the result. Mirrors (~2407 tok)
+- `SenditShipmentService.php` — Sends a packed order to Sendit and records the result. Mirrors (~2546 tok)
 - `SenditWebhookService.php` — Applies a Sendit webhook payload to the matching shipment. Signature (~929 tok)
 - `ShipmentTrackingService.php` — Refreshes a shipment's tracking state (any provider, via (~1880 tok)
 
@@ -464,7 +469,7 @@
 
 ## app/Services/Pos/
 
-- `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~3391 tok)
+- `DocumentGenerationService.php` — Render a finalized Facture to an A4 PDF and persist it. Returns the (~3833 tok)
 - `OrderProcessingService.php` — Create a POS order with its line items. Runs in a single transaction so (~3783 tok)
 
 ## app/Services/Publishing/
@@ -519,7 +524,7 @@
 - `OrderLineItems.php` — One line-item shape for both order models, for code that has to touch stock. (~1754 tok)
 - `OrderPresenter.php` — Normalizes POS and online orders into one shape for the Order Management view, (~4026 tok)
 - `OrderSourceSummary.php` — Phase OST — single source of truth for "where did this order come from", (~1428 tok)
-- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4292 tok)
+- `PermissionCatalog.php` — Central catalogue of every granular permission a store role can grant. (~4463 tok)
 - `WaitingStockState.php` — Single source of truth for "what should a waiting-stock order's badge say" (~979 tok)
 
 ## app/Support/Delivery/
@@ -539,6 +544,7 @@
 ## config/
 
 - `finance.php` (~238 tok)
+- `fulfillment.php` (~274 tok)
 - `inventory.php` (~265 tok)
 - `sync.php` (~226 tok)
 
@@ -603,6 +609,7 @@
 - `2026_09_06_000003_create_payroll_periods_table.php` — Migration: create payroll_periods table (~434 tok)
 - `2026_09_06_000004_create_payroll_items_table.php` — One salary-due line per employee per payroll period. Calculating a period (~824 tok)
 - `2026_09_06_000005_create_employee_advances_table.php` — Migration: create employee_advances table (~605 tok)
+- `2026_09_07_000001_create_fulfillment_documents_table.php` — Generic private store for fulfilment paperwork — Ozon Bon de Livraison (~733 tok)
 
 ## database/seeders/
 
@@ -769,7 +776,7 @@
 ## resources/js/Pages/Dashboard/Departments/
 
 - `Confirmation.jsx` — Confirmation desk — the 'Pending confirmation' queue. (~5826 tok)
-- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~13678 tok)
+- `Dispatch.jsx` — Dispatch board — packed orders waiting for a carrier, and everything in flight. (~15235 tok)
 - `Packing.jsx` — Pick & pack bench — confirmed online orders and delivery-bound POS orders in (~5668 tok)
 
 ## resources/js/Pages/Dashboard/Finance/
@@ -846,7 +853,7 @@
 - `Manage.jsx` — COLUMNS (~15167 tok)
 - `Manage.jsx` — Multi-channel fulfillment board (Kanban+table); dept/source tabs, drawer transitions (~7000 tok)
 - `Show.jsx` — Show — renders table (~3496 tok)
-- `ShowOnline.jsx` — Pre-send visibility into how "Send to Ozon" would resolve this order's city — helps debug "not mappe (~4544 tok)
+- `ShowOnline.jsx` — Pre-send visibility into how "Send to Ozon" would resolve this order's city — helps debug "not mappe (~5318 tok)
 - `ShowOnline.jsx` — Online order detail: generate/view A4 invoice + print thermal receipt (~1700 tok)
 
 ## resources/js/Pages/Dashboard/Orders/Returns/
@@ -932,6 +939,7 @@
 ## resources/views/documents/
 
 - `bon-de-sortie.blade.php` — Blade template (~2277 tok)
+- `carrier-label.blade.php` — Blade template (~918 tok)
 - `internal-voucher.blade.php` — Blade template (~1482 tok)
 - `online-receipt.blade.php` — 80mm thermal receipt for an online Order (delivery slip); reads invoiceLineItems/invoiceTotals (~600 tok)
 - `online-receipt.blade.php` — Blade template (~850 tok)
@@ -1001,7 +1009,7 @@
 - `api.php` (~396 tok)
 - `auth.php` (~1236 tok)
 - `console.php` (~391 tok)
-- `dashboard.php` (~12971 tok)
+- `dashboard.php` (~13135 tok)
 - `settings.php` (~380 tok)
 - `web.php` — ============================================ (~1220 tok)
 
@@ -1064,8 +1072,10 @@
 - `DeliveryProviderFoundationTest.php` (~809 tok)
 - `DeliveryProvidersIntegrationTabTest.php` — Declares dpOwnerWorkspace (~1894 tok)
 - `DispatchModalProviderModeTest.php` — dmpWorkspace: dmpReadyOrder (~2725 tok)
+- `FulfillmentDocumentTest.php` — fulfilDocWorkspace: fulfilDocMemberWithRole, fulfilDocStoredDocument (~1564 tok)
 - `InternalAgentDispatchTest.php` — Declares iadWorkspace (~1214 tok)
 - `ManualCourierDispatchTest.php` — Declares mcdWorkspace (~1516 tok)
+- `OzonBonDeLivraisonLabelsTest.php` — Declares bllFakeOzon (~2650 tok)
 - `OzonCityMappingBulkTest.php` — Declares bulkTestManager (~1848 tok)
 - `OzonCityMappingSuggestionTest.php` — suggestionFor: ozonCity (~2102 tok)
 - `OzonCityMappingTest.php` (~1232 tok)
@@ -1099,6 +1109,7 @@
 ## tests/Feature/Finance/
 
 - `DeliveryProviderFeeTest.php` — dpfWorkspace: dpfDeliveredShipment, dpfStaffWithPermissions, dpfProviderCity (~6061 tok)
+- `DispatchFeeSnapshotTest.php` — Declares dfsSendOzonShipment (~1556 tok)
 - `FinanceAccessTest.php` — financeAccessWorkspace: financeAddStaffWithRole (~1091 tok)
 - `FinanceAccountTest.php` — Declares financeAccountWorkspace (~1669 tok)
 - `FinanceCashflowTest.php` — cashflowWorkspace: cashflowProduct, cashflowPosSession (~6200 tok)

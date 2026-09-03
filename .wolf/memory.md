@@ -4656,3 +4656,73 @@
 | 16:49 | Edited tests/Feature/Payroll/PayrollTest.php | modified it() | ~272 |
 | 16:50 | Edited tests/Feature/Payroll/PayrollTest.php | orderBy() → orderByDesc() | ~130 |
 | 16:57 | Session end: 205 writes across 86 files (FinanceCodSettlementViewPeriodTest.php, FinanceCodSettlementService.php, 2026_09_04_000001_add_justification_to_finance_expenses_table.php, FinanceExpenseJustificationType.php, FinanceExpenseJustificationStatus.php) | 48 reads | ~228902 tok |
+
+## Session: 2026-09-03 20:06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:49 | Created database/migrations/2026_09_07_000001_create_fulfillment_documents_table.php | — | ~733 |
+| 20:49 | Created app/Enums/FulfillmentDocumentType.php | — | ~323 |
+| 20:49 | Created app/Enums/FulfillmentDocumentStatus.php | — | ~335 |
+| 20:50 | Created config/fulfillment.php | — | ~274 |
+| 20:50 | Created app/Models/FulfillmentDocument.php | — | ~677 |
+| 20:50 | Created app/Services/Delivery/FulfillmentDocumentService.php | — | ~2053 |
+| 20:50 | Edited app/Connectors/Delivery/OzonExpressConnector.php | modified getDeliveryNotePdfUrls() | ~319 |
+| 20:51 | Edited app/Models/Shipment.php | modified shippable() | ~207 |
+| 20:51 | Edited app/Models/DeliveryNote.php | modified shipments() | ~87 |
+| 20:51 | Edited app/Services/Delivery/OzonShipmentService.php | added 1 import(s) | ~58 |
+| 20:51 | Edited app/Services/Delivery/OzonShipmentService.php | modified __construct() | ~64 |
+| 20:51 | Edited app/Services/Delivery/OzonShipmentService.php | modified use() | ~52 |
+| 20:51 | Edited app/Services/Delivery/OzonShipmentService.php | expanded (+9 lines) | ~190 |
+| 20:52 | Edited app/Services/Delivery/SenditShipmentService.php | added 1 import(s) | ~55 |
+| 20:52 | Edited app/Services/Delivery/SenditShipmentService.php | modified __construct() | ~64 |
+| 20:52 | Edited app/Services/Delivery/SenditShipmentService.php | modified use() | ~44 |
+| 20:52 | Edited app/Services/Delivery/SenditShipmentService.php | expanded (+8 lines) | ~137 |
+| 20:52 | Edited app/Services/Delivery/DeliveryNoteService.php | modified __construct() | ~212 |
+| 20:52 | Edited app/Services/Delivery/DeliveryNoteService.php | added nullish coalescing | ~1858 |
+| 20:53 | Edited app/Services/Delivery/DeliveryNoteService.php | 21→22 lines | ~258 |
+| 20:53 | Edited app/Services/Delivery/DeliveryNoteService.php | 8→5 lines | ~71 |
+| 20:53 | Edited app/Services/Pos/DocumentGenerationService.php | 3→4 lines | ~72 |
+| 20:53 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~411 |
+| 20:53 | Edited app/Services/Pos/DocumentGenerationService.php | added 1 condition(s) | ~100 |
+| 20:53 | Created resources/views/documents/carrier-label.blade.php | — | ~918 |
+| 20:54 | Created app/Http/Controllers/Dashboard/FulfillmentDocumentController.php | — | ~958 |
+| 20:54 | Edited routes/dashboard.php | added 1 import(s) | ~51 |
+| 20:54 | Edited routes/dashboard.php | modified group() | ~286 |
+| 20:55 | Edited app/Support/PermissionCatalog.php | 4→6 lines | ~266 |
+| 20:55 | Edited app/Support/PermissionCatalog.php | 6→7 lines | ~88 |
+| 20:55 | Edited app/Support/PermissionCatalog.php | 3→3 lines | ~98 |
+| 20:55 | Edited app/Support/PermissionCatalog.php | 3→3 lines | ~78 |
+| 20:55 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 2 import(s) | ~90 |
+| 20:55 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 1 condition(s) | ~466 |
+| 20:55 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | modified use() | ~137 |
+| 20:56 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added nullish coalescing | ~667 |
+| 20:56 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 2→4 lines | ~103 |
+| 20:56 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | added 6 condition(s) | ~380 |
+| 20:56 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | 4→5 lines | ~60 |
+| 20:56 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: can_generate_labels, can_view_labels | ~125 |
+| 20:56 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | CSS: shipment_ids | ~330 |
+| 20:57 | Edited resources/js/Pages/Dashboard/Departments/Dispatch.jsx | added nullish coalescing | ~1323 |
+| 20:57 | Edited app/Http/Controllers/Dashboard/OrderController.php | added 2 import(s) | ~48 |
+| 20:57 | Edited app/Http/Controllers/Dashboard/OrderController.php | added nullish coalescing | ~642 |
+| 20:57 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | CSS: fulfillment_documents, can_view_fulfillment_documents | ~160 |
+| 20:57 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | 2→6 lines | ~110 |
+| 20:57 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | added nullish coalescing | ~715 |
+| 20:58 | Edited app/Services/Delivery/FulfillmentDocumentService.php | 13→13 lines | ~190 |
+| 20:59 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | inline fix | ~19 |
+| 20:59 | Edited app/Http/Controllers/Dashboard/OrderController.php | inline fix | ~17 |
+| 20:59 | Created tests/Feature/Finance/DispatchFeeSnapshotTest.php | — | ~1530 |
+| 21:01 | Created tests/Feature/Delivery/OzonBonDeLivraisonLabelsTest.php | — | ~2587 |
+| 21:01 | Created tests/Feature/Delivery/FulfillmentDocumentTest.php | — | ~1475 |
+| 21:02 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | assertHeader() → assertDownload() | ~51 |
+| 21:07 | Session end: 54 writes across 24 files (2026_09_07_000001_create_fulfillment_documents_table.php, FulfillmentDocumentType.php, FulfillmentDocumentStatus.php, fulfillment.php, FulfillmentDocument.php) | 50 reads | ~138463 tok |
+| 21:18 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | inline fix | ~13 |
+| 21:18 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | inline fix | ~6 |
+| 21:18 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | inline fix | ~7 |
+| 21:18 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | inline fix | ~7 |
+| 21:19 | Session end: 58 writes across 24 files (2026_09_07_000001_create_fulfillment_documents_table.php, FulfillmentDocumentType.php, FulfillmentDocumentStatus.php, fulfillment.php, FulfillmentDocument.php) | 51 reads | ~139973 tok |
+| 21:29 | Edited tests/Feature/Delivery/FulfillmentDocumentTest.php | modified fulfilDocMemberWithRole() | ~176 |
+| 21:30 | Edited tests/Feature/Finance/DispatchFeeSnapshotTest.php | 4→3 lines | ~38 |
+| 21:30 | Edited tests/Feature/Finance/DispatchFeeSnapshotTest.php | 15→15 lines | ~237 |
+| 21:31 | Edited tests/Feature/Delivery/OzonBonDeLivraisonLabelsTest.php | 6→9 lines | ~166 |
+| 21:40 | Session end: 62 writes across 24 files (2026_09_07_000001_create_fulfillment_documents_table.php, FulfillmentDocumentType.php, FulfillmentDocumentStatus.php, fulfillment.php, FulfillmentDocument.php) | 53 reads | ~144752 tok |

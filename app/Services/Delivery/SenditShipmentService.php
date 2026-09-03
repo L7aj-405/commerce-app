@@ -10,6 +10,7 @@ use App\Models\DeliveryConnection;
 use App\Models\Order;
 use App\Models\Shipment;
 use App\Models\User;
+use App\Services\Finance\FinanceDeliveryProviderFeeCalculator;
 use App\Services\Orders\DispatchService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +28,7 @@ class SenditShipmentService
     public function __construct(
         private readonly DispatchService $dispatch,
         private readonly DeliveryCityMappingResolver $cityResolver,
+        private readonly FinanceDeliveryProviderFeeCalculator $feeCalculator,
     ) {}
 
     /** @throws ValidationException */
@@ -172,7 +174,7 @@ class SenditShipmentService
             );
         }
 
-        return DB::transaction(function () use ($order, $connection, $resolution, $amount, $result, $actor) {
+        $shipment = DB::transaction(function () use ($order, $connection, $resolution, $amount, $result, $actor) {
             $shipment = Shipment::updateOrCreate(
                 [
                     'store_id' => $order->store_id,
@@ -209,5 +211,13 @@ class SenditShipmentService
 
             return $shipment->refresh();
         });
+
+        // Freeze the carrier fee snapshot at hand-off — same shared,
+        // idempotent, never-throwing path Ozon uses (provider-district
+        // price / city override / provider default / manual ladder). Never
+        // reads a fee from the Sendit create response.
+        $this->feeCalculator->snapshotForShipment($shipment);
+
+        return $shipment->refresh();
     }
 }

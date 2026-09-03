@@ -63,11 +63,15 @@ it('keeps a single "Integrations" sidebar item and removes the standalone "Deliv
 it('highlights the Integrations sidebar item while on the Ozon setup/manage screen', function (): void {
     $source = inSidebarSource();
 
-    // isNavItemActive() OR-matches item.href against item.activeOn — the
-    // Integrations item must declare the Ozon setup route as one of those
-    // extra active paths, since that screen has no sidebar entry of its own.
-    expect($source)->toContain("activeOn: ['/dashboard/delivery-connections']")
-        ->toContain('function isNavItemActive(');
+    // Current navigation no longer uses the old isNavItemActive() helper.
+    // The contract is that the Integrations sidebar item includes the Ozon
+    // setup/manage route in its activeOn paths, so the Integrations domain
+    // stays highlighted while that legacy setup page is open.
+    expect($source)
+        ->toContain("label: 'Integrations'")
+        ->toContain("activeOn: ['/dashboard/delivery-connections']");
+
+    expect($source)->not->toContain('function isNavItemActive(');
 });
 
 it('routes the Integrations Center and the underlying Ozon setup page to real, named routes', function (): void {
