@@ -403,6 +403,8 @@ class OrderController extends Controller
             'ozon_city_resolution' => $this->ozonCityResolutionProp($order, $store),
             'fulfillment_documents' => $this->fulfillmentDocumentsProp($order),
             'can_view_fulfillment_documents' => Gate::allows('fulfillment.documents.view') || Gate::allows('orders.manage'),
+            'can_print_pick_ticket' => Gate::allows('fulfillment.documents.print') || Gate::allows('orders.manage'),
+            'pick_ticket_eligible' => app(\App\Services\Documents\PickPackTicketService::class)->isEligible($order),
         ]);
     }
 

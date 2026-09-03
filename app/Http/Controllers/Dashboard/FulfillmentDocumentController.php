@@ -7,10 +7,13 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryConnection;
 use App\Models\FulfillmentDocument;
+use App\Models\Order;
 use App\Models\Shipment;
 use App\Services\Delivery\DeliveryNoteService;
+use App\Services\Documents\PickPackTicketService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -73,6 +76,83 @@ class FulfillmentDocumentController extends Controller
         }
 
         return back()->with('success', "Ozon BL {$ref} saved and label PDFs stored.");
+    }
+
+    /**
+     * Stream the INTERNAL pick/pack ticket for one online order, inline for
+     * printing (`?download=1` forces a download). Read-only: no status
+     * change, no provider call, no finance transaction, no stock effect.
+     */
+    public function pickTicket(Request $request, Order $order, PickPackTicketService $tickets): Response
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $order->store_id !== $store->id, 404);
+
+        try {
+            $pdf = $tickets->render($order, $request->user());
+        } catch (ValidationException $e) {
+            abort(422, $e->validator->errors()->first());
+        }
+
+        $reference = (string) ($order->order_number ?? $order->id);
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "{$disposition}; filename=\"pick-ticket-{$reference}.pdf\"",
+        ]);
+    }
+
+    /**
+     * One combined PDF (a page per order) for several selected online
+     * orders. Same read-only guarantees as the single ticket.
+     */
+    public function pickTicketBatch(Request $request, PickPackTicketService $tickets): Response
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null, 403);
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['string'],
+        ]);
+
+        $orders = Order::query()
+            ->where('store_id', $store->id)
+            ->whereIn('id', $validated['ids'])
+            ->get();
+
+        abort_if($orders->isEmpty(), 404, 'No matching orders found for this store.');
+
+        try {
+            $pdf = $tickets->renderBatch($orders, $request->user());
+        } catch (ValidationException $e) {
+            abort(422, $e->validator->errors()->first());
+        }
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="pick-tickets.pdf"',
+        ]);
+    }
+
+    /**
+     * Save a private copy of the pick/pack ticket as a FulfillmentDocument
+     * (shows up in the order's Documents card). Optional convenience — the
+     * default flow just prints on demand.
+     */
+    public function savePickTicket(Request $request, Order $order, PickPackTicketService $tickets): RedirectResponse
+    {
+        $store = $request->user()->getActiveStore();
+        abort_if($store === null || $order->store_id !== $store->id, 404);
+
+        try {
+            $tickets->storeCopy($order, $request->user());
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->validator->errors()->first());
+        }
+
+        return back()->with('success', 'Pick/pack ticket saved to this order\'s documents.');
     }
 
     /**

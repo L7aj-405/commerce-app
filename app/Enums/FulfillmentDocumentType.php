@@ -28,4 +28,27 @@ enum FulfillmentDocumentType: string
             self::FallbackLabel => 'Fallback label',
         };
     }
+
+    /**
+     * SaaS-generated / internal documents a store may later customise via a
+     * DocumentTemplate. Provider PDFs (carrier_label, delivery_note) are
+     * NEVER in this set — they are whatever Ozon/Sendit returns.
+     *
+     * @return array<int, self>
+     */
+    public static function customizable(): array
+    {
+        return [self::PickTicket, self::FallbackLabel, self::PickupManifest];
+    }
+
+    /** @return array<int, string> */
+    public static function customizableValues(): array
+    {
+        return array_map(static fn (self $c) => $c->value, self::customizable());
+    }
+
+    public function isCustomizable(): bool
+    {
+        return in_array($this, self::customizable(), true);
+    }
 }

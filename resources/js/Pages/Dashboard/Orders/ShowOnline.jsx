@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail, Warehouse, AlertTriangle, Truck, RefreshCw, FileDown } from 'lucide-react';
+import { ArrowLeft, Printer, User, Calendar, Hash, FileText, FilePlus, Loader2, Globe, MapPin, Phone, Mail, Warehouse, AlertTriangle, Truck, RefreshCw, FileDown, ClipboardList } from 'lucide-react';
 import SaasLayout from '@/Layouts/SaasLayout';
 import StatusBadge from '@/Components/StatusBadge';
 
-export default function ShowOnline({ order, store, invoice = null, canInvoice = false, shipment = null, ozon_city_resolution: ozonCityResolution = null, fulfillment_documents: fulfillmentDocuments = [], can_view_fulfillment_documents: canViewFulfillmentDocuments = false }) {
+export default function ShowOnline({ order, store, invoice = null, canInvoice = false, shipment = null, ozon_city_resolution: ozonCityResolution = null, fulfillment_documents: fulfillmentDocuments = [], can_view_fulfillment_documents: canViewFulfillmentDocuments = false, can_print_pick_ticket: canPrintPickTicket = false, pick_ticket_eligible: pickTicketEligible = false }) {
     const currency = store?.currency ?? 'MAD';
     const [generating, setGenerating] = useState(false);
 
@@ -61,6 +61,25 @@ export default function ShowOnline({ order, store, invoice = null, canInvoice = 
                             {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />} Generate invoice
                         </button>
                     ) : null}
+                    {canPrintPickTicket && (
+                        pickTicketEligible ? (
+                            <a
+                                href={`/dashboard/orders/online/${order.id}/pick-pack-ticket`}
+                                target="_blank"
+                                rel="noopener"
+                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface-2 border border-line text-content hover:bg-surface-3"
+                            >
+                                <ClipboardList className="w-4 h-4" /> Print pick ticket
+                            </a>
+                        ) : (
+                            <span
+                                title="Order must be confirmed before printing a pick/pack ticket."
+                                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-surface-2 border border-line text-content-muted opacity-50 cursor-not-allowed"
+                            >
+                                <ClipboardList className="w-4 h-4" /> Print pick ticket
+                            </span>
+                        )
+                    )}
                     <a
                         href={receiptUrl}
                         target="_blank"

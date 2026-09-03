@@ -266,6 +266,16 @@
       "count": 2,
       "tokens": 2587,
       "first_read": "2026-09-03T20:31:34.465Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FulfillmentDocumentType.php": {
+      "count": 1,
+      "tokens": 323,
+      "first_read": "2026-09-03T21:01:35.646Z"
+    },
+    "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/FulfillmentDocumentController.php": {
+      "count": 2,
+      "tokens": 1758,
+      "first_read": "2026-09-03T21:04:32.019Z"
     }
   },
   "files_written": [
@@ -640,11 +650,215 @@
       "action": "edit",
       "tokens": 178,
       "at": "2026-09-03T20:31:44.065Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/config/documents.php",
+      "action": "create",
+      "tokens": 999,
+      "at": "2026-09-03T21:01:13.531Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/database/migrations/2026_09_08_000001_create_document_templates_table.php",
+      "action": "create",
+      "tokens": 750,
+      "at": "2026-09-03T21:01:26.121Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Models/DocumentTemplate.php",
+      "action": "create",
+      "tokens": 344,
+      "at": "2026-09-03T21:01:32.877Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Enums/FulfillmentDocumentType.php",
+      "action": "edit",
+      "tokens": 306,
+      "at": "2026-09-03T21:01:42.934Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Documents/ResolvedDocumentTemplate.php",
+      "action": "create",
+      "tokens": 553,
+      "at": "2026-09-03T21:01:52.427Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Documents/DocumentTemplateResolver.php",
+      "action": "create",
+      "tokens": 991,
+      "at": "2026-09-03T21:02:06.362Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Documents/DocumentRenderer.php",
+      "action": "create",
+      "tokens": 982,
+      "at": "2026-09-03T21:02:22.199Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/views/documents/pick-pack-ticket.blade.php",
+      "action": "create",
+      "tokens": 2948,
+      "at": "2026-09-03T21:03:07.041Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/views/documents/pick-pack-ticket.blade.php",
+      "action": "edit",
+      "tokens": 48,
+      "at": "2026-09-03T21:03:12.942Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Pos/DocumentGenerationService.php",
+      "action": "edit",
+      "tokens": 215,
+      "at": "2026-09-03T21:03:29.235Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Pos/DocumentGenerationService.php",
+      "action": "edit",
+      "tokens": 22,
+      "at": "2026-09-03T21:03:37.960Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Pos/DocumentGenerationService.php",
+      "action": "edit",
+      "tokens": 81,
+      "at": "2026-09-03T21:03:42.872Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Pos/DocumentGenerationService.php",
+      "action": "edit",
+      "tokens": 2047,
+      "at": "2026-09-03T21:04:12.311Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Services/Documents/PickPackTicketService.php",
+      "action": "create",
+      "tokens": 1122,
+      "at": "2026-09-03T21:04:29.086Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/FulfillmentDocumentController.php",
+      "action": "edit",
+      "tokens": 140,
+      "at": "2026-09-03T21:04:38.808Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/FulfillmentDocumentController.php",
+      "action": "edit",
+      "tokens": 956,
+      "at": "2026-09-03T21:04:53.578Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
+      "action": "edit",
+      "tokens": 225,
+      "at": "2026-09-03T21:05:02.982Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/routes/dashboard.php",
+      "action": "edit",
+      "tokens": 194,
+      "at": "2026-09-03T21:05:08.461Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/PermissionCatalog.php",
+      "action": "edit",
+      "tokens": 54,
+      "at": "2026-09-03T21:05:16.052Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Support/PermissionCatalog.php",
+      "action": "edit",
+      "tokens": 80,
+      "at": "2026-09-03T21:05:22.376Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/OrderController.php",
+      "action": "edit",
+      "tokens": 131,
+      "at": "2026-09-03T21:05:30.965Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "action": "edit",
+      "tokens": 193,
+      "at": "2026-09-03T21:05:43.917Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Orders/ShowOnline.jsx",
+      "action": "edit",
+      "tokens": 481,
+      "at": "2026-09-03T21:05:52.148Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/DepartmentController.php",
+      "action": "edit",
+      "tokens": 102,
+      "at": "2026-09-03T21:05:59.020Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "action": "edit",
+      "tokens": 169,
+      "at": "2026-09-03T21:06:13.528Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "action": "edit",
+      "tokens": 681,
+      "at": "2026-09-03T21:06:25.197Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/js/Pages/Dashboard/Departments/Packing.jsx",
+      "action": "edit",
+      "tokens": 501,
+      "at": "2026-09-03T21:06:35.659Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/FulfillmentDocumentController.php",
+      "action": "edit",
+      "tokens": 142,
+      "at": "2026-09-03T21:07:11.438Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/app/Http/Controllers/Dashboard/FulfillmentDocumentController.php",
+      "action": "edit",
+      "tokens": 222,
+      "at": "2026-09-03T21:07:19.061Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/PickPackTicketTest.php",
+      "action": "create",
+      "tokens": 3530,
+      "at": "2026-09-03T21:09:00.092Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/PickPackTicketTest.php",
+      "action": "edit",
+      "tokens": 91,
+      "at": "2026-09-03T21:09:52.521Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/PickPackTicketTest.php",
+      "action": "edit",
+      "tokens": 97,
+      "at": "2026-09-03T21:09:58.106Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/tests/Feature/Delivery/PickPackTicketTest.php",
+      "action": "edit",
+      "tokens": 454,
+      "at": "2026-09-03T21:10:10.599Z"
+    },
+    {
+      "file": "C:/Users/toshiba/Desktop/Work Laravel/claude/saas-commerce/resources/views/documents/pick-pack-ticket.blade.php",
+      "action": "edit",
+      "tokens": 64,
+      "at": "2026-09-03T21:10:29.462Z"
     }
   ],
   "edit_counts": {
     "database/migrations/2026_09_07_000001_create_fulfillment_documents_table.php": 1,
-    "app/Enums/FulfillmentDocumentType.php": 1,
+    "app/Enums/FulfillmentDocumentType.php": 2,
     "app/Enums/FulfillmentDocumentStatus.php": 1,
     "config/fulfillment.php": 1,
     "app/Models/FulfillmentDocument.php": 1,
@@ -655,22 +869,32 @@
     "app/Services/Delivery/OzonShipmentService.php": 4,
     "app/Services/Delivery/SenditShipmentService.php": 4,
     "app/Services/Delivery/DeliveryNoteService.php": 4,
-    "app/Services/Pos/DocumentGenerationService.php": 3,
+    "app/Services/Pos/DocumentGenerationService.php": 7,
     "resources/views/documents/carrier-label.blade.php": 1,
-    "app/Http/Controllers/Dashboard/FulfillmentDocumentController.php": 1,
-    "routes/dashboard.php": 2,
-    "app/Support/PermissionCatalog.php": 4,
-    "app/Http/Controllers/Dashboard/DepartmentController.php": 7,
+    "app/Http/Controllers/Dashboard/FulfillmentDocumentController.php": 5,
+    "routes/dashboard.php": 4,
+    "app/Support/PermissionCatalog.php": 6,
+    "app/Http/Controllers/Dashboard/DepartmentController.php": 8,
     "resources/js/Pages/Dashboard/Departments/Dispatch.jsx": 4,
-    "app/Http/Controllers/Dashboard/OrderController.php": 3,
-    "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx": 3,
+    "app/Http/Controllers/Dashboard/OrderController.php": 4,
+    "resources/js/Pages/Dashboard/Orders/ShowOnline.jsx": 5,
     "tests/Feature/Finance/DispatchFeeSnapshotTest.php": 3,
     "tests/Feature/Delivery/OzonBonDeLivraisonLabelsTest.php": 2,
-    "tests/Feature/Delivery/FulfillmentDocumentTest.php": 7
+    "tests/Feature/Delivery/FulfillmentDocumentTest.php": 7,
+    "config/documents.php": 1,
+    "database/migrations/2026_09_08_000001_create_document_templates_table.php": 1,
+    "app/Models/DocumentTemplate.php": 1,
+    "app/Services/Documents/ResolvedDocumentTemplate.php": 1,
+    "app/Services/Documents/DocumentTemplateResolver.php": 1,
+    "app/Services/Documents/DocumentRenderer.php": 1,
+    "resources/views/documents/pick-pack-ticket.blade.php": 3,
+    "app/Services/Documents/PickPackTicketService.php": 1,
+    "resources/js/Pages/Dashboard/Departments/Packing.jsx": 3,
+    "tests/Feature/Delivery/PickPackTicketTest.php": 4
   },
-  "anatomy_hits": 47,
+  "anatomy_hits": 49,
   "anatomy_misses": 5,
-  "repeated_reads_warned": 2,
+  "repeated_reads_warned": 3,
   "cerebrum_warnings": 0,
-  "stop_count": 4
+  "stop_count": 5
 }

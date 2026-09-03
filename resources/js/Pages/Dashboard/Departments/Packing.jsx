@@ -21,11 +21,16 @@ import {
  * What gets recorded is the outcome — the order moving to 'Ready for delivery'.
  */
 
-export default function Packing({ store, orders = [], agents = [], stats = {}, departments = [] }) {
+export default function Packing({ store, orders = [], agents = [], stats = {}, departments = [], can_print_pick_ticket: canPrintPickTicket = false }) {
     const currency = store?.currency ?? 'MAD';
     const userId   = usePage().props.auth?.user?.id ?? null;
 
     const q = useQueue(orders, { userId });
+
+    const visibleOnlineIds = q.rows.filter((o) => o.type === 'online').map((o) => o.id);
+    const bulkTicketUrl = visibleOnlineIds.length > 0
+        ? `/dashboard/orders/pick-pack-tickets?${visibleOnlineIds.map((id) => `ids[]=${encodeURIComponent(id)}`).join('&')}`
+        : null;
     const [taking, setTaking]   = useState(false);
     const [checked, setChecked] = useState({});   // `${key}:${index}` → bool
 
@@ -68,25 +73,37 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                         search={q.search} onSearch={q.setSearch}
                         placeholder="Search order or customer…"
                         extra={
-                            <div className="flex items-center gap-1 p-1 rounded-[var(--radius-button)] bg-surface-2 border border-line">
-                                {[
-                                    { value: 'all',    label: 'All sources' },
-                                    { value: 'online', label: 'Online' },
-                                    { value: 'pos',    label: 'POS delivery' },
-                                ].map((s) => (
-                                    <button
-                                        key={s.value}
-                                        onClick={() => q.setSource(s.value)}
-                                        className={[
-                                            'px-3 py-1.5 text-sm font-medium rounded-[var(--radius-button)] transition',
-                                            q.source === s.value
-                                                ? 'bg-surface text-content border border-line shadow-sm'
-                                                : 'text-content-muted hover:text-content hover:bg-surface-3 border border-transparent',
-                                        ].join(' ')}
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex items-center gap-1 p-1 rounded-[var(--radius-button)] bg-surface-2 border border-line">
+                                    {[
+                                        { value: 'all',    label: 'All sources' },
+                                        { value: 'online', label: 'Online' },
+                                        { value: 'pos',    label: 'POS delivery' },
+                                    ].map((s) => (
+                                        <button
+                                            key={s.value}
+                                            onClick={() => q.setSource(s.value)}
+                                            className={[
+                                                'px-3 py-1.5 text-sm font-medium rounded-[var(--radius-button)] transition',
+                                                q.source === s.value
+                                                    ? 'bg-surface text-content border border-line shadow-sm'
+                                                    : 'text-content-muted hover:text-content hover:bg-surface-3 border border-transparent',
+                                            ].join(' ')}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {canPrintPickTicket && bulkTicketUrl && (
+                                    <a
+                                        href={bulkTicketUrl}
+                                        target="_blank"
+                                        rel="noopener"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 transition"
                                     >
-                                        {s.label}
-                                    </button>
-                                ))}
+                                        <ClipboardList className="w-4 h-4" /> Print tickets ({visibleOnlineIds.length})
+                                    </a>
+                                )}
                             </div>
                         }
                     />
@@ -216,6 +233,17 @@ export default function Packing({ store, orders = [], agents = [], stats = {}, d
                                                 >
                                                     Release
                                                 </button>
+                                            )}
+
+                                            {canPrintPickTicket && o.type === 'online' && (
+                                                <a
+                                                    href={`/dashboard/orders/online/${o.id}/pick-pack-ticket`}
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[var(--radius-button)] bg-surface-2 border border-line text-content hover:bg-surface-3 transition"
+                                                >
+                                                    <ClipboardList className="w-4 h-4" /> Print ticket
+                                                </a>
                                             )}
 
                                             <div className="ml-auto flex items-center gap-2">

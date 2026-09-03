@@ -4726,3 +4726,38 @@
 | 21:30 | Edited tests/Feature/Finance/DispatchFeeSnapshotTest.php | 15→15 lines | ~237 |
 | 21:31 | Edited tests/Feature/Delivery/OzonBonDeLivraisonLabelsTest.php | 6→9 lines | ~166 |
 | 21:40 | Session end: 62 writes across 24 files (2026_09_07_000001_create_fulfillment_documents_table.php, FulfillmentDocumentType.php, FulfillmentDocumentStatus.php, fulfillment.php, FulfillmentDocument.php) | 53 reads | ~144752 tok |
+| 22:01 | Created config/documents.php | — | ~933 |
+| 22:01 | Created database/migrations/2026_09_08_000001_create_document_templates_table.php | — | ~700 |
+| 22:01 | Created app/Models/DocumentTemplate.php | — | ~321 |
+| 22:01 | Edited app/Enums/FulfillmentDocumentType.php | modified label() | ~286 |
+| 22:01 | Created app/Services/Documents/ResolvedDocumentTemplate.php | — | ~516 |
+| 22:02 | Created app/Services/Documents/DocumentTemplateResolver.php | — | ~925 |
+| 22:02 | Created app/Services/Documents/DocumentRenderer.php | — | ~917 |
+| 22:03 | Created resources/views/documents/pick-pack-ticket.blade.php | — | ~2752 |
+| 22:03 | Edited resources/views/documents/pick-pack-ticket.blade.php | 3→3 lines | ~45 |
+| 22:03 | Edited app/Services/Pos/DocumentGenerationService.php | modified __construct() | ~201 |
+| 22:03 | Edited app/Services/Pos/DocumentGenerationService.php | 8→3 lines | ~20 |
+| 22:03 | Edited app/Services/Pos/DocumentGenerationService.php | modified __construct() | ~76 |
+| 22:04 | Edited app/Services/Pos/DocumentGenerationService.php | added error handling | ~1911 |
+| 22:04 | Created app/Services/Documents/PickPackTicketService.php | — | ~1047 |
+| 22:04 | Edited app/Http/Controllers/Dashboard/FulfillmentDocumentController.php | added 3 import(s) | ~131 |
+| 22:04 | Edited app/Http/Controllers/Dashboard/FulfillmentDocumentController.php | added error handling | ~892 |
+| 22:05 | Edited routes/dashboard.php | modified group() | ~210 |
+| 22:05 | Edited routes/dashboard.php | modified group() | ~182 |
+| 22:05 | Edited app/Support/PermissionCatalog.php | inline fix | ~51 |
+| 22:05 | Edited app/Support/PermissionCatalog.php | inline fix | ~75 |
+| 22:05 | Edited app/Http/Controllers/Dashboard/OrderController.php | 4→6 lines | ~122 |
+| 22:05 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | CSS: can_print_pick_ticket, pick_ticket_eligible | ~193 |
+| 22:05 | Edited resources/js/Pages/Dashboard/Orders/ShowOnline.jsx | expanded (+19 lines) | ~481 |
+| 22:05 | Edited app/Http/Controllers/Dashboard/DepartmentController.php | 4→5 lines | ~95 |
+| 22:06 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | CSS: can_print_pick_ticket | ~169 |
+| 22:06 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | expanded (+12 lines) | ~681 |
+| 22:06 | Edited resources/js/Pages/Dashboard/Departments/Packing.jsx | expanded (+11 lines) | ~501 |
+| 22:07 | Edited app/Http/Controllers/Dashboard/FulfillmentDocumentController.php | modified pickTicket() | ~133 |
+| 22:07 | Edited app/Http/Controllers/Dashboard/FulfillmentDocumentController.php | modified pickTicketBatch() | ~208 |
+| 22:09 | Created tests/Feature/Delivery/PickPackTicketTest.php | — | ~3295 |
+| 22:09 | Edited tests/Feature/Delivery/PickPackTicketTest.php | added 2 import(s) | ~85 |
+| 22:09 | Edited tests/Feature/Delivery/PickPackTicketTest.php | modified pptCity() | ~91 |
+| 22:10 | Edited tests/Feature/Delivery/PickPackTicketTest.php | added error handling | ~424 |
+| 22:10 | Edited resources/views/documents/pick-pack-ticket.blade.php | 3→3 lines | ~60 |
+| 22:14 | Session end: 96 writes across 34 files (2026_09_07_000001_create_fulfillment_documents_table.php, FulfillmentDocumentType.php, FulfillmentDocumentStatus.php, fulfillment.php, FulfillmentDocument.php) | 55 reads | ~166748 tok |

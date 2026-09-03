@@ -84,6 +84,7 @@ class DepartmentController extends Controller
             ...$this->shared($store, $user, 'fulfillment'),
             'orders' => $orders,
             'agents' => $this->assignments->workload($store, 'orders.fulfil', $user, 'fulfillment'),
+            'can_print_pick_ticket' => $this->can($user, $store, 'fulfillment.documents.print'),
             'stats'  => [
                 'waiting_stock' => count(array_filter($orders, fn ($o) => $o['status'] === 'waiting_for_stock')),
                 'to_pick'       => count(array_filter($orders, fn ($o) => in_array($o['status'], ['confirmed', 'ready_for_picking'], true))),

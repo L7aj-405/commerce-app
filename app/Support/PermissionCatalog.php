@@ -89,7 +89,7 @@ final class PermissionCatalog
                     ['key' => 'delivery.shipments.create',   'label' => 'Send to delivery provider',   'description' => 'Send a packed order to an external carrier.'],
                     ['key' => 'delivery.shipments.track',    'label' => 'Track shipments',              'description' => 'Refresh tracking status for external-carrier shipments.'],
                     ['key' => 'delivery.notes.manage',       'label' => 'Manage delivery notes',        'description' => 'Create and save carrier delivery notes (Bon de Livraison).'],
-                    ['key' => 'fulfillment.documents.print', 'label' => 'Generate fulfilment documents', 'description' => 'Create the Ozon BL and fetch/store carrier label PDFs (with an internal fallback label when the provider PDF is unavailable).'],
+                    ['key' => 'fulfillment.documents.print', 'label' => 'Generate fulfilment documents', 'description' => 'Print the internal pick/pack ticket, and create the Ozon BL / carrier label PDFs (with an internal fallback label when the provider PDF is unavailable).'],
                     ['key' => 'fulfillment.documents.view',  'label' => 'View fulfilment documents',     'description' => 'Download stored carrier labels, delivery notes and fallback labels.'],
                 ],
             ],
@@ -225,7 +225,7 @@ final class PermissionCatalog
             [
                 'name'        => 'Warehouse',
                 'description' => 'Packs, dispatches and delivers confirmed orders.',
-                'permissions' => ['orders.view', 'orders.fulfil', 'orders.return', 'stock.view', 'inventory.transfers.receive', 'fulfillment.documents.view'],
+                'permissions' => ['orders.view', 'orders.fulfil', 'orders.return', 'stock.view', 'inventory.transfers.receive', 'fulfillment.documents.view', 'fulfillment.documents.print'],
                 'locked'      => false,
             ],
             [

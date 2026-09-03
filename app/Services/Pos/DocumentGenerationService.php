@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Pos;
 
+use App\Enums\FulfillmentDocumentType;
 use App\Models\Facture;
 use App\Models\FinanceExpense;
 use App\Models\Order;
 use App\Models\PosOrder;
+use App\Models\User;
+use App\Services\Documents\DocumentRenderer;
+use App\Services\Documents\DocumentTemplateResolver;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
@@ -27,6 +32,11 @@ class DocumentGenerationService
     private const BON_DE_SORTIE_VIEW   = 'documents.bon-de-sortie';
     private const INTERNAL_VOUCHER_VIEW = 'documents.internal-voucher';
     private const CARRIER_LABEL_VIEW   = 'documents.carrier-label';
+
+    public function __construct(
+        private readonly DocumentTemplateResolver $templates = new DocumentTemplateResolver(),
+        private readonly DocumentRenderer $renderer = new DocumentRenderer(),
+    ) {}
 
     /**
      * Render a finalized Facture to an A4 PDF and persist it. Returns the
@@ -190,6 +200,166 @@ class DocumentGenerationService
 
             throw new RuntimeException('Failed to generate carrier fallback label: ' . $e->getMessage(), 0, $e);
         }
+    }
+
+    /**
+     * Render the INTERNAL pick/pack ticket for one online order and return
+     * the raw PDF bytes. Routed through the DocumentTemplate abstraction so a
+     * store/organization can later override paper size, margins, header/
+     * footer, visible fields, barcode position and text labels without any
+     * code change — until then the system default (config/documents.php +
+     * resources/views/documents/pick-pack-ticket.blade.php) is used.
+     *
+     * No provider API call, no finance transaction, no inventory side effect,
+     * no order-status change — this is a read-only render of the order's own
+     * stored data.
+     */
+    public function renderPickPackTicket(Order $order, ?User $actor = null): string
+    {
+        try {
+            $template = $this->templates->resolve(
+                FulfillmentDocumentType::PickTicket->value,
+                $order->store?->organization,
+                $order->store_id,
+            );
+
+            return $this->renderer->render($template, $this->pickPackTicketData($order, $actor));
+        } catch (Throwable $e) {
+            Log::error('Pick/pack ticket generation failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+
+            throw new RuntimeException('Failed to generate pick/pack ticket: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * One combined PDF for several online orders — one order per page.
+     *
+     * @param  Collection<int, Order>  $orders
+     */
+    public function renderPickPackTicketBatch(Collection $orders, ?User $actor = null): string
+    {
+        if ($orders->isEmpty()) {
+            throw new RuntimeException('No orders were given for the pick/pack ticket batch.');
+        }
+
+        try {
+            $first = $orders->first();
+            $template = $this->templates->resolve(
+                FulfillmentDocumentType::PickTicket->value,
+                $first->store?->organization,
+                $first->store_id,
+            );
+
+            $items = $orders->map(fn (Order $o) => $this->pickPackTicketData($o, $actor))->all();
+
+            return $this->renderer->renderBatch($template, $items);
+        } catch (Throwable $e) {
+            Log::error('Pick/pack ticket batch generation failed', ['count' => $orders->count(), 'error' => $e->getMessage()]);
+
+            throw new RuntimeException('Failed to generate the pick/pack ticket batch: ' . $e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
+     * Everything the pick/pack ticket prints — built ONLY from the order's
+     * own columns and its `items` JSON snapshot, so a missing product/
+     * variant relation or SKU never causes a failure.
+     *
+     * @return array<string, mixed>
+     */
+    public function pickPackTicketData(Order $order, ?User $actor = null): array
+    {
+        $order->loadMissing(['store.organization', 'shippingCity', 'inventoryAllocation.warehouse']);
+
+        $platformData = is_array($order->platform_data) ? $order->platform_data : [];
+        $financialStatus = strtolower((string) ($platformData['financial_status']
+            ?? $platformData['payment_status']
+            ?? ($platformData['payment']['status'] ?? '')));
+        $isPrepaid = in_array($financialStatus, ['paid', 'prepaid', 'captured', 'authorized'], true);
+
+        $items = $this->pickPackTicketItems($order);
+        $unitsTotal = array_sum(array_map(static fn (array $it) => (int) ($it['quantity'] ?? 0), $items));
+
+        return [
+            'store_name' => $order->store?->name,
+            'organization_name' => $order->store?->organization?->name,
+            'warehouse_name' => $order->inventoryAllocation?->warehouse?->name,
+            'order_reference' => (string) ($order->order_number ?? $order->id),
+            'order_id' => $order->id,
+            'order_date' => optional($order->created_at)->format('Y-m-d H:i'),
+            'printed_at' => now()->format('Y-m-d H:i'),
+            'printed_by' => $actor?->name,
+            'customer_name' => $order->customer_name ?: null,
+            'phone' => $order->customer_phone ?: null,
+            'city' => $order->shippingCity?->name,
+            'address' => $order->confirmed_shipping_address ?: null,
+            'notes' => $order->notes ?: null,
+            'payment_method' => $isPrepaid ? 'Prepaid (paid online)' : 'Cash on delivery (COD)',
+            'is_prepaid' => $isPrepaid,
+            'cod_amount' => $isPrepaid ? 0.0 : (float) $order->total,
+            'currency' => $order->currency ?? 'MAD',
+            'items' => $items,
+            'items_count' => count($items),
+            'units_total' => $unitsTotal,
+        ];
+    }
+
+    /**
+     * The order's line items, straight from `orders.items` JSON — never
+     * resolved through the inventory resolver (that would be an unwanted
+     * side effect on a plain print). Tolerates every connector's key
+     * variations.
+     *
+     * @return array<int, array{name: string, variant: ?string, sku: ?string, barcode: ?string, quantity: int}>
+     */
+    private function pickPackTicketItems(Order $order): array
+    {
+        $raw = is_array($order->items) ? $order->items : [];
+
+        return array_values(array_map(function ($item): array {
+            $item = is_array($item) ? $item : [];
+
+            $variant = $item['variant'] ?? $item['variant_title'] ?? $item['variation'] ?? null;
+
+            if ($variant === null && ! empty($item['options']) && is_array($item['options'])) {
+                $parts = [];
+                foreach ($item['options'] as $key => $value) {
+                    if (is_array($value)) {
+                        $label = $value['name'] ?? $value['key'] ?? null;
+                        $val = $value['value'] ?? $value['option'] ?? null;
+                        $parts[] = trim(($label ? "{$label}: " : '') . (string) $val);
+                    } elseif (is_string($key) && ! is_int($key)) {
+                        $parts[] = "{$key}: {$value}";
+                    } else {
+                        $parts[] = (string) $value;
+                    }
+                }
+                $variant = implode(' / ', array_filter($parts));
+            }
+
+            return [
+                'name' => (string) ($item['name'] ?? $item['title'] ?? $item['product_name'] ?? 'Item'),
+                'variant' => ($variant !== null && $variant !== '') ? (string) $variant : null,
+                'sku' => $this->firstFilled($item, ['sku', 'product_sku', 'variant_sku']),
+                'barcode' => $this->firstFilled($item, ['barcode', 'ean', 'ean13', 'upc', 'gtin']),
+                'quantity' => max(1, (int) ($item['quantity'] ?? $item['qty'] ?? 1)),
+            ];
+        }, $raw));
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  array<int, string>  $keys
+     */
+    private function firstFilled(array $item, array $keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (isset($item[$key]) && $item[$key] !== '' && $item[$key] !== null) {
+                return (string) $item[$key];
+            }
+        }
+
+        return null;
     }
 
     /**

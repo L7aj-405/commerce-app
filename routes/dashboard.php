@@ -141,6 +141,11 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 Route::get('/manage',              [OrderController::class, 'manage'])->name('manage');
                 Route::post('/{type}/{id}/status', [OrderController::class, 'updateStatus'])->name('status');
 
+                // Internal pick/pack ticket — declared BEFORE the /{order}
+                // catch-all so "pick-pack-tickets" is not read as a POS id.
+                Route::middleware('perm:fulfillment.documents.print')
+                    ->get('/pick-pack-tickets', [FulfillmentDocumentController::class, 'pickTicketBatch'])->name('pick-pack-tickets.batch');
+
                 // Inspection department. Declared before /{order} so "returns"
                 // is not swallowed by the order show route.
                 Route::prefix('returns')->name('returns.')->group(function () {
@@ -157,6 +162,10 @@ Route::middleware(['auth', ResolveTenant::class, 'onboarding_complete', 'can_das
                 // they get dedicated routes. Declared before the POS-bound
                 // /{order} catch-all so "online" isn't resolved as a receipt #.
                 Route::get('/online/{order}/receipt', [OrderController::class, 'receiptOnline'])->name('online.receipt');
+                Route::middleware('perm:fulfillment.documents.print')->group(function () {
+                    Route::get('/online/{order}/pick-pack-ticket',       [FulfillmentDocumentController::class, 'pickTicket'])->name('online.pick-pack-ticket');
+                    Route::post('/online/{order}/pick-pack-ticket/save', [FulfillmentDocumentController::class, 'savePickTicket'])->name('online.pick-pack-ticket.save');
+                });
                 Route::get('/online/{order}',         [OrderController::class, 'showOnline'])->name('online.show');
 
                 Route::get('/{order}/receipt',     [OrderController::class, 'receipt'])->name('receipt');
